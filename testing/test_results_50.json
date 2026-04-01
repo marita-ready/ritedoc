@@ -1,0 +1,3526 @@
+{
+  "test_date": "2026-04-01T19:20:36.189783",
+  "model": "gpt-4.1-mini",
+  "summaries": [
+    {
+      "mode": "turbo",
+      "total": 50,
+      "successful": 50,
+      "errors": 0,
+      "traffic_light_accuracy": 40.0,
+      "red_flag_accuracy": 94.0,
+      "pii_accuracy": 100.0,
+      "hallucination_free_pct": 72.0,
+      "avg_time_ms": 9693.66,
+      "total_time_s": 484.683
+    }
+  ],
+  "detailed_results": [
+    {
+      "note_id": 1,
+      "mode": "turbo",
+      "raw_text": "Arrived at 9am. John was asleep. Woke him up and he had breakfast. He watched TV all day. Left at 3pm.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Poor goal linkage, no measurable outcomes.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note lacks any mention of goals or how the visit activities relate to participant goals."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes participant actions but does not include participant expressions, preferences, or direct quotes."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are included."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note documents support worker activities such as waking the participant and facilitating breakfast."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "The note states no safety concerns, but this is not supported by the original note or metadata, making it an unsupported addition."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note states the support worker departed at 11:00 AM after a 2-hour session, which conflicts with the original note stating departure at 3:00 PM. The metadata indicates a 2-hour duration, but the original note's departure time is 3:00 PM, creating a discrepancy not supported by the original note or metadata. The addition of 'No safety concerns were observed during the visit' is not present in the original note or metadata, representing a minor unsupported addition.",
+      "audit_notes": "The rewritten note contains a timing discrepancy regarding departure time and duration, and includes an unsupported statement about safety. It lacks goal linkage, participant voice, and measurable outcomes. Support delivered is documented but minimal.",
+      "rewritten_note": "On March 20, 2026, the support worker arrived at the participant's residence at 9:00 AM. The participant, John, was asleep upon arrival and was subsequently awakened. The participant consumed breakfast following awakening. Throughout the visit, the participant engaged in watching television. The support worker departed at 11:00 AM after a 2-hour session. No safety concerns were observed during the visit.",
+      "time_ms": 11743,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 2,
+      "mode": "turbo",
+      "raw_text": "Took Sarah to the shops. She bought some clothes. She seemed happy.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Vague, lacks detail on support provided.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the activity to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note reflects participant actions and mood but does not include direct participant quotes or perspectives."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions the participant bought clothes and appeared happy but lacks specific measurable outcomes or progress indicators."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's involvement and the activity provided."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note mentions no safety concerns were observed, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, duration, participant code, and activity details match. The mood description 'appeared to be in a positive mood' is a reasonable interpretation of 'seemed happy'. The statement about no safety concerns is an addition but not contradicted by the original note.",
+      "audit_notes": "The note is factual and free of hallucinations, with clear documentation of support delivered and safety. However, it lacks linkage to participant goals, measurable outcomes, and participant voice depth, resulting in an overall orange rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker accompanied participant P-002 to the shops. The participant purchased clothing items during the outing and appeared to be in a positive mood throughout the activity. No safety concerns were observed during this time.",
+      "time_ms": 8682,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 3,
+      "mode": "turbo",
+      "raw_text": "Client was very aggressive today. He hit me and threw a chair. I had to restrain him.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 2,
+      "expected_notes": "Incident detected: aggression, restraint.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 3,
+      "red_flags": [
+        {
+          "category": "Behavioural Incident",
+          "description": "Participant exhibited aggressive behavior including physical aggression and throwing a chair.",
+          "keywords_matched": [
+            "aggressive",
+            "hit me",
+            "threw a chair",
+            "aggressive behavior",
+            "physical aggression"
+          ],
+          "severity": "HIGH"
+        },
+        {
+          "category": "Unauthorised Restrictive Practice",
+          "description": "Physical restraint was used to manage the participant's aggressive behavior.",
+          "keywords_matched": [
+            "restrain",
+            "physical restraint techniques"
+          ],
+          "severity": "HIGH"
+        },
+        {
+          "category": "Worker Safety / WHS Concerns",
+          "description": "Support worker was physically assaulted by the participant.",
+          "keywords_matched": [
+            "hit me",
+            "physical aggression towards the support worker"
+          ],
+          "severity": "CRITICAL"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the incident or support provided to any participant goals or care plans."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 0,
+          "met": false,
+          "feedback": "The participant's perspective, feelings, or responses are not included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "There are no measurable outcomes or indicators of progress or resolution documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the use of physical restraint but lacks detail on support strategies or interventions beyond restraint."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 0,
+          "met": false,
+          "feedback": "The note fails to adequately address risk management or safety follow-up despite the presence of significant safety concerns and red flags."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes details not present in the original note or metadata, such as 'No injuries were reported' and 'The environment was secured to ensure the safety of all individuals present.' These are not supported by the original raw note or metadata.",
+      "audit_notes": "Red flags are present due to the participant's aggressive behavior, use of physical restraint, and worker safety concerns. The rewritten note contains hallucinated details not supported by the original note or metadata. The note lacks linkage to goals, participant voice, measurable outcomes, and sufficient risk and safety documentation. Therefore, the overall rating is RED.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker (W-003) provided services to participant P-003. During the session, the participant exhibited aggressive behavior, including physical aggression towards the support worker and throwing a chair. The support worker implemented physical restraint techniques to manage the situation safely. No injuries were reported. The environment was secured to ensure the safety of all individuals present.",
+      "time_ms": 12729,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 3,
+        "expected_red_flags": 2
+      }
+    },
+    {
+      "note_id": 4,
+      "mode": "turbo",
+      "raw_text": "Administered 2 Panadol at 10am for a headache as per PRN protocol. Client reported feeling better by 11am.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of PRN administration.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 2,
+          "met": true,
+          "feedback": "The note links the intervention (Panadol administration) to the goal of headache management as per PRN protocol."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's report of feeling better is included, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's improvement by 11:00 AM is a measurable outcome."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly documents the support delivered including timing and dosage."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions no adverse reactions and safety maintained, but this is not supported by the original note or metadata, so safety details are unverified."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes information about no adverse reactions and maintained safety which are not present in the original note or metadata, constituting hallucinations.",
+      "audit_notes": "The rewritten note is detailed and mostly accurate but includes unsupported statements about no adverse reactions and maintained safety, which are hallucinations. This affects the Risk & Safety pillar and results in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker administered two Panadol tablets to participant P-004 at 10:00 AM in accordance with the PRN protocol for headache management. The participant reported an improvement in symptoms by 11:00 AM. No adverse reactions were observed during the monitoring period. The participant's safety was maintained throughout the intervention.",
+      "time_ms": 11408,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 5,
+      "mode": "turbo",
+      "raw_text": "Aunty Liz came over for lunch. They had a big argument about money. Client was very upset afterwards.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: family conflict causing distress. PII: Aunty Liz.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Property Damage / Financial Irregularity",
+          "description": "A significant argument about money occurred, indicating potential financial concerns or disputes.",
+          "keywords_matched": [
+            "big argument about money",
+            "significant disagreement regarding financial matters"
+          ],
+          "severity": "MEDIUM"
+        }
+      ],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Aunty Liz came"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the observed events to any specific participant goals or support plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the participant's emotional state but does not include direct quotes or detailed participant perspectives."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are included in the note."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note indicates that the support worker monitored the participant's emotional state and ensured safety, showing active support during the incident."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note addresses a significant argument about financial matters, a known red flag, and documents the support worker's actions to monitor and ensure participant safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, and the description of the argument and participant's emotional state are consistent with the original information.",
+      "audit_notes": "Red flags related to a significant argument about money are present, requiring a RED traffic light regardless of scores. The note accurately reflects the original information and addresses risk and safety adequately, but lacks goal linkage, participant voice, and measurable outcomes.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-005 observed that the participant (P-005) had a visitor for lunch. During the visit, the participant engaged in a significant disagreement regarding financial matters. Following the argument, the participant appeared visibly upset. The support worker monitored the participant's emotional state throughout the session and ensured their safety.",
+      "time_ms": 10382,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 6,
+      "mode": "turbo",
+      "raw_text": "Took client to Dr. Smith at the Royal Melbourne Hospital for a checkup. Doctor said everything is fine.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of medical appointment. PII: Dr. Smith, Royal Melbourne Hospital.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 3,
+      "pii_items": [
+        [
+          "medical_professional",
+          "Dr. Smith at"
+        ],
+        [
+          "medical_professional",
+          "Doctor said everything"
+        ],
+        [
+          "facility",
+          "the Royal Melbourne Hospital"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not explicitly link the support activity to participant goals or outcomes."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 0,
+          "met": false,
+          "feedback": "There is no participant perspective or voice included in the note."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or specific results are documented; the statement about stable condition is unsupported."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note describes the support worker accompanying the participant to a medical checkup, consistent with the original note and metadata."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "The note claims participant safety was maintained and no adverse events occurred, but this is not supported by the original note."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note adds information not present in the original note, such as the exact times (9:00 AM to 11:00 AM), the participant and support worker codes, the statement that the participant was in stable condition, and that no adverse events were noted. The original note only states that the client was taken to a medical professional for a checkup and that the medical professional is fine. The original does not specify participant condition or safety details. These additions are not supported by the original note or metadata and thus are hallucinations.",
+      "audit_notes": "The rewritten note contains hallucinated details not supported by the original note or metadata, particularly regarding participant condition and safety. It lacks linkage to participant goals, participant voice, and measurable outcomes. Support delivered is adequately described. Due to hallucinations and low scores in key pillars, the overall rating is ORANGE.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-006 accompanied Participant P-006 to a medical facility for a scheduled checkup with a medical professional. The medical professional reported that the participant was in stable condition. No adverse events were noted during the visit. Participant safety was maintained throughout the duration of the support.",
+      "time_ms": 12930,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 7,
+      "mode": "turbo",
+      "raw_text": "Client refused to take his morning medication (Risperidone 2mg). I tried to encourage him but he said no.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: medication refusal.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Medication Error / Missed Medication",
+          "description": "The client refused to take prescribed morning medication Risperidone 2mg despite encouragement.",
+          "keywords_matched": [
+            "refused to take his morning medication",
+            "participant refused to take his prescribed morning medication"
+          ],
+          "severity": "MEDIUM"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the medication refusal event to any participant goals or care plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's refusal is clearly documented, reflecting their choice and voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks measurable outcomes or follow-up plans related to the medication refusal."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Support worker's efforts to encourage medication adherence and monitoring of safety are documented."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note acknowledges the medication refusal as a risk and indicates monitoring to ensure safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, medication refusal, and encouragement attempts are all accurate. The statement about monitoring for safety is a reasonable inference given the context and does not contradict any original information.",
+      "audit_notes": "A red flag for medication error/missed medication was detected, which mandates a RED traffic light regardless of pillar scores. The note is accurate and clear but lacks explicit goal linkage and measurable outcomes.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-007 provided care to Participant P-007. During this session, the participant refused to take his prescribed morning medication, Risperidone 2mg. The support worker attempted to encourage medication adherence; however, the participant declined to take the medication. The situation was monitored to ensure the participant's safety throughout the session.",
+      "time_ms": 10190,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 8,
+      "mode": "turbo",
+      "raw_text": "Went for a walk in Fitzroy. Client enjoyed the sunshine and we talked about his upcoming holiday.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of community access. PII: Fitzroy.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "location",
+          "Fitzroy"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the activity to any participant goals or broader support plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's enjoyment and conversation topic are included, reflecting participant engagement and voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the activity and participant reaction but lacks measurable or specific outcomes or progress indicators."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions and presence during the walk are clearly documented, including time and location."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, duration, participant code, location, activity, participant enjoyment, and conversation topic are consistent. The statement about no safety concerns is a reasonable inference given no red flags were detected.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents support delivered and participant voice well, and addresses safety. However, it lacks explicit linkage to participant goals and measurable outcomes, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker accompanied Participant P-008 for a walk in [Location]. The participant appeared to enjoy the sunshine during the outing. During this time, the support worker and participant engaged in a conversation regarding the participant's upcoming holiday. No safety concerns were observed throughout the session.",
+      "time_ms": 10051,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 9,
+      "mode": "turbo",
+      "raw_text": "Client was feeling very low today. He said he didn't want to be here anymore. I stayed with him and called his supervisor.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: suicidal ideation.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Suicidal Ideation / Self-Harm",
+          "description": "Participant expressed feelings of significant distress and a desire not to continue his current situation, indicating potential suicidal ideation.",
+          "keywords_matched": [
+            "feeling very low",
+            "didn't want to be here anymore",
+            "expressed feelings of significant distress",
+            "desire not to continue his current situation"
+          ],
+          "severity": "CRITICAL"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the session or intervention to any participant goals or care plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's feelings and statements are clearly represented, capturing the expressed distress and desire not to continue."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks measurable or observable outcomes; it describes actions taken but does not specify any progress or changes."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions\u2014staying with the participant and contacting the supervisor\u2014are clearly documented as immediate support and safety measures."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note appropriately addresses the participant's risk, documenting the support worker's response to potential suicidal ideation and prioritization of safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The participant's feelings, support worker actions, and timing are consistent with the source information.",
+      "audit_notes": "Red flag for suicidal ideation/self-harm is present, mandating a RED traffic light regardless of other scores. The note is accurate and clear but lacks explicit goal linkage and measurable outcomes.",
+      "rewritten_note": "On 2026-03-20 at 9:00 AM, Support Worker W-009 provided a 2-hour session with participant P-009. During the session, the participant expressed feelings of significant distress and verbalized a desire not to continue his current situation. The support worker remained with the participant to provide immediate emotional support and contacted the participant's supervisor to ensure appropriate follow-up. The participant's safety was prioritized throughout the interaction.",
+      "time_ms": 10558,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 10,
+      "mode": "turbo",
+      "raw_text": "Helped client with personal care. He was able to shower independently but needed help dressing.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of personal care support.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the support provided but does not explicitly link to any participant goals."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note reports participant ability but does not include direct participant quotes or expressions."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly states the participant's ability to shower independently and need for assistance with dressing, which are measurable observations."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note details the support worker's involvement, timing, and specific assistance provided."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All information in the rewritten note is supported by the original note and metadata. The addition of 'No safety concerns were observed during the session' is a reasonable inference given no red flags were detected and does not contradict any data.",
+      "audit_notes": "The rewritten note is accurate and includes relevant metadata and safety information. However, it lacks explicit linkage to participant goals and does not incorporate participant voice, resulting in lower scores in those areas. No hallucinations or red flags were found.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-010 assisted participant P-010 with personal care. The participant was able to shower independently but required assistance with dressing. No safety concerns were observed during the session.",
+      "time_ms": 7758,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 11,
+      "mode": "turbo",
+      "raw_text": "Uncle Bob called and asked for money. Client got very angry and hung up the phone.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: family conflict. PII: Uncle Bob.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Abuse / Neglect / Exploitation",
+          "description": "Participant was asked for money by an associate, which may indicate potential financial exploitation.",
+          "keywords_matched": [
+            "asked for money"
+          ],
+          "severity": "MEDIUM"
+        }
+      ],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Uncle Bob called"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the event or session to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "Participant's emotional response is noted, but no direct quotes or detailed participant perspective is included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions professional management and safety maintenance but lacks specifics on support strategies or interventions provided."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "The note acknowledges the risk event (being asked for money) and participant's reaction, but does not document any follow-up actions or safety planning."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes, and the event of being asked for money and participant's reaction are accurate. The statement about professional management and safety maintenance is a reasonable inference without introducing new facts.",
+      "audit_notes": "Red flag detected for potential financial exploitation, mandating a RED traffic light. The note is factually accurate but lacks linkage to goals, measurable outcomes, detailed participant voice, and comprehensive risk management documentation.",
+      "rewritten_note": "On 2026-03-20 at 9:00 AM, support worker W-011 provided a 2-hour session with participant P-011. During the interaction, the participant became upset and abruptly ended a phone call after being asked for money by an associate. The situation was managed professionally, and the participant's safety was maintained throughout the session.",
+      "time_ms": 9781,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 12,
+      "mode": "turbo",
+      "raw_text": "Client had a seizure at 2pm. It lasted for 3 minutes. I followed the epilepsy management plan and called an ambulance.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: medical emergency.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Injury / Fall / Medical Emergency",
+          "description": "Participant experienced a seizure and emergency services were called as per the epilepsy management plan.",
+          "keywords_matched": [
+            "seizure",
+            "epilepsy management plan",
+            "called an ambulance",
+            "emergency medical services"
+          ],
+          "severity": "CRITICAL"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes actions taken but does not explicitly link to participant goals or care objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or direct quotes are absent; the note is descriptive from the support worker's viewpoint."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The seizure duration is clearly stated, providing a measurable outcome related to the event."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly documents adherence to the epilepsy management plan and emergency response actions."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note addresses risk by documenting seizure occurrence, emergency response, and monitoring to ensure safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The time, participant and support worker codes, seizure duration, and actions taken align with the original information.",
+      "audit_notes": "Red flag detected due to medical emergency (seizure and ambulance call). Despite good documentation of support and safety, the presence of a medical emergency mandates a RED traffic light.",
+      "rewritten_note": "On 2026-03-20 at approximately 14:00, participant P-012 experienced a seizure lasting approximately three minutes. The support worker W-012 adhered to the established epilepsy management plan and promptly contacted emergency medical services for assistance. The participant was monitored throughout the event and appropriate actions were taken to ensure safety.",
+      "time_ms": 11111,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 13,
+      "mode": "turbo",
+      "raw_text": "Took client to the bank to withdraw $50. He then bought lunch at the cafe.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of financial support.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes activities but does not explicitly link them to participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective, preferences, or responses are not directly expressed."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note records activities completed but does not specify measurable outcomes or progress indicators."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's involvement and assistance during the activities."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note mentions support provided to ensure safety, addressing risk considerations."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and worker codes, activities, and amounts match exactly. The added statement about support for safety and independence is a reasonable inference from the support worker's accompaniment and does not contradict any data.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents support delivered and safety considerations well. However, it lacks explicit linkage to participant goals, measurable outcomes, and participant voice, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-013 accompanied Participant P-013 to the bank to assist with a withdrawal of $50. Following this, the participant purchased lunch at a caf\u00e9. The participant was supported throughout the activities to ensure safety and independence.",
+      "time_ms": 8111,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 14,
+      "mode": "turbo",
+      "raw_text": "Client was very confused today. He didn't know where he was or what day it was. I stayed with him and tried to calm him down.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: sudden change in cognitive state.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the support worker's actions but does not link these to any specific participant goals or care plans."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's experience is described indirectly through observations; there is no direct participant input or quotes."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks measurable or quantifiable outcomes; it only describes observations and actions without specifying progress or changes."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's presence, actions to calm the participant, and reassurance provided."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note addresses safety by noting that participant safety was maintained and no further incidents occurred."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, and observations match the original information. The statement about no further incidents and safety maintenance is a reasonable inference from the original note's description of the support worker staying with the participant to calm him down.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations, with good documentation of support delivered and safety. However, it lacks linkage to participant goals, participant voice, and measurable outcomes, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-014 observed that Participant P-014 exhibited significant confusion, demonstrated by disorientation to location and date. The support worker remained with the participant to provide reassurance and attempted to alleviate distress. No further incidents were reported during the session. Participant safety was maintained throughout the duration of support.",
+      "time_ms": 8678,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": false,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 0,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 15,
+      "mode": "turbo",
+      "raw_text": "Nan came over and brought some cake. Client was very happy to see her.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of informal support. PII: Nan.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Nan came over"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the interaction to any participant goals or care plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's feelings are described indirectly (appeared pleased), but no direct quotes or participant expressions are included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions a positive effect on mood but does not provide measurable or quantifiable outcomes."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note documents the support worker's observation and presence during the interaction, which is relevant support delivery."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly states no safety concerns were noted, addressing risk and safety appropriately."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, support worker code, participant code, and event (associate bringing cake and participant being happy) are accurate. The mention of no safety concerns is a reasonable inference given no red flags and no mention of safety issues in the original note.",
+      "audit_notes": "The rewritten note is factually accurate with no hallucinations and includes relevant metadata. However, it lacks explicit linkage to participant goals, direct participant voice, and measurable outcomes, resulting in lower scores in those pillars. No red flags are present, but some pillars score below 2, so the overall traffic light is ORANGE.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-015 observed that the participant (P-015) was pleased to see an associate who visited and brought cake. The interaction appeared to have a positive effect on the participant's mood. No safety concerns were noted during this period.",
+      "time_ms": 9336,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 16,
+      "mode": "turbo",
+      "raw_text": "Client fell over in the bathroom and hit his head. He has a small cut. I applied first aid and called his doctor.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 2,
+      "expected_notes": "Incident detected: fall, injury.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Injury / Fall / Medical Emergency",
+          "description": "The client experienced a fall in the bathroom resulting in a minor head injury and a small cut, requiring first aid and medical consultation.",
+          "keywords_matched": [
+            "fell over",
+            "hit his head",
+            "small cut",
+            "first aid",
+            "called his doctor",
+            "fall",
+            "head injury",
+            "laceration"
+          ],
+          "severity": "CRITICAL"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the incident or support provided to any participant goal or care plan."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 0,
+          "met": false,
+          "feedback": "The participant's perspective, feelings, or statements are not included in the note."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the incident and actions taken but lacks measurable or objective outcomes related to recovery or safety."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents first aid administered and contacting the doctor, consistent with the original note."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "While the incident and first aid are documented, the note adds unverified claims about monitoring and safety reviews, which are hallucinated. The original note does not confirm these."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes details not present in the original raw note, such as monitoring the participant's condition after the incident, no additional complications observed, and reviewing safety measures to prevent future falls. These are hallucinated details not supported by the original note or metadata.",
+      "audit_notes": "Red flag detected due to injury/fall/medical emergency. Additionally, hallucinated details about monitoring and safety reviews reduce note accuracy. The note lacks participant voice and measurable outcomes, and does not link to participant goals.",
+      "rewritten_note": "On 2026-03-20 at 9:00 AM, support worker W-016 provided assistance to participant P-016 for a duration of 2 hours. During this time, the participant experienced a fall in the bathroom resulting in a minor head injury with a small laceration. The support worker administered first aid to the affected area and promptly contacted the participant's physician for further medical advice. The participant's condition was monitored closely following the incident. No additional complications were observed. Safety measures were reviewed to prevent future falls.",
+      "time_ms": 10353,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 2
+      }
+    },
+    {
+      "note_id": 17,
+      "mode": "turbo",
+      "raw_text": "Took client to his OT appointment. The OT gave him some new exercises to do at home.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of allied health appointment.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 2,
+      "pii_items": [
+        [
+          "medical_professional",
+          "OT appointment"
+        ],
+        [
+          "medical_professional",
+          "OT gave him"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the activities to any participant goals or plans."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or direct quotes are not included; the note only infers participant understanding."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The support worker's role in accompanying the participant and facilitating the session is clearly described."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "Safety is mentioned but without specific details or evidence; this appears to be an assumption."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes information about the participant tolerating the session well, demonstrating understanding of the exercises, and safety being maintained, which are not present in the original raw note or metadata.",
+      "audit_notes": "The rewritten note contains some additional information not supported by the original note or metadata, indicating hallucination. It lacks explicit goal linkage, participant voice, measurable outcomes, and concrete risk/safety details. Support delivered is adequately described. Overall, the note requires improvement to fully meet documentation standards.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-017 accompanied Participant P-017 to an appointment with a medical professional. The medical professional provided new exercises for the participant to perform at home. The participant tolerated the session well and demonstrated understanding of the exercises. Safety was maintained throughout the visit.",
+      "time_ms": 8719,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 18,
+      "mode": "turbo",
+      "raw_text": "Client was very anxious about his upcoming NDIS review. We talked about it and I helped him prepare some notes.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of emotional support.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 2,
+          "met": true,
+          "feedback": "The note links the support to the participant's goal of preparing for the NDIS review, which is implied as the focus."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "Participant's anxiety and engagement in discussion are documented, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks specific measurable outcomes or indicators of progress; it states support was provided but does not specify any measurable change or achievement."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions in discussing the review and helping prepare notes are clearly described."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "No safety concerns were noted, and the note explicitly states no safety issues were observed."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes are from metadata. The participant's anxiety and support worker's assistance in preparing notes are from the original note. The mention of no safety concerns is a reasonable inference given no red flags were detected.",
+      "audit_notes": "The note is accurate and well-documented with no hallucinations or red flags. However, it lacks measurable outcomes, which lowers the score and results in an orange traffic light.",
+      "rewritten_note": "On 2026-03-20, support worker W-018 provided support to participant P-018 for a duration of two hours starting at 9:00 AM. The participant exhibited significant anxiety regarding the upcoming NDIS review. The support worker engaged the participant in a discussion about the review and assisted in preparing notes to facilitate the participant's readiness. The participant was supported in managing anxiety related to the review process. No safety concerns were observed during the session.",
+      "time_ms": 9019,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 19,
+      "mode": "turbo",
+      "raw_text": "Pop called and said he couldn't take the client to his appointment tomorrow. I will need to arrange alternative transport.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs follow-up action. PII: Pop.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Pop called and"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note implies a goal of ensuring participant attendance but does not explicitly link to a documented participant goal."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or direct voice is not included; the note focuses on the associate and support worker actions."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions planning alternative transport but lacks measurable outcomes or criteria for success."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note documents the support worker's action to arrange alternative transport, showing support delivery."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note acknowledges participant safety and timely access to services, addressing risk and safety considerations."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, support worker code, participant code, and the issue with transportation are all accurate. The statement about prioritizing participant's safety and timely access to services is a reasonable inference consistent with the context.",
+      "audit_notes": "The rewritten note is factually accurate and includes relevant metadata. However, it lacks explicit linkage to participant goals, participant voice, and measurable outcomes, resulting in moderate scores in those pillars. No red flags were detected, so the overall rating is ORANGE.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker W-019 was informed by the associate that they were unable to provide transportation for participant P-019's appointment scheduled for the following day. Consequently, the support worker planned to arrange alternative transportation to ensure the participant's attendance. The participant's safety and timely access to services remain a priority.",
+      "time_ms": 9999,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 20,
+      "mode": "turbo",
+      "raw_text": "Client was very tired today and slept most of the afternoon. He didn't want to do any activities.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs more detail on why he was tired.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "No goals or linkage to participant goals are mentioned or implied."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "Participant's refusal to engage in activities is noted, but no direct participant quotes or expressions are included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are provided."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "Support worker's observation is noted, but no specific support actions or interventions are described."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "Safety is claimed to be maintained, but this is not supported by the original note or metadata."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note incorrectly states that the participant rested for the majority of the afternoon, which contradicts the metadata time frame (9:00 AM to 11:00 AM) and the original note stating the participant slept most of the afternoon. The time frame and 'afternoon' reference are inconsistent. Also, the original note does not mention 'planned activities' or 'no adverse events' or 'participant's safety maintained', which are added in the rewrite without basis in the original note or metadata.",
+      "audit_notes": "The rewritten note introduces information not present in the original note or metadata, such as the participant resting in the afternoon during a morning session, mention of planned activities, and safety status. There is a mismatch between the time frame and the description of the participant's behavior. The note lacks goal linkage, measurable outcomes, and participant voice is minimal. No red flags were detected, but the inconsistencies and added unsupported details warrant an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-020 observed that participant P-020 appeared very tired and rested for the majority of the afternoon. The participant declined to engage in any planned activities during this period. No adverse events were reported. The participant's safety was maintained throughout the session.",
+      "time_ms": 9857,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 21,
+      "mode": "turbo",
+      "raw_text": "Administered morning meds. Client was fine.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Too brief, lacks detail on which meds were administered.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "No explicit linkage to participant goals or care plan is mentioned."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "Participant's perspective or direct quotes are not included; only observational statements."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "Outcomes are described in terms of medication administration and participant tolerance with no adverse reactions."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "Clear description of support delivered including medication administration and monitoring."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "No risks or safety issues noted; participant was fine and no adverse reactions observed."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The timing and duration are from metadata; 'prescribed' is implied by 'meds'; 'tolerated well with no adverse reactions' aligns with 'Client was fine.'",
+      "audit_notes": "The note is accurate and supported by metadata with no hallucinations. It clearly documents support delivered and safety. However, it lacks explicit linkage to participant goals and participant voice, resulting in moderate scores in those areas. No red flags were detected, so the traffic light is ORANGE.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker administered the participant's prescribed morning medications. The participant tolerated the medications well with no adverse reactions observed during the session.",
+      "time_ms": 8742,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 22,
+      "mode": "turbo",
+      "raw_text": "Took client to the park. He enjoyed it.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Too brief, lacks detail on the support provided.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the activity to any participant goals or support plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The note reflects the participant's enjoyment, indicating some participant perspective."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions enjoyment but does not provide measurable or specific outcomes related to the activity."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's accompaniment and timeframe of support."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states that no adverse events occurred and that the participant remained safe."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes are from metadata. The activity and enjoyment are from the original note. The statements about safety and no adverse events are reasonable inferences but not explicitly stated in the original note; however, they do not contradict any data and are common practice to note.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents support delivered and participant enjoyment well, but lacks explicit linkage to participant goals and measurable outcomes. No red flags were found, but some pillars scored below 2, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-022 accompanied Participant P-022 to the park. The participant engaged in the outdoor activity and appeared to derive enjoyment from the experience. No adverse events were reported during this period. The participant remained safe throughout the outing.",
+      "time_ms": 7729,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 23,
+      "mode": "turbo",
+      "raw_text": "Client was very rude to me today. He swore at me and told me to leave.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: verbal abuse.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Behavioural Incident",
+          "description": "Participant exhibited verbally aggressive behavior, including swearing and telling the support worker to leave.",
+          "keywords_matched": [
+            "rude",
+            "swore at me",
+            "verbally aggressive behavior",
+            "inappropriate language",
+            "told me to leave"
+          ],
+          "severity": "MEDIUM"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the incident or session to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's behavior is described but their perspective or voice is not represented."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions the session and behavior but lacks detail on specific support or interventions delivered."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note appropriately documents the behavioral incident and references management according to safety protocols."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes details not present in the original note or metadata, such as the support worker maintaining a professional demeanor, no physical aggression observed, and management according to safety protocols. These details are not supported by the original raw note or metadata and thus constitute hallucinations.",
+      "audit_notes": "Red flags are present due to the participant's verbally aggressive behavior. Additionally, hallucinations are present in the rewritten note, including unsupported details about the support worker's demeanor and safety management. Several pillars score low due to lack of goal linkage, participant voice, measurable outcomes, and detailed support delivered.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-023 provided services to Participant P-023. During the session, the participant exhibited verbally aggressive behavior, including the use of inappropriate language and instructing the support worker to leave. The support worker maintained a professional demeanor throughout the interaction. No physical aggression was observed. The situation was managed in accordance with established safety protocols to ensure the well-being of both the participant and the support worker.",
+      "time_ms": 10782,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 24,
+      "mode": "turbo",
+      "raw_text": "Helped client cook dinner. He chopped the vegetables and I cooked the meat. He was very proud of himself.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of skill building.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the activity but does not explicitly link it to a participant goal or objective."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's engagement and sense of accomplishment are described, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions participant involvement and pride but lacks specific measurable outcomes or progress indicators."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's role and activities are clearly described with time and duration details."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, and activities described match the original information. The addition of 'No safety concerns were observed' is a reasonable inference given no red flags were detected and no safety issues were mentioned.",
+      "audit_notes": "The note is accurate and free of hallucinations. It clearly documents support delivered and participant engagement with safety noted. However, it lacks explicit linkage to participant goals and measurable outcomes, which lowers the overall quality. No red flags are present, but some pillars scored below 2, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-024 assisted Participant P-024 with meal preparation. The participant actively engaged in chopping vegetables while the support worker prepared the meat. The participant demonstrated a sense of accomplishment during the activity. No safety concerns were observed throughout the session.",
+      "time_ms": 8840,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 25,
+      "mode": "turbo",
+      "raw_text": "Aunty Mary called and said she is taking the client on holiday next week. I need to update his schedule.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of schedule change. PII: Aunty Mary.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Aunty Mary called"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the information to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's own voice or perspective is not directly represented; only an associate's statement is noted."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or criteria for success are described."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "The note indicates an action to update the schedule but does not describe any actual support or intervention delivered."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 0,
+          "met": false,
+          "feedback": "No risks, safety concerns, or mitigation strategies are mentioned."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "The rewritten note accurately reflects the original note content and metadata without adding any unverified information.",
+      "audit_notes": "The note is factually accurate with no hallucinations or red flags. However, it lacks linkage to participant goals, measurable outcomes, participant voice, and detailed support delivered. No risk or safety considerations are addressed. These gaps reduce the overall quality and utility of the note.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-025 documented that an associate informed them about plans to take Participant P-025 on holiday next week. The support worker acknowledged the need to update the participant's schedule accordingly.",
+      "time_ms": 8066,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 26,
+      "mode": "turbo",
+      "raw_text": "Client had a panic attack at the shops. I took him outside and helped him calm down using his breathing exercises.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: panic attack.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the intervention but does not explicitly link it to a specific participant goal or care plan objective."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or direct quotes are not included; the note is written from the support worker's viewpoint."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The note indicates the participant responded positively and that safety was maintained, which are measurable outcomes of the intervention."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions are clearly described, including escorting the participant outside and facilitating breathing exercises."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states that safety was maintained and no further incidents occurred."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes, and description of the incident and intervention are consistent. The additional statements about the participant responding positively and safety being maintained are reasonable inferences but not explicitly stated in the original note; however, they do not contradict any information and are typical clinical documentation additions.",
+      "audit_notes": "The rewritten note is accurate and free from hallucinations. It provides a clear description of the support delivered and addresses safety well. However, it lacks explicit linkage to participant goals and does not include the participant's voice, which lowers the overall compliance score.",
+      "rewritten_note": "On 2026-03-20, from 9:00 AM for a duration of 2 hours, Support Worker W-026 assisted participant P-026 who experienced a panic attack while at the shops. The support worker promptly escorted the participant outside and facilitated the use of prescribed breathing exercises to help the participant regain calm. The participant responded positively to the intervention. No further incidents were reported. Safety was maintained throughout the interaction.",
+      "time_ms": 9072,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": false,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 0,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 27,
+      "mode": "turbo",
+      "raw_text": "Took client to the library to borrow some books. He chose three books about trains.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of community access.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes an activity but does not link it to any specific participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's choice of books is recorded, reflecting some participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions the participant selected three books but lacks measurable outcomes related to progress or achievement."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Support worker accompaniment and session duration are clearly documented."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "Safety is explicitly mentioned as maintained during the outing."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "All details in the rewritten note are supported by the original note or metadata. The added statements about engagement and safety are reasonable inferences but not explicitly stated in the original note, thus considered minor embellishments without factual contradiction.",
+      "audit_notes": "The note is factual and free of hallucinations but lacks linkage to participant goals and measurable outcomes. Participant voice and safety are adequately documented. Overall, the note is acceptable but could be improved by including goal relevance and clearer outcomes.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-027 accompanied Participant P-027 to the library. The participant selected three books related to trains for borrowing. The activity was completed without incident, and the participant engaged appropriately throughout the session. Safety was maintained at all times during the outing.",
+      "time_ms": 9520,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 28,
+      "mode": "turbo",
+      "raw_text": "Client was very tearful today. He said he misses his mum. I sat with him and we looked at some photos.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of emotional support.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the session or support activities to any specific participant goals or care plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's feelings of missing his mother are clearly reported, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "There are no measurable or objective outcomes documented; the note mentions comfort 'appeared' to be offered but lacks measurable indicators."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly describes the support worker's actions, including sitting with the participant and reviewing photos, providing emotional support."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note mentions monitoring the participant throughout the session to ensure emotional safety, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and worker codes, participant's emotional state, and support activities are consistent with the original information.",
+      "audit_notes": "The rewritten note is accurate and free from hallucinations. It captures participant voice and support delivered well but lacks explicit linkage to participant goals and measurable outcomes. No red flags were detected, but some pillars scored below 2, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker (W-028) provided care to participant P-028. During the session, the participant was observed to be tearful and expressed feelings of missing his mother. The support worker provided emotional support by sitting with the participant and reviewing photographs together, which appeared to offer some comfort. The participant was monitored throughout the session to ensure emotional safety.",
+      "time_ms": 10068,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 29,
+      "mode": "turbo",
+      "raw_text": "Uncle Jim came over and they watched the footy together. Client had a great time.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of informal support. PII: Uncle Jim.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Uncle Jim came"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the activity but does not link it to any specific participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The note reflects the participant's experience by noting they enjoyed the activity and engaged positively."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks measurable or specific outcomes; it only states the participant had a great time without quantifiable or observable progress."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's presence and the activity facilitated during the session."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed, addressing risk and safety appropriately."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes, and activity description match the source information. The addition of 'No safety concerns were observed' is a reasonable inference given no red flags were detected.",
+      "audit_notes": "The rewritten note is factually accurate and well-documented but lacks linkage to participant goals and measurable outcomes. While participant voice and support delivery are adequately captured, the absence of goal linkage and measurable outcomes results in an overall orange rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-029 provided support to Participant P-029. During this session, the participant spent time with an associate watching a football game. The participant appeared to enjoy the activity and engaged positively throughout the session. No safety concerns were observed.",
+      "time_ms": 10203,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 30,
+      "mode": "turbo",
+      "raw_text": "Client refused to eat his dinner. He said he wasn't hungry. I offered him a sandwich later but he still said no.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs follow-up on dietary intake.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the participant's refusal to eat to any specific support goals or care plans."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's statements ('not hungry') and refusals are clearly documented, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes refusal to eat but lacks measurable outcomes or plans to address the issue."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Support worker offered food and monitored the participant, demonstrating support delivery."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note states safety was maintained and refusal was monitored, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All information in the rewritten note is supported by the original note and metadata. The date, time, participant and support worker codes, and refusal details are accurate. The statement about no further nutritional intake and safety being maintained is a reasonable inference from the original note's content and does not introduce new facts.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents participant voice and support delivered well. However, it lacks explicit linkage to goals and measurable outcomes, which lowers the overall quality. No red flags are present, but some pillars score below 2, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker (W-030) observed that the participant (P-030) declined to eat his dinner, stating that he was not hungry. A subsequent offer of a sandwich was also refused by the participant. No further nutritional intake was recorded during this period. The participant's refusal to eat was noted and monitored. Safety was maintained throughout the session.",
+      "time_ms": 12032,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 31,
+      "mode": "turbo",
+      "raw_text": "Administered PRN Valium 5mg at 4pm as client was very agitated. He calmed down after 30 minutes.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of PRN administration.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the intervention to a specific participant goal or care plan objective."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or direct quotes are not included; only observations are documented."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents the outcome of the intervention: agitation subsided approximately 30 minutes after medication."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note details the support provided, including timing, medication, dosage, and observation period."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note addresses safety by stating no adverse effects were observed and the participant remained safe."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note accurately reflects the original note and metadata. The timing, medication, dosage, participant codes, and outcomes are consistent. The mention of 'No adverse effects were observed' and 'participant remained safe' is a reasonable inference from the original note stating the participant calmed down, with no contradictory information present.",
+      "audit_notes": "The rewritten note is accurate and detailed but lacks explicit linkage to participant goals and does not include participant voice. These gaps reduce completeness but do not constitute red flags. Overall, the note is compliant with measurable outcomes, support delivered, and risk & safety pillars.",
+      "rewritten_note": "On 2026-03-20, Support Worker W-031 provided care to Participant P-031 from 9:00 AM for a duration of two hours. At 4:00 PM, the participant exhibited significant agitation, and as a result, a PRN dose of Valium 5mg was administered. The participant's agitation subsided approximately 30 minutes following administration. No adverse effects were observed. The participant remained safe throughout the observation period.",
+      "time_ms": 11757,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 32,
+      "mode": "turbo",
+      "raw_text": "Took client to the pool. He swam for 30 minutes and then we had a picnic.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of physical activity.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes activities but does not explicitly link them to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks direct participant quotes or expressions of participant preferences or feelings."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The note quantifies the swimming duration (approximately 30 minutes), providing a measurable outcome."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly describes the support worker's accompaniment and activities facilitated during the session."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note explicitly states the participant remained safe throughout the session."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original raw note and metadata. The date, time, participant and support worker codes, activity details, and duration are consistent with the provided information.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It provides measurable outcomes and documents support delivered and safety. However, it lacks explicit linkage to participant goals and does not include participant voice, which lowers the overall compliance score.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker accompanied participant P-032 to the pool. The participant engaged in swimming activities for approximately 30 minutes. Following the swimming session, the participant and support worker had a picnic. The participant remained safe throughout the duration of the session.",
+      "time_ms": 10084,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 33,
+      "mode": "turbo",
+      "raw_text": "Client was very hyperactive today. He couldn't sit still and was talking very fast. I tried to engage him in a quiet activity.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs more detail on the cause of hyperactivity.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions an attempt to engage the participant in a quiet activity to promote calmness and focus, but it does not explicitly link this to a specific participant goal."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes participant behavior but does not include the participant's own perspective, feelings, or direct quotes."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes observations and actions but lacks measurable or quantifiable outcomes to assess progress."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's actions to engage the participant in a quiet activity."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note explicitly states that no safety concerns were noted, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are consistent with the original raw note and metadata. The addition of 'No safety concerns were noted during the session' is a reasonable inference given no red flags were detected.",
+      "audit_notes": "The rewritten note is factually accurate with no hallucinations. It documents support delivered and safety well but lacks explicit linkage to participant goals, participant voice, and measurable outcomes. These gaps lower the overall quality, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-033 observed that Participant P-033 exhibited hyperactive behavior characterized by an inability to remain seated and rapid speech. The support worker attempted to engage the participant in a quiet activity to promote calmness and focus. No safety concerns were noted during the session.",
+      "time_ms": 10787,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 34,
+      "mode": "turbo",
+      "raw_text": "Nan called and said she is not feeling well and can't visit today. Client was disappointed.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of schedule change. PII: Nan.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Nan called and"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the event to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The client\u2019s disappointment is clearly documented, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are included in the note."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "Support delivery was minimal due to cancellation; the note states no further actions were documented."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note confirms client safety was maintained, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, support worker code, participant code, and client reaction are consistent. The statement about client safety is a reasonable inference given no risks were noted.",
+      "audit_notes": "The note is factually accurate and includes participant voice and safety considerations. However, it lacks explicit linkage to participant goals and measurable outcomes, and support delivered was minimal due to cancellation. No red flags were detected.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker W-034 noted that the associate informed that she was unwell and unable to visit as planned. The client, identified as P-034, expressed disappointment regarding the cancellation. No further actions were documented during this session. The client\u2019s safety was maintained throughout the interaction.",
+      "time_ms": 10202,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 35,
+      "mode": "turbo",
+      "raw_text": "Client had a minor nosebleed. I applied a tissue and it stopped after a few minutes.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: minor injury.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the incident or support actions to any participant goals or care plans."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or response is not documented; the note is purely observational."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The outcome of the intervention is clearly described (bleeding stopped within a few minutes)."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions are clearly documented, including the application of a tissue and monitoring."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "Safety is addressed by noting no further complications and that the participant remained safe."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, duration, and incident description match the source information.",
+      "audit_notes": "The note is accurate and well-documented regarding the incident and support delivered. However, it lacks explicit linkage to participant goals and does not include the participant's voice, resulting in lower scores in those areas. No red flags or hallucinations were found.",
+      "rewritten_note": "On March 20, 2026, at 9:00 AM, the support worker (W-035) provided care to participant P-035 for a duration of two hours. During this time, the participant experienced a minor nosebleed. The support worker applied a tissue to the affected area, which effectively stopped the bleeding within a few minutes. No further complications were observed. The participant remained safe throughout the incident.",
+      "time_ms": 8070,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": false,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 0,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 36,
+      "mode": "turbo",
+      "raw_text": "Helped client clean his room. He vacuumed the floor and I dusted the shelves.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of domestic assistance.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 2,
+          "met": true,
+          "feedback": "The note links the activity to promoting participant engagement in maintaining their living environment, which implies a goal-related purpose."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The note reflects participant involvement by specifying that the participant vacuumed the floor, showing active participation."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks specific measurable outcomes or progress indicators; it describes activities but does not quantify success or improvement."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly describes the support worker's role and the assistance provided during the session."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states that no safety concerns were observed during the session."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, activities performed, and lack of safety concerns are consistent with the original information.",
+      "audit_notes": "The rewritten note is accurate and free from hallucinations. It effectively documents the support provided and participant involvement. However, it lacks measurable outcomes or progress indicators, resulting in a moderate score for that pillar and an overall ORANGE traffic light.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker assisted participant P-036 with cleaning their room. The participant vacuumed the floor while the support worker dusted the shelves. The session was conducted collaboratively to promote the participant's engagement in maintaining their living environment. No safety concerns were observed during the session.",
+      "time_ms": 8691,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 37,
+      "mode": "turbo",
+      "raw_text": "Client was very frustrated with his new phone. I helped him set it up and showed him how to use it.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of skill building.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the activity but does not explicitly link it to a specific participant goal or objective."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's frustration and cooperative engagement are noted, reflecting participant experience."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions assistance and demonstration but lacks measurable or quantifiable outcomes to assess progress."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "Clear description of support provided including setup assistance and demonstration of phone functions."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were identified."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note or metadata. The date, time, participant and support worker codes, and activities described match the original information. The addition of participant cooperation and absence of safety concerns are reasonable inferences and not contradictory.",
+      "audit_notes": "The rewritten note is accurate and free from hallucinations. It clearly documents support delivered and participant experience, and confirms safety. However, it lacks explicit linkage to participant goals and measurable outcomes, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-037 assisted Participant P-037 with the setup of a new phone. The participant expressed significant frustration regarding the device. The support worker provided guidance on the phone's setup and demonstrated its basic functions to enhance the participant's understanding and ease of use. The participant engaged cooperatively throughout the session. No safety concerns were identified during the interaction.",
+      "time_ms": 9580,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 38,
+      "mode": "turbo",
+      "raw_text": "Pop came over and they played cards. Client won two games.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of informal support. PII: Pop.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Pop came over"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note implies benefits like social engagement and cognitive stimulation but does not explicitly link the activity to specific participant goals."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's experience is summarized (enjoyment and skill) but no direct participant quotes or expressions are included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The note reports measurable outcomes such as winning two games, which is consistent with the original note."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The support worker's engagement in the activity is clearly described with time and duration details."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "The note states no safety concerns, but this is an assumption not supported by the original note or metadata."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes inferred details such as participant enjoyment, skill demonstration, social engagement, cognitive stimulation, and absence of safety concerns, none of which are explicitly stated in the original note or metadata.",
+      "audit_notes": "The rewritten note contains inferred details not present in the original note or metadata, leading to hallucination concerns. While it includes measurable outcomes and support delivered, it lacks explicit goal linkage and participant voice, and the safety statement is unsupported. Overall, the note is informative but requires caution due to added assumptions.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-038 engaged Participant P-038 in a card game activity. The participant demonstrated enjoyment and skill, winning two games during the session. The interaction promoted social engagement and cognitive stimulation. No safety concerns were observed during the session.",
+      "time_ms": 9197,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 39,
+      "mode": "turbo",
+      "raw_text": "Client complained of a stomach ache. I gave him a heat pack and he rested on the couch.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs follow-up on medical issue.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the support actions to any participant goals or care plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's complaint of stomach ache (abdominal discomfort) is recorded, reflecting participant voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions intervention but lacks measurable outcomes or indicators of improvement."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The support worker's actions (providing heat pack and facilitating rest) are clearly described."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "The note states safety was maintained and monitoring occurred, but these details are not supported by the original note, making this potentially inaccurate."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note includes details not present in the original note or metadata, such as the participant being monitored throughout the period, no further complications observed, and safety maintained at all times. These are not supported by the original raw note or metadata.",
+      "audit_notes": "The rewritten note is generally clear and includes participant voice and support delivered. However, it introduces unsupported details about monitoring and safety, which are hallucinations. It lacks linkage to participant goals and measurable outcomes, resulting in moderate scores. No red flags were detected, but the hallucinated content and low scores on key pillars warrant an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, at 9:00 AM, support worker W-039 provided a two-hour session with participant P-039. During this time, the participant reported experiencing abdominal discomfort. The support worker administered a heat pack to the participant and facilitated rest on the couch to alleviate symptoms. The participant was monitored throughout the period. No further complications were observed. Safety was maintained at all times.",
+      "time_ms": 9094,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 40,
+      "mode": "turbo",
+      "raw_text": "Took client to the gym. He did a 45-minute workout with his personal trainer.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of physical activity.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the activity but does not explicitly link it to any participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks direct participant quotes or expressions of participant preferences or feelings."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The note includes a measurable outcome: a 45-minute workout session completed."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The note clearly documents the support worker's accompaniment and the participant's engagement in the activity."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states that the session was completed without incident and the participant remained safe."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All information in the rewritten note is supported by the original note and metadata. The date, time, participant code, and activity details match the original and metadata. The added statements about safety and no incidents are reasonable inferences based on the absence of reported issues and do not contradict any data.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents support delivered and safety well and includes a measurable outcome. However, it lacks explicit linkage to participant goals and does not include participant voice, resulting in lower scores for those pillars. No red flags were detected, but some pillars scored below 2, so the overall rating is ORANGE.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker accompanied participant P-040 to the gym. The participant engaged in a 45-minute workout session with his personal trainer. The session was completed without incident. The participant remained safe throughout the activity.",
+      "time_ms": 9044,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 41,
+      "mode": "turbo",
+      "raw_text": "Client was very withdrawn today. He didn't want to talk or participate in any activities. I respected his space.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs more detail on the cause of withdrawal.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the participant's behavior or support provided to any specific goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the participant's behavior but does not include any direct quotes or expressions of the participant's perspective."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "There are no measurable outcomes or progress indicators documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note documents the support worker's respectful approach and monitoring of safety, indicating support was delivered."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note mentions that the participant's safety was continuously monitored, addressing risk and safety considerations."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "The rewritten note accurately reflects the original note and metadata. The addition of the participant's safety being monitored is a reasonable inference consistent with standard practice and not contradicted by the original note.",
+      "audit_notes": "The note is accurate and free of hallucinations. It documents support delivered and safety monitoring well. However, it lacks linkage to participant goals, measurable outcomes, and participant voice, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, support worker W-041 observed that participant P-041 was notably withdrawn and declined to engage in conversation or participate in scheduled activities. The support worker respected the participant's need for personal space during this time. The participant's safety was continuously monitored throughout the session.",
+      "time_ms": 8512,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 42,
+      "mode": "turbo",
+      "raw_text": "Aunty Sue called and asked how the client is doing. I gave her a brief update.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of communication with informal supports. PII: Aunty Sue.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Aunty Sue called"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the interaction to any specific participant goal or objective."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or direct input is not included; only a brief update is mentioned."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 1,
+          "met": false,
+          "feedback": "The support delivered is vaguely described as a 'brief update' without details on content or impact."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 0,
+          "met": false,
+          "feedback": "No mention of risk assessment or safety considerations."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata.",
+      "audit_notes": "The note is factually accurate with no hallucinations, but it lacks detail and linkage to participant goals, measurable outcomes, participant voice, and risk/safety considerations. The support delivered is minimally described. Overall, it does not meet several key documentation pillars.",
+      "rewritten_note": "On 2026-03-20, from 9:00 AM for a duration of 2 hours, Support Worker W-042 provided a brief update regarding Participant P-042's status to an associate who inquired about the client's well-being.",
+      "time_ms": 8467,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 43,
+      "mode": "turbo",
+      "raw_text": "Client accidentally cut his finger while chopping vegetables. I applied a band-aid.",
+      "expected_traffic_light": "RED",
+      "expected_red_flag_count": 1,
+      "expected_notes": "Incident detected: minor injury.",
+      "actual_traffic_light": "RED",
+      "actual_red_flag_count": 1,
+      "red_flags": [
+        {
+          "category": "Injury / Fall / Medical Emergency",
+          "description": "Participant sustained a minor cut to the finger while chopping vegetables and required first aid.",
+          "keywords_matched": [
+            "cut his finger",
+            "minor laceration",
+            "applied a band-aid"
+          ],
+          "severity": "MEDIUM"
+        }
+      ],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the incident or care provided to any participant goals."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's perspective or response to the injury or care is not documented."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks measurable outcomes or indicators of recovery or improvement."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions in applying first aid are clearly described."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note addresses the injury as a risk event and documents safety protocols and monitoring."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The added information about monitoring and safety protocols is reasonable and consistent with standard care but not explicitly stated in the original note; however, it does not contradict any facts.",
+      "audit_notes": "Red flag detected due to participant injury requiring first aid. The note accurately documents the incident and care, but lacks linkage to goals, participant voice, and measurable outcomes. Despite good documentation of support and safety, the presence of a red flag mandates a RED traffic light.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-043 provided care to Participant P-043. During the session, the participant sustained a minor laceration to the finger while chopping vegetables. The support worker promptly applied a band-aid to the affected area to manage the injury. The participant was monitored to ensure no further complications arose. Safety protocols were followed throughout the incident.",
+      "time_ms": 10693,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "RED",
+        "expected_traffic_light": "RED",
+        "actual_red_flags": 1,
+        "expected_red_flags": 1
+      }
+    },
+    {
+      "note_id": 44,
+      "mode": "turbo",
+      "raw_text": "Helped client do his laundry. He washed and dried his clothes independently.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of domestic assistance.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes the activity but does not explicitly link it to a participant goal."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note states what the participant did but does not include participant quotes or perspectives."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant independently washed and dried clothes, which is a measurable outcome."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The support worker's assistance with laundry tasks is clearly documented."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The added statement about no safety concerns is a reasonable inference given no red flags were detected.",
+      "audit_notes": "The note is accurate and free of hallucinations. It documents support delivered and measurable outcomes well. However, it lacks explicit linkage to participant goals and participant voice, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-044 assisted participant P-044 with laundry tasks. The participant independently washed and dried his clothes during this session. No safety concerns were observed.",
+      "time_ms": 8227,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 45,
+      "mode": "turbo",
+      "raw_text": "Client was very excited about his birthday tomorrow. We talked about his plans for a party.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of emotional state.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the participant's excitement or discussion to any specific support goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 3,
+          "met": true,
+          "feedback": "The participant's feelings and plans are clearly expressed, reflecting their voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "There are no measurable outcomes or progress indicators included in the note."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note documents the engagement and discussion facilitated by the support worker, indicating support was delivered."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The addition of 'No safety concerns were observed during the session' is a reasonable inference given no red flags were detected and no safety issues were mentioned.",
+      "audit_notes": "The note accurately reflects the original content and metadata with no hallucinations. Participant voice and risk/safety are well documented. However, the note lacks explicit linkage to goals and measurable outcomes, which lowers the overall quality. No red flags are present, but some pillars score below 2, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-045 engaged with Participant P-045. The participant expressed excitement regarding his upcoming birthday. The discussion focused on his plans for a birthday party. No safety concerns were observed during the session.",
+      "time_ms": 9250,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 46,
+      "mode": "turbo",
+      "raw_text": "Uncle Tom came over and they went for a drive. Client enjoyed the outing.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of informal support. PII: Uncle Tom.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Uncle Tom came"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "No explicit linkage to participant goals or objectives is mentioned in the note."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note reflects the participant's enjoyment but does not include direct quotes or detailed participant input."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "There are no measurable or objective outcomes reported from the session."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents the support session details including duration, time, and activity."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed, addressing risk and safety."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes, and activity are consistent. The statement about no safety concerns is an inferred but reasonable addition given no red flags were detected.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents the support provided and safety status well. However, it lacks linkage to participant goals and measurable outcomes, and participant voice is minimal. These gaps reduce the overall quality, resulting in an ORANGE rating.",
+      "rewritten_note": "On 2026-03-20, Support Worker W-046 provided a 2-hour session with Participant P-046 starting at 9:00 AM. During this time, the participant was accompanied by an associate and they went for a drive. The participant appeared to enjoy the outing. No safety concerns were observed during the session.",
+      "time_ms": 8595,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 47,
+      "mode": "turbo",
+      "raw_text": "Client had a headache and asked for some Panadol. I administered 2 tablets as per his PRN protocol.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of PRN administration.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the action to a specific participant goal or care plan objective."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The participant's symptom (headache) and request for medication are clearly documented."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note lacks measurable outcomes or indicators of effectiveness; statements about no adverse reactions and safety are not supported by original data."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 3,
+          "met": true,
+          "feedback": "The support worker's actions are clearly described, including medication administration per PRN protocol."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 1,
+          "met": false,
+          "feedback": "Safety statements are not supported by the original note; no documented risk assessment or safety monitoring details."
+        }
+      ],
+      "hallucination_check": false,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The additional statements about monitoring and no adverse reactions are not present in the original note and thus constitute hallucinations.",
+      "audit_notes": "The rewritten note accurately reflects the original information and metadata but includes unsupported statements about monitoring and safety, constituting hallucinations. While participant voice and support delivered are adequately documented, the note lacks explicit goal linkage, measurable outcomes, and verified safety details. No red flags were detected, but scores below 2 in multiple pillars result in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, at 9:00 AM, support worker W-047 provided care to participant P-047 for a duration of two hours. The participant reported experiencing a headache and requested medication. In accordance with the participant's PRN protocol, the support worker administered two tablets of Panadol. The participant's condition was monitored following administration. No adverse reactions were observed. Safety was maintained throughout the session.",
+      "time_ms": 9205,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": false,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 48,
+      "mode": "turbo",
+      "raw_text": "Took client to the cinema to watch a movie. He bought popcorn and a drink.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of community access.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 1,
+          "met": false,
+          "feedback": "The note does not explicitly link the activity to any participant goals or support plan objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The note describes participant actions but does not include participant quotes, preferences, feelings, or direct voice."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "No measurable outcomes or progress indicators are provided; the note only states the activity occurred."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note clearly documents support worker accompaniment and participant engagement in the activity."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "The note explicitly states the participant remained safe and no incidents occurred."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All details in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, activity description, and participant actions are accurate. The statement about safety and no incidents is a reasonable inference given no red flags were detected.",
+      "audit_notes": "The rewritten note is accurate and free of hallucinations. It documents support delivered and safety well. However, it lacks linkage to participant goals, participant voice, and measurable outcomes, resulting in moderate scores and an overall ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-048 accompanied Participant P-048 to the cinema for recreational purposes. The participant purchased popcorn and a beverage during the outing. The activity was completed without incident, and the participant remained safe throughout.",
+      "time_ms": 10034,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 49,
+      "mode": "turbo",
+      "raw_text": "Client was very argumentative today. He disagreed with everything I suggested. I tried to remain calm and patient.",
+      "expected_traffic_light": "ORANGE",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Needs more detail on the cause of the argument.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 0,
+      "pii_items": [],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the session content to any specific participant goals or objectives."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's behavior is described, but there is no direct participant voice or quotes included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 0,
+          "met": false,
+          "feedback": "There are no measurable or observable outcomes or progress indicators documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The support worker's approach of remaining calm and patient is documented, indicating support was delivered."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed during the session."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, participant and support worker codes, and behaviors described match the original information. The statement about no safety concerns is an inference based on the original note's lack of mention of safety issues, which is reasonable.",
+      "audit_notes": "The rewritten note accurately reflects the original content and metadata without hallucinations. However, it lacks linkage to participant goals, measurable outcomes, and direct participant voice, resulting in lower scores in those pillars. No red flags were detected, so the overall rating is ORANGE.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, the support worker (W-049) engaged with participant P-049. During the session, the participant demonstrated argumentative behavior and expressed disagreement with all suggestions provided by the support worker. The support worker maintained a calm and patient demeanor throughout the interaction. No safety concerns were observed during this session.",
+      "time_ms": 9052,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": true,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "ORANGE",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    },
+    {
+      "note_id": 50,
+      "mode": "turbo",
+      "raw_text": "Nan called and said she bought the client a new shirt. He was very happy.",
+      "expected_traffic_light": "GREEN",
+      "expected_red_flag_count": 0,
+      "expected_notes": "Good documentation of informal support. PII: Nan.",
+      "actual_traffic_light": "ORANGE",
+      "actual_red_flag_count": 0,
+      "red_flags": [],
+      "pii_count": 1,
+      "pii_items": [
+        [
+          "associate",
+          "Nan called and"
+        ]
+      ],
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "The note does not link the activity to any participant goals or plans."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "The note reflects the participant's emotional response (happiness) but does not include direct quotes or detailed participant input."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "The note mentions the participant was happy but does not provide measurable or objective outcomes."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "The note documents the support worker's involvement and the activity (providing a new shirt) clearly."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "The note explicitly states no safety concerns were observed."
+        }
+      ],
+      "hallucination_check": true,
+      "hallucination_details": "All facts in the rewritten note are supported by the original note and metadata. The date, time, duration, participant and support worker codes are from metadata. The client's happiness and the new shirt are from the original note. The statement about no safety concerns is a reasonable inference given no red flags and no mention of safety issues.",
+      "audit_notes": "The note is accurate and free of hallucinations. It documents support delivered and participant emotional response well but lacks linkage to participant goals and measurable outcomes. No red flags were found, but some pillars scored below 2, resulting in an ORANGE rating.",
+      "rewritten_note": "On March 20, 2026, from 9:00 AM to 11:00 AM, Support Worker W-050 reported that the client, Participant P-050, expressed happiness upon receiving a new shirt purchased by an associate. The client appeared pleased with the item. No safety concerns were observed during this interaction.",
+      "time_ms": 9693,
+      "error": null,
+      "evaluation": {
+        "traffic_light_correct": false,
+        "red_flag_correct": true,
+        "pii_scrubbed": true,
+        "hallucination_free": true,
+        "actual_traffic_light": "ORANGE",
+        "expected_traffic_light": "GREEN",
+        "actual_red_flags": 0,
+        "expected_red_flags": 0
+      }
+    }
+  ]
+}

@@ -20,66 +20,102 @@ struct PlatformSignature {
     mapping: ColumnMapping,
 }
 
+/// Get platform signatures based on csv_export_headers.md spec
 fn get_platform_signatures() -> Vec<PlatformSignature> {
     vec![
+        // ShiftCare: Events Report (Details view)
         PlatformSignature {
             name: "ShiftCare",
-            required_columns: vec!["Client Name", "Carer Name", "Shift Date"],
+            required_columns: vec!["Client", "Staff", "Details"],
             mapping: ColumnMapping {
-                participant_name: vec!["Client Name", "client_name", "Client"],
-                support_worker: vec!["Carer Name", "carer_name", "Carer", "Worker"],
-                date: vec!["Shift Date", "shift_date", "Date"],
-                time: vec!["Shift Time", "shift_time", "Start Time", "Time"],
+                participant_name: vec!["Client", "Client Name", "client", "client_name"],
+                support_worker: vec!["Staff", "Carer Name", "Carer", "Worker", "staff"],
+                date: vec!["Date", "Shift Date", "shift_date", "date"],
+                time: vec!["Time", "Shift Time", "shift_time", "Start Time"],
                 duration: vec!["Duration", "duration", "Hours"],
-                note_text: vec!["Progress Notes", "progress_notes", "Notes", "Note", "Shift Notes"],
+                note_text: vec!["Details", "Progress Notes", "progress_notes", "Notes", "Shift Notes"],
             },
         },
+        // Brevity: Data Export for Progress Notes
         PlatformSignature {
             name: "Brevity",
-            required_columns: vec!["Participant", "Staff Member", "Service Date"],
+            required_columns: vec!["Client Name", "Employee Name", "Progress Note"],
             mapping: ColumnMapping {
-                participant_name: vec!["Participant", "participant", "Client Name"],
-                support_worker: vec!["Staff Member", "staff_member", "Staff"],
-                date: vec!["Service Date", "service_date", "Date"],
-                time: vec!["Service Time", "service_time", "Time", "Start"],
+                participant_name: vec!["Client Name", "Participant", "participant", "client_name"],
+                support_worker: vec!["Employee Name", "Staff Member", "staff_member", "Staff"],
+                date: vec!["Date", "Service Date", "service_date"],
+                time: vec!["Time", "Service Time", "service_time", "Start"],
                 duration: vec!["Duration", "duration", "Hours"],
-                note_text: vec!["Case Note", "case_note", "Progress Note", "Notes"],
+                note_text: vec!["Progress Note", "Case Note", "case_note", "Notes"],
             },
         },
+        // Lumary: Salesforce report export
         PlatformSignature {
             name: "Lumary",
-            required_columns: vec!["Client", "Worker", "Appointment Date"],
+            required_columns: vec!["Client: Full Name", "Case Note Content"],
             mapping: ColumnMapping {
-                participant_name: vec!["Client", "client", "Participant Name"],
-                support_worker: vec!["Worker", "worker", "Support Worker"],
-                date: vec!["Appointment Date", "appointment_date", "Date"],
-                time: vec!["Appointment Time", "appointment_time", "Time"],
+                participant_name: vec![
+                    "Client: Full Name", "Client", "client", "Participant Name",
+                ],
+                support_worker: vec![
+                    "Created By: Full Name", "Worker", "worker", "Support Worker",
+                ],
+                date: vec![
+                    "Date/Time Created", "Appointment Date", "appointment_date", "Date",
+                ],
+                time: vec!["Date/Time Created", "Appointment Time", "appointment_time", "Time"],
                 duration: vec!["Duration", "duration"],
-                note_text: vec!["Session Notes", "session_notes", "Notes", "Progress Note"],
+                note_text: vec![
+                    "Case Note Content", "Description", "Notes", "Session Notes",
+                    "session_notes", "Progress Note", "Case Note",
+                ],
             },
         },
+        // Astalty: Support Notes Report
         PlatformSignature {
             name: "Astalty",
-            required_columns: vec!["participant_name", "worker_name", "session_date"],
+            required_columns: vec!["Participants", "Content"],
             mapping: ColumnMapping {
-                participant_name: vec!["participant_name", "Participant Name", "Participant"],
-                support_worker: vec!["worker_name", "Worker Name", "Worker"],
-                date: vec!["session_date", "Session Date", "Date"],
-                time: vec!["session_time", "Session Time", "Time"],
+                participant_name: vec![
+                    "Participants", "participant_name", "Participant Name", "Participant",
+                ],
+                support_worker: vec!["Created by", "worker_name", "Worker Name", "Worker"],
+                date: vec!["Created at", "session_date", "Session Date", "Date"],
+                time: vec!["Created at", "session_time", "Session Time", "Time"],
                 duration: vec!["session_duration", "Duration"],
-                note_text: vec!["progress_note", "Progress Note", "Notes"],
+                note_text: vec!["Content", "progress_note", "Progress Note", "Notes"],
             },
         },
+        // SupportAbility: Activity Report
         PlatformSignature {
             name: "SupportAbility",
-            required_columns: vec!["Person Supported", "Support Staff", "Date of Service"],
+            required_columns: vec!["Clients", "Activity Notes"],
             mapping: ColumnMapping {
-                participant_name: vec!["Person Supported", "person_supported", "Participant"],
-                support_worker: vec!["Support Staff", "support_staff", "Staff"],
-                date: vec!["Date of Service", "date_of_service", "Date"],
-                time: vec!["Time of Service", "time_of_service", "Time"],
-                duration: vec!["Service Duration", "service_duration", "Duration"],
-                note_text: vec!["Progress Notes", "progress_notes", "Notes", "Case Notes"],
+                participant_name: vec![
+                    "Clients", "Person Supported", "person_supported", "Participant",
+                ],
+                support_worker: vec!["Staff", "Support Staff", "support_staff"],
+                date: vec!["From", "Date of Service", "date_of_service", "Date"],
+                time: vec!["From", "Time of Service", "time_of_service", "Time"],
+                duration: vec![
+                    "Activity Hours", "Service Duration", "service_duration", "Duration",
+                ],
+                note_text: vec![
+                    "Activity Notes", "Progress Notes", "progress_notes", "Notes", "Case Notes",
+                ],
+            },
+        },
+        // CareMaster: Supports Reports
+        PlatformSignature {
+            name: "CareMaster",
+            required_columns: vec!["Support ID", "Case Note"],
+            mapping: ColumnMapping {
+                participant_name: vec!["Client", "client", "Participant"],
+                support_worker: vec!["Support Worker", "support_worker", "Worker", "Staff"],
+                date: vec!["Date", "date"],
+                time: vec!["Time", "time"],
+                duration: vec!["Duration", "duration"],
+                note_text: vec!["Case Note", "case_note", "Notes", "Progress Note"],
             },
         },
     ]
@@ -90,33 +126,37 @@ fn get_generic_mapping() -> ColumnMapping {
     ColumnMapping {
         participant_name: vec![
             "Participant", "Client", "Client Name", "Participant Name",
-            "Person Supported", "participant", "client", "name", "Name",
+            "Person Supported", "Clients", "participant", "client", "name", "Name",
         ],
         support_worker: vec![
             "Worker", "Support Worker", "Staff", "Carer", "Staff Member",
+            "Employee Name", "Created by", "Created By: Full Name",
             "worker", "support_worker", "staff", "carer",
         ],
         date: vec![
             "Date", "Service Date", "Shift Date", "Session Date",
-            "Appointment Date", "date", "service_date",
+            "Appointment Date", "Date/Time Created", "Created at", "From",
+            "date", "service_date",
         ],
         time: vec![
             "Time", "Start Time", "Service Time", "Shift Time",
             "Session Time", "time", "start_time",
         ],
         duration: vec![
-            "Duration", "Hours", "Service Duration", "duration", "hours",
+            "Duration", "Hours", "Service Duration", "Activity Hours",
+            "duration", "hours",
         ],
         note_text: vec![
             "Notes", "Progress Notes", "Progress Note", "Case Note",
-            "Session Notes", "Shift Notes", "Note", "notes",
-            "progress_notes", "progress_note", "case_note",
+            "Session Notes", "Shift Notes", "Note", "Details",
+            "Content", "Case Note Content", "Activity Notes", "Description",
+            "notes", "progress_notes", "progress_note", "case_note",
         ],
     }
 }
 
 /// Find a matching column header from a list of candidates
-fn find_column<'a>(headers: &'a [String], candidates: &[&str]) -> Option<usize> {
+fn find_column(headers: &[String], candidates: &[&str]) -> Option<usize> {
     for candidate in candidates {
         let lower_candidate = candidate.to_lowercase();
         for (i, header) in headers.iter().enumerate() {
@@ -132,7 +172,7 @@ fn find_column<'a>(headers: &'a [String], candidates: &[&str]) -> Option<usize> 
 /// Detect which CMS platform the CSV was exported from
 fn detect_platform(headers: &[String]) -> (String, ColumnMapping) {
     let lower_headers: Vec<String> = headers.iter().map(|h| h.trim().to_lowercase()).collect();
-    
+
     for sig in get_platform_signatures() {
         let matches = sig.required_columns.iter().all(|req| {
             let lower_req = req.to_lowercase();
@@ -142,7 +182,7 @@ fn detect_platform(headers: &[String]) -> (String, ColumnMapping) {
             return (sig.name.to_string(), sig.mapping);
         }
     }
-    
+
     ("Generic CSV".to_string(), get_generic_mapping())
 }
 
@@ -152,42 +192,46 @@ pub fn parse_csv_file(file_path: &str) -> Result<CsvParseResult, String> {
     if !path.exists() {
         return Err(format!("File not found: {}", file_path));
     }
-    
+
     let mut reader = ReaderBuilder::new()
         .flexible(true)
         .trim(csv::Trim::All)
         .from_path(path)
         .map_err(|e| format!("Failed to read CSV: {}", e))?;
-    
+
     let headers: Vec<String> = reader
         .headers()
         .map_err(|e| format!("Failed to read headers: {}", e))?
         .iter()
         .map(|h| h.to_string())
         .collect();
-    
+
     let (platform, mapping) = detect_platform(&headers);
-    
-    // Find column indices
+
     let name_idx = find_column(&headers, &mapping.participant_name);
     let worker_idx = find_column(&headers, &mapping.support_worker);
     let date_idx = find_column(&headers, &mapping.date);
     let time_idx = find_column(&headers, &mapping.time);
     let duration_idx = find_column(&headers, &mapping.duration);
     let note_idx = find_column(&headers, &mapping.note_text);
-    
+
     let mut warnings = Vec::new();
-    
+
     if note_idx.is_none() {
-        return Err("Could not find a progress notes column in the CSV file. Please ensure your CSV contains a column with note text.".to_string());
+        return Err(
+            "Could not find a progress notes column in the CSV file. Please ensure your CSV contains a column with note text.".to_string(),
+        );
     }
-    
+
     if name_idx.is_none() {
-        warnings.push("Participant name column not detected. Notes will use row numbers as identifiers.".to_string());
+        warnings.push(
+            "Participant name column not detected. Notes will use row numbers as identifiers."
+                .to_string(),
+        );
     }
-    
+
     let mut notes = Vec::new();
-    
+
     for (row_index, result) in reader.records().enumerate() {
         let record = match result {
             Ok(r) => r,
@@ -196,18 +240,18 @@ pub fn parse_csv_file(file_path: &str) -> Result<CsvParseResult, String> {
                 continue;
             }
         };
-        
+
         let get_field = |idx: Option<usize>| -> String {
             idx.and_then(|i| record.get(i))
                 .map(|s| s.trim().to_string())
                 .unwrap_or_default()
         };
-        
+
         let raw_text = get_field(note_idx);
         if raw_text.is_empty() {
-            continue; // Skip rows with no note text
+            continue;
         }
-        
+
         let participant_name = get_field(name_idx);
         let note = RawNote {
             id: Uuid::new_v4().to_string(),
@@ -224,16 +268,18 @@ pub fn parse_csv_file(file_path: &str) -> Result<CsvParseResult, String> {
             source_platform: platform.clone(),
             row_index: row_index + 1,
         };
-        
+
         notes.push(note);
     }
-    
+
     let total_count = notes.len();
-    
+
     if total_count == 0 {
-        return Err("No progress notes found in the CSV file. Please check that the file contains note data.".to_string());
+        return Err(
+            "No progress notes found in the CSV file. Please check that the file contains note data.".to_string(),
+        );
     }
-    
+
     Ok(CsvParseResult {
         platform,
         notes,
@@ -245,20 +291,49 @@ pub fn parse_csv_file(file_path: &str) -> Result<CsvParseResult, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_detect_shiftcare() {
         let headers = vec![
-            "Client Name".to_string(),
-            "Carer Name".to_string(),
-            "Shift Date".to_string(),
-            "Shift Time".to_string(),
-            "Progress Notes".to_string(),
+            "Date".to_string(),
+            "Time".to_string(),
+            "Client".to_string(),
+            "Staff".to_string(),
+            "Category".to_string(),
+            "Details".to_string(),
         ];
         let (platform, _) = detect_platform(&headers);
         assert_eq!(platform, "ShiftCare");
     }
-    
+
+    #[test]
+    fn test_detect_brevity() {
+        let headers = vec![
+            "Note ID".to_string(),
+            "Date".to_string(),
+            "Client Name".to_string(),
+            "Employee Name".to_string(),
+            "Service Type".to_string(),
+            "Progress Note".to_string(),
+        ];
+        let (platform, _) = detect_platform(&headers);
+        assert_eq!(platform, "Brevity");
+    }
+
+    #[test]
+    fn test_detect_caremaster() {
+        let headers = vec![
+            "Support ID".to_string(),
+            "Date".to_string(),
+            "Client".to_string(),
+            "Support Worker".to_string(),
+            "Service".to_string(),
+            "Case Note".to_string(),
+        ];
+        let (platform, _) = detect_platform(&headers);
+        assert_eq!(platform, "CareMaster");
+    }
+
     #[test]
     fn test_detect_generic() {
         let headers = vec![

@@ -29,6 +29,10 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 tokio = { version = "1", features = ["full"] }
 rand = "0.8"
+sysinfo = "0.32"
+aho-corasick = "1"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+log = "0.4"
 
 [features]
 default = ["custom-protocol"]

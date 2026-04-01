@@ -1,0 +1,191 @@
+{
+  "state": "VIC",
+  "version": "2.0.0",
+  "last_updated": "2026-04-02",
+  "description": "Enhanced Victorian NDIS 5-pillar audit scoring rubric v2",
+  "scoring_system": {
+    "min_score": 0,
+    "max_score": 3,
+    "pass_threshold": 2,
+    "note": "Internal scores (0-3) are NEVER displayed to users. Only traffic light indicators are shown."
+  },
+  "traffic_light_rules": {
+    "GREEN": {
+      "description": "All 5 pillars score 2 or above, no red flags, no bracket flags indicating missing critical data.",
+      "label": "Review and Approve",
+      "user_message": "This note has been prepared to audit-ready standard."
+    },
+    "ORANGE": {
+      "description": "Any pillar scores below 2, or bracket flags exist indicating missing data, but no red flags detected.",
+      "label": "Review Required",
+      "user_message": "This note requires additional information before it meets audit-ready standard."
+    },
+    "RED": {
+      "description": "Any red flag detected, regardless of pillar scores. Note floats to top of list.",
+      "label": "Needs Attention",
+      "user_message": "An incident or concern has been detected in this note that requires your immediate attention."
+    }
+  },
+  "pillars": [
+    {
+      "id": 1,
+      "name": "Goal Linkage",
+      "description": "Does the note explicitly reference a participant NDIS plan goal and demonstrate how the support provided contributes to achieving that goal?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No goal referenced at all. The note does not connect the support delivered to any NDIS plan goal.",
+          "bracket_flag": "[GOAL LINK REQUIRED — specify the NDIS plan goal this activity supports]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Vague reference to a goal area (e.g., 'daily living') without specifying the actual goal or how the activity relates to it.",
+          "bracket_flag": "[SPECIFIC GOAL REQUIRED — the note references a goal area but not a specific NDIS plan goal]"
+        },
+        "2": {
+          "label": "Met",
+          "description": "Specific goal referenced (e.g., 'Goal 2: Independence') and the note describes how the shift activities directly supported this goal.",
+          "audit_criteria": "Demonstrates the 'Golden Thread' from plan to practice."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Specific NDIS plan goal referenced by name/number, with a clear explanation of how the support provided specifically advanced the participant's progress toward that goal during the shift.",
+          "audit_criteria": "Best practice evidence of goal-directed support."
+        }
+      },
+      "examples": {
+        "good": "Support was provided in accordance with Goal 2: Increase independence with household management. Participant was encouraged to lead the meal preparation process.",
+        "poor": "Helped with cooking."
+      }
+    },
+    {
+      "id": 2,
+      "name": "Participant Voice",
+      "description": "Does the note capture the participant's choices, preferences, reactions, and direct feedback during the session?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No participant perspective captured. The note is entirely from the worker's perspective.",
+          "bracket_flag": "[PARTICIPANT RESPONSE REQUIRED — document the participant's observable response to the session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Worker's interpretation of participant's feelings without direct evidence or quotes (e.g., 'seemed happy').",
+          "bracket_flag": "[PARTICIPANT CHOICE REQUIRED — document a specific choice or preference expressed by the participant]"
+        },
+        "2": {
+          "label": "Met",
+          "description": "Participant's preferences or choices documented (e.g., 'participant chose to walk to the shops instead of taking the bus').",
+          "audit_criteria": "Evidence of person-centred support and choice and control."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Direct quotes or specific participant-directed decisions documented, including their feedback on the support provided (e.g., 'participant stated she would like to continue this activity next week as it made her feel more confident').",
+          "audit_criteria": "High-quality evidence of participant-led service delivery."
+        }
+      },
+      "examples": {
+        "good": "The participant verbally confirmed satisfaction with the session and indicated a preference to continue this routine, stating 'I really enjoyed learning how to use the new app today.'",
+        "poor": "Client seemed fine."
+      }
+    },
+    {
+      "id": 3,
+      "name": "Measurable Outcomes",
+      "description": "Are there specific, observable, and where possible, quantifiable outcomes documented for the session?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No outcomes documented. The note does not describe what was achieved or the result of the support.",
+          "bracket_flag": "[OUTCOME REQUIRED — describe the observable outcome of this session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "General statement about how the session went (e.g., 'session went well') without specific observable results.",
+          "bracket_flag": "[OBSERVABLE OUTCOME REQUIRED — describe a specific result or achievement from the session]"
+        },
+        "2": {
+          "label": "Met",
+          "description": "Specific observable outcomes described (e.g., 'participant completed three of five meal preparation steps independently, requiring only verbal prompts for the remaining two').",
+          "audit_criteria": "Evidence of progress and effectiveness of support."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Quantifiable or clearly measurable outcomes with comparison to baseline or previous performance, demonstrating incremental progress (e.g., 'participant completed 3 of 5 steps independently, up from 1 of 5 last month').",
+          "audit_criteria": "Best practice evidence of outcome-focused support."
+        }
+      },
+      "examples": {
+        "good": "The participant independently selected 10 grocery items from a prepared list, completing the task without physical assistance for the first time, demonstrating increased confidence in community navigation.",
+        "poor": "Did shopping."
+      }
+    },
+    {
+      "id": 4,
+      "name": "Support Delivered",
+      "description": "Is the actual support activity clearly described, including the duration, method, and level of assistance provided?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No description of support provided. The note is missing the core activity details.",
+          "bracket_flag": "[SUPPORT DESCRIPTION REQUIRED — describe the specific support activities delivered during this session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Vague description of support type (e.g., 'helped with tasks') without detailing the specific actions taken by the worker.",
+          "bracket_flag": "[DETAILED SUPPORT REQUIRED — provide more detail on the specific assistance provided during the shift]"
+        },
+        "2": {
+          "label": "Met",
+          "description": "Clear description of specific support activities, including the type of assistance (e.g., 'assisted with meal preparation including planning the week's menu and providing physical assistance with chopping vegetables').",
+          "audit_criteria": "Evidence of service delivery against the support plan."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Detailed description with duration, method, and participant engagement level (e.g., 'assisted with meal preparation for 45 minutes, providing verbal prompts only while participant completed all physical tasks independently, following the steps in their visual recipe guide').",
+          "audit_criteria": "Comprehensive evidence of purposeful and skilled support."
+        }
+      },
+      "examples": {
+        "good": "The support worker assisted participant with meal preparation for 60 minutes. The participant directed the session, choosing the menu items and completing the majority of preparation steps independently with verbal guidance only, as per the current skill-building plan.",
+        "poor": "Cooking support."
+      }
+    },
+    {
+      "id": 5,
+      "name": "Risk & Safety",
+      "description": "Are any safety concerns, incidents, medication events, or adherence to health protocols properly documented, or is there a clear 'nil-incident' statement?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No safety information included in the note. Fails to confirm the safety status of the shift.",
+          "bracket_flag": "[SAFETY STATEMENT REQUIRED — confirm whether any incidents, medication events, or safety concerns occurred during this session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Generic safety statement without specifics (e.g., 'no issues') or missing confirmation of specific high-risk areas (e.g., medication).",
+          "bracket_flag": "[COMPREHENSIVE SAFETY REQUIRED — confirm nil incidents, medication events, and environmental safety concerns]"
+        },
+        "2": {
+          "label": "Met",
+          "description": "Specific safety observations documented, including a clear statement that no incidents or medication events occurred (e.g., 'no incidents, medication events, or safety concerns were observed or reported during this session').",
+          "audit_criteria": "Evidence of risk management and safeguarding."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Comprehensive safety assessment with specific observations and nil-incident confirmation covering incidents, medication, and environmental safety, plus confirmation of adherence to any specific health management plans (e.g., 'Epilepsy Management Plan followed, no seizures observed').",
+          "audit_criteria": "Best practice evidence of proactive risk management and clinical compliance."
+        }
+      },
+      "examples": {
+        "good": "No incidents, medication events, or safety concerns were observed or reported during this session. All health protocols for mealtime management were strictly followed.",
+        "poor": "All good."
+      }
+    }
+  ]
+}

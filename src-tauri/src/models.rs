@@ -3,12 +3,80 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-/// Application state managed by Tauri
+// ===== Processing Mode =====
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ProcessingMode {
+    Standard,
+    Turbo,
+}
+
+impl ProcessingMode {
+    pub fn label(&self) -> &str {
+        match self {
+            ProcessingMode::Standard => "Standard Mode",
+            ProcessingMode::Turbo => "Turbo Mode",
+        }
+    }
+}
+
+// ===== Hardware Profile =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HardwareProfile {
+    pub mode: ProcessingMode,
+    pub cpu_cores: u32,
+    pub ram_gb: f64,
+    pub has_gpu: bool,
+    pub gpu_name: Option<String>,
+    pub gpu_vram_gb: Option<f64>,
+    pub recommended_threads: u32,
+    pub recommended_gpu_layers: i32,
+}
+
+// ===== Self-Fix State =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SelfFixState {
+    pub model_loaded: bool,
+    pub model_healthy: bool,
+    pub ram_ok: bool,
+    pub disk_ok: bool,
+    pub licence_valid: bool,
+    pub licence_cache_days_remaining: i32,
+    pub last_check: String,
+    pub issues: Vec<SelfFixIssue>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SelfFixIssue {
+    pub category: String,
+    pub description: String,
+    pub action_taken: String,
+    pub resolved: bool,
+    pub timestamp: String,
+}
+
+// ===== Cartridge Configs =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CartridgeSet {
+    pub red_flags: serde_json::Value,
+    pub rubric: serde_json::Value,
+    pub policies: serde_json::Value,
+    pub system_prompts: serde_json::Value,
+}
+
+// ===== Application State =====
+
 pub struct AppState {
     pub app_data_dir: PathBuf,
     pub resource_dir: PathBuf,
     pub participant_profiles: Mutex<HashMap<String, ParticipantProfile>>,
     pub batch_state: Mutex<Option<BatchState>>,
+    pub hardware_profile: Mutex<Option<HardwareProfile>>,
+    pub self_fix_state: Mutex<SelfFixState>,
+    pub cartridges: Mutex<Option<CartridgeSet>>,
 }
 
 impl AppState {
@@ -18,11 +86,24 @@ impl AppState {
             resource_dir,
             participant_profiles: Mutex::new(HashMap::new()),
             batch_state: Mutex::new(None),
+            hardware_profile: Mutex::new(None),
+            self_fix_state: Mutex::new(SelfFixState {
+                model_loaded: false,
+                model_healthy: false,
+                ram_ok: true,
+                disk_ok: true,
+                licence_valid: true,
+                licence_cache_days_remaining: 7,
+                last_check: String::new(),
+                issues: Vec::new(),
+            }),
+            cartridges: Mutex::new(None),
         }
     }
 }
 
-/// Participant profile stored locally
+// ===== Participant Profile =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParticipantProfile {
     pub id: String,
@@ -31,7 +112,8 @@ pub struct ParticipantProfile {
     pub notes_processed: u32,
 }
 
-/// Raw progress note parsed from CSV
+// ===== Raw Note =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawNote {
     pub id: String,
@@ -45,7 +127,8 @@ pub struct RawNote {
     pub row_index: usize,
 }
 
-/// PII mapping for scrub/restore
+// ===== PII Mapping =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PiiMapping {
     pub original: String,
@@ -53,31 +136,30 @@ pub struct PiiMapping {
     pub category: String,
 }
 
-/// Scrubbed note ready for LLM processing
+// ===== Scrubbed Note =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScrubbedNote {
     pub scrubbed_text: String,
     pub pii_mappings: Vec<PiiMapping>,
 }
 
-/// Red flag detected in a note
+// ===== Red Flag =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RedFlag {
     pub category: String,
     pub description: String,
     pub keywords_matched: Vec<String>,
-    pub required_forms: Vec<RequiredForm>,
     pub severity: String,
 }
 
-/// Required form for a red flag
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequiredForm {
     pub form_name: String,
     pub fields: Vec<FormField>,
 }
 
-/// A field in a required form
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FormField {
     pub label: String,
@@ -86,7 +168,8 @@ pub struct FormField {
     pub is_missing: bool,
 }
 
-/// Missing data item detected during processing
+// ===== Missing Data =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissingDataItem {
     pub field_name: String,
@@ -95,17 +178,19 @@ pub struct MissingDataItem {
     pub submitted_value: Option<String>,
 }
 
-/// Pillar score in the 5-pillar rubric
+// ===== Pillar Score =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PillarScore {
     pub pillar_name: String,
     pub pillar_id: u8,
-    pub score: u8, // 0-3 internal only, never shown to user
+    pub score: u8,
     pub met: bool,
     pub feedback: String,
 }
 
-/// Traffic light status
+// ===== Traffic Light =====
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TrafficLight {
     #[serde(rename = "RED")]
@@ -124,7 +209,7 @@ impl TrafficLight {
             TrafficLight::Green => 2,
         }
     }
-    
+
     pub fn label(&self) -> &str {
         match self {
             TrafficLight::Red => "Needs Attention",
@@ -134,7 +219,8 @@ impl TrafficLight {
     }
 }
 
-/// Agent 1 output: rewrite + scan
+// ===== Agent Outputs =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Agent1Output {
     pub rewritten_note: String,
@@ -143,7 +229,6 @@ pub struct Agent1Output {
     pub bracket_flags: Vec<String>,
 }
 
-/// Agent 2 output: audit + score
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Agent2Output {
     pub audited_note: String,
@@ -153,7 +238,8 @@ pub struct Agent2Output {
     pub audit_notes: String,
 }
 
-/// Fully processed note
+// ===== Processed Note =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessedNote {
     pub id: String,
@@ -171,9 +257,12 @@ pub struct ProcessedNote {
     pub is_done: bool,
     pub is_flagged: bool,
     pub preview: String,
+    pub processing_mode: String,
+    pub processing_time_ms: u64,
 }
 
-/// Batch processing state
+// ===== Batch State =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchState {
     pub total_notes: usize,
@@ -182,9 +271,11 @@ pub struct BatchState {
     pub source_platform: String,
     pub start_time: String,
     pub is_complete: bool,
+    pub processing_mode: String,
 }
 
-/// Batch summary for Screen 4
+// ===== Batch Summary =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchSummary {
     pub total_notes: usize,
@@ -195,7 +286,6 @@ pub struct BatchSummary {
     pub unresolved_red_flags: Vec<UnresolvedItem>,
 }
 
-/// Unresolved red flag item for batch summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnresolvedItem {
     pub participant_name: String,
@@ -204,7 +294,8 @@ pub struct UnresolvedItem {
     pub required_forms: Vec<String>,
 }
 
-/// CSV platform detection result
+// ===== CSV Parse Result =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CsvParseResult {
     pub platform: String,
@@ -213,7 +304,8 @@ pub struct CsvParseResult {
     pub warnings: Vec<String>,
 }
 
-/// Response for process_note command
+// ===== Command Responses =====
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessNoteResponse {
     pub note: ProcessedNote,
@@ -221,7 +313,6 @@ pub struct ProcessNoteResponse {
     pub missing_items: Vec<MissingDataItem>,
 }
 
-/// Response for batch processing progress
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchProgress {
     pub processed: usize,

@@ -1,0 +1,76 @@
+
+============================================================
+RiteDoc Pipeline Test — STANDARD Mode
+Testing 50 notes with gpt-4.1-mini
+============================================================
+
+Processing note 1/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 9816ms
+Processing note 2/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 9340ms
+Processing note 3/50... ✓ TL:RED(exp:RED)✓ RF:4 PII:0 10863ms
+Processing note 4/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 6953ms
+Processing note 5/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:1 9955ms
+Processing note 6/50... ✓ TL:RED(exp:GREEN)✗ RF:0 PII:3 9359ms
+Processing note 7/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 10082ms
+Processing note 8/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 7369ms
+Processing note 9/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 14841ms
+Processing note 10/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 7074ms
+Processing note 11/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:1 8751ms
+Processing note 12/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 8182ms
+Processing note 13/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 8463ms
+Processing note 14/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 11026ms
+Processing note 15/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 8313ms
+Processing note 16/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 9693ms
+Processing note 17/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:2 7493ms
+Processing note 18/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 5727ms
+Processing note 19/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:1 7889ms
+Processing note 20/50... ✓ TL:RED(exp:ORANGE)✗ RF:0 PII:0 6623ms
+Processing note 21/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 8627ms
+Processing note 22/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 8193ms
+Processing note 23/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 8426ms
+Processing note 24/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 6570ms
+Processing note 25/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 8402ms
+Processing note 26/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 9056ms
+Processing note 27/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 6455ms
+Processing note 28/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 8032ms
+Processing note 29/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 8696ms
+Processing note 30/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 6182ms
+Processing note 31/50... ✓ TL:RED(exp:GREEN)✗ RF:1 PII:0 9176ms
+Processing note 32/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 7060ms
+Processing note 33/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 9728ms
+Processing note 34/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 6823ms
+Processing note 35/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 8224ms
+Processing note 36/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 7573ms
+Processing note 37/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 6782ms
+Processing note 38/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 8171ms
+Processing note 39/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 6772ms
+Processing note 40/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 7631ms
+Processing note 41/50... ✓ TL:ORANGE(exp:ORANGE)✓ RF:0 PII:0 6938ms
+Processing note 42/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 7983ms
+Processing note 43/50... ✓ TL:RED(exp:RED)✓ RF:1 PII:0 8711ms
+Processing note 44/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 7214ms
+Processing note 45/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 7549ms
+Processing note 46/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 7277ms
+Processing note 47/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 6694ms
+Processing note 48/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:0 8057ms
+Processing note 49/50... ✓ TL:RED(exp:ORANGE)✗ RF:1 PII:0 8488ms
+Processing note 50/50... ✓ TL:ORANGE(exp:GREEN)✗ RF:0 PII:1 9200ms
+
+============================================================
+RESULTS SUMMARY — STANDARD Mode
+============================================================
+Total notes:          50
+Successful:           50
+Errors:               0
+
+Traffic Light Accuracy: 21/50 (42.0%)
+Red Flag Detection:     48/50 (96.0%)
+PII Scrubbing:          50/50 (100.0%)
+Hallucination-Free:     0/50 (0.0%)
+
+Avg processing time:  8250ms
+Total processing time: 412.5s
+============================================================
+
+Detailed results saved to /home/ubuntu/ritedoc/tests/../testing/test_results_50.json
+
+All tests complete!
