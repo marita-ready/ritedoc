@@ -1,0 +1,494 @@
+[
+  {
+    "test_id": "test_001",
+    "description": "Good note \u2014 has goal reference, participant voice, measurable outcomes",
+    "participant": "Margaret Kennedy",
+    "raw_note": "Went to Margs place this morning for her usual session. Helped her with breakfast - she made toast and eggs mostly by herself, I just helped with the stove. Then we did some cleaning, vacuumed the lounge and she wiped down the kitchen. She said she wants to keep doing this every week cos she feels more confident. Goal 2 daily living. No issues.",
+    "scrubbed_note": "Went to [Participant] place this morning for her usual session. Helped her with breakfast - she made toast and eggs mostly by herself, I just helped with the stove. Then we did some cleaning, vacuumed the lounge and she wiped down the kitchen. She said she wants to keep doing this every week cos she feels more confident. Goal 2 daily living. No issues.",
+    "pii_mappings": [
+      {
+        "original": "Margs",
+        "tag": "[Participant]",
+        "category": "participant_nickname"
+      }
+    ],
+    "agent1_output": {
+      "rewritten_note": "Date: 17 March 2026\nTime: 9:00 AM\nDuration: 2 hours\nParticipant Code: MK-817\nSupport Worker Code: SJ-068\n\nSupport was provided at the participant's residence during the scheduled session. Assistance was given with breakfast preparation; the participant independently prepared toast and eggs, with support provided only for stove use. Following breakfast, the participant engaged in household cleaning activities, including vacuuming the lounge and wiping down the kitchen surfaces. The participant expressed a desire to continue these weekly activities as they contribute to increased confidence. This session supported Goal 2: Daily Living Skills. No incidents, medication events, or safety concerns were observed or reported during this session.",
+      "red_flags": [],
+      "missing_data": [],
+      "bracket_flags": []
+    },
+    "agent2_output": {
+      "audited_note": "Date: 17 March 2026\nTime: 9:00 AM\nDuration: 2 hours\nParticipant Code: MK-817\nSupport Worker Code: SJ-068\n\nSupport was provided at the participant's residence during the scheduled session. Assistance was given with breakfast preparation; the participant independently prepared toast and eggs, with support provided only for stove use. Following breakfast, the participant engaged in household cleaning activities, including vacuuming the lounge and wiping down the kitchen surfaces. The participant expressed a desire to continue these weekly activities as they contribute to increased confidence. This session supported Goal 2: Daily Living Skills. No incidents, medication events, or safety concerns were observed or reported during this session.",
+      "hallucination_check": true,
+      "hallucination_details": "",
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific goal referenced as 'Goal 2 daily living' from the original note, though the full formal name is not provided."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "Participant's preference documented ('wants to keep doing this every week') but no direct quotes included."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific observable outcomes described (participant made toast and eggs mostly independently, vacuumed lounge, wiped kitchen)."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Clear description of support activities (help with stove, assistance during breakfast, cleaning tasks)."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific safety statement confirming no incidents or medication events during the session."
+        }
+      ],
+      "traffic_light": "GREEN",
+      "audit_notes": "The rewritten note accurately reflects the original raw note and metadata with no hallucinations. It references a specific goal, captures participant preferences, describes measurable outcomes and support delivered, and includes a specific safety statement. All pillars score 2 or above, and no red flags were detected, resulting in a green traffic light."
+    },
+    "final_note": "Date: 17 March 2026\nTime: 9:00 AM\nDuration: 2 hours\nParticipant Code: MK-817\nSupport Worker Code: SJ-068\n\nSupport was provided at the participant's residence during the scheduled session. Assistance was given with breakfast preparation; the participant independently prepared toast and eggs, with support provided only for stove use. Following breakfast, the participant engaged in household cleaning activities, including vacuuming the lounge and wiping down the kitchen surfaces. The participant expressed a desire to continue these weekly activities as they contribute to increased confidence. This session supported Goal 2: Daily Living Skills. No incidents, medication events, or safety concerns were observed or reported during this session.",
+    "expected_traffic_light": "GREEN",
+    "actual_traffic_light": "GREEN",
+    "traffic_light_pass": true,
+    "expected_red_flags": 0,
+    "actual_red_flags": 0,
+    "red_flags_pass": true,
+    "pii_scrub_pass": true,
+    "hallucination_pass": true,
+    "overall_pass": true
+  },
+  {
+    "test_id": "test_002",
+    "description": "Poor note \u2014 missing date, time, goal, participant voice, measurable outcomes",
+    "participant": "David Chen",
+    "raw_note": "Took David to the shops. He picked out some groceries. Went ok.",
+    "scrubbed_note": "Took [Participant] to the shops. He picked out some groceries. Went ok.",
+    "pii_mappings": [
+      {
+        "original": "David",
+        "tag": "[Participant]",
+        "category": "participant_name"
+      }
+    ],
+    "agent1_output": {
+      "rewritten_note": "[DATE REQUIRED \u2014 date of the session is needed] [TIME REQUIRED \u2014 time of the session is needed] [DURATION REQUIRED \u2014 duration of the session is needed]\nParticipant DC-596 was accompanied to the shops by support worker MT-192. The participant selected groceries independently during the outing. The session proceeded without incident.\nParticipant feedback and measurable outcomes were not documented. [PARTICIPANT VOICE REQUIRED \u2014 participant's response or feedback during the session is needed] [MEASURABLE OUTCOMES REQUIRED \u2014 specific outcomes related to participant goals are needed] [GOAL LINKAGE REQUIRED \u2014 connection to participant's goals should be included]\nNo incidents, medication events, or safety concerns were observed or reported during this session.",
+      "red_flags": [],
+      "missing_data": [
+        {
+          "field_name": "Date",
+          "reason": "Date of the session is required for audit and record-keeping purposes.",
+          "placeholder": "[DATE REQUIRED \u2014 date of the session is needed]"
+        },
+        {
+          "field_name": "Time",
+          "reason": "Time of the session is required for accurate documentation.",
+          "placeholder": "[TIME REQUIRED \u2014 time of the session is needed]"
+        },
+        {
+          "field_name": "Duration",
+          "reason": "Duration of the session is needed to understand the length of support provided.",
+          "placeholder": "[DURATION REQUIRED \u2014 duration of the session is needed]"
+        },
+        {
+          "field_name": "Participant Voice",
+          "reason": "Participant's response or feedback during the session is necessary to reflect engagement and experience.",
+          "placeholder": "[PARTICIPANT VOICE REQUIRED \u2014 participant's response or feedback during the session is needed]"
+        },
+        {
+          "field_name": "Measurable Outcomes",
+          "reason": "Specific outcomes related to participant goals are needed to evaluate progress.",
+          "placeholder": "[MEASURABLE OUTCOMES REQUIRED \u2014 specific outcomes related to participant goals are needed]"
+        },
+        {
+          "field_name": "Goal Linkage",
+          "reason": "Linking the support provided to participant goals is essential for audit and planning.",
+          "placeholder": "[GOAL LINKAGE REQUIRED \u2014 connection to participant's goals should be included]"
+        }
+      ],
+      "bracket_flags": [
+        "[DATE REQUIRED \u2014 date of the session is needed]",
+        "[TIME REQUIRED \u2014 time of the session is needed]",
+        "[DURATION REQUIRED \u2014 duration of the session is needed]",
+        "[PARTICIPANT VOICE REQUIRED \u2014 participant's response or feedback during the session is needed]",
+        "[MEASURABLE OUTCOMES REQUIRED \u2014 specific outcomes related to participant goals are needed]",
+        "[GOAL LINKAGE REQUIRED \u2014 connection to participant's goals should be included]"
+      ]
+    },
+    "agent2_output": {
+      "audited_note": "[DATE REQUIRED \u2014 date of the session is needed] [TIME REQUIRED \u2014 time of the session is needed] [DURATION REQUIRED \u2014 duration of the session is needed]\nParticipant DC-596 was accompanied to the shops by support worker MT-192. The participant selected groceries independently during the outing. The session proceeded without incident.\nParticipant feedback and measurable outcomes were not documented. [PARTICIPANT VOICE REQUIRED \u2014 participant's response or feedback during the session is needed] [MEASURABLE OUTCOMES REQUIRED \u2014 specific outcomes related to participant goals are needed] [GOAL LINKAGE REQUIRED \u2014 connection to participant's goals should be included]\nNo incidents, medication events, or safety concerns were observed or reported during this session.",
+      "hallucination_check": true,
+      "hallucination_details": "No hallucinations detected. All clinical facts and observations in the rewritten note are supported by the original raw note or metadata. The added statements about no incidents or safety concerns are reasonable inferences from the absence of such mentions in the raw note and are not hallucinations.",
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "No reference to any participant goal or goal area is made in the rewritten note."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 0,
+          "met": false,
+          "feedback": "No participant perspective, preferences, or direct quotes are documented."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 1,
+          "met": false,
+          "feedback": "General statement that the session proceeded without incident is present but no specific observable or quantifiable outcomes are documented."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Clear description that participant was accompanied to the shops and selected groceries independently."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific statement confirming no incidents, medication events, or safety concerns during the session."
+        }
+      ],
+      "traffic_light": "ORANGE",
+      "audit_notes": "The rewritten note contains no hallucinations and accurately reflects the original raw note and metadata. However, it lacks any linkage to participant goals and does not capture participant voice or detailed measurable outcomes. Support delivered and risk & safety are adequately described. Missing critical information such as date, time, and duration, and the absence of participant voice and goal linkage result in an ORANGE rating."
+    },
+    "final_note": "[DATE REQUIRED \u2014 date of the session is needed] [TIME REQUIRED \u2014 time of the session is needed] [DURATION REQUIRED \u2014 duration of the session is needed]\nParticipant DC-596 was accompanied to the shops by support worker MT-192. The participant selected groceries independently during the outing. The session proceeded without incident.\nParticipant feedback and measurable outcomes were not documented. [PARTICIPANT VOICE REQUIRED \u2014 participant's response or feedback during the session is needed] [MEASURABLE OUTCOMES REQUIRED \u2014 specific outcomes related to participant goals are needed] [GOAL LINKAGE REQUIRED \u2014 connection to participant's goals should be included]\nNo incidents, medication events, or safety concerns were observed or reported during this session.",
+    "expected_traffic_light": "ORANGE",
+    "actual_traffic_light": "ORANGE",
+    "traffic_light_pass": true,
+    "expected_red_flags": 0,
+    "actual_red_flags": 0,
+    "red_flags_pass": true,
+    "pii_scrub_pass": true,
+    "hallucination_pass": true,
+    "overall_pass": true
+  },
+  {
+    "test_id": "test_003",
+    "description": "Red flag \u2014 medication error (wrong dose)",
+    "participant": "Patricia Lam",
+    "raw_note": "Evening shift with Patricia. Was giving her meds and realised I gave her the wrong dose of her blood pressure tablet - gave her 10mg instead of 5mg. Noticed straight away after she took it. Called the on-call nurse Aunty Rose who said to monitor her for 2 hours. Patricia seemed fine, no adverse effects. Stayed extra time to monitor. Reported to supervisor Dr Smith on phone 0412 345 678.",
+    "scrubbed_note": "Evening shift with [Participant]. Was giving her meds and realised I gave her the wrong dose of her blood pressure tablet - gave her 10mg instead of 5mg. Noticed straight away after she took it. Called the on-call nurse [Associate] said to monitor her for 2 hours. [Participant] seemed fine, no adverse effects. Stayed extra time to monitor. Reported to supervisor [Associate] phone [Phone].",
+    "pii_mappings": [
+      {
+        "original": "Patricia",
+        "tag": "[Participant]",
+        "category": "participant_name"
+      },
+      {
+        "original": "Aunty Rose who",
+        "tag": "[Associate]",
+        "category": "associate_name"
+      },
+      {
+        "original": "Dr Smith on",
+        "tag": "[Associate]",
+        "category": "associate_name"
+      },
+      {
+        "original": "0412 345 678",
+        "tag": "[Phone]",
+        "category": "phone"
+      }
+    ],
+    "agent1_output": {
+      "rewritten_note": "Date: 18 March 2026\nTime: 6:30 PM\nDuration: 1 hour\n\nSupport was provided to participant PL-160 during the evening shift. The support worker JW-466 administered medication but identified an error in dosage: the participant received 10mg of her blood pressure tablet instead of the prescribed 5mg. Upon recognizing the error immediately after administration, the support worker contacted the on-call nurse, Associate, and followed instructions to monitor the participant for two hours. The participant reportedly showed no adverse effects during this period. The support worker extended the monitoring time accordingly and reported the incident to the supervisor, Associate, via phone.\n\nParticipant response: The participant appeared stable and did not exhibit any negative reactions to the incorrect medication dose.\n\nMeasurable outcomes: The participant remained stable with no adverse effects observed during the monitoring period following the medication error.\n\nGoal linkage: [GOAL LINKAGE REQUIRED \u2014 connection to participant's medication management or health goals]\n\nSafety statement: A medication administration error occurred; however, the participant was monitored closely with no adverse effects noted. The incident was reported to appropriate clinical staff and supervisor. No further safety concerns were observed during this session.",
+      "red_flags": [
+        {
+          "category": "Medication Error / Missed Medication",
+          "description": "A medication dosage error occurred when the participant was given double the prescribed dose of a blood pressure tablet.",
+          "keywords_matched": [
+            "gave her the wrong dose of her blood pressure tablet - gave her 10mg instead of 5mg"
+          ],
+          "severity": "CRITICAL"
+        }
+      ],
+      "missing_data": [
+        {
+          "field_name": "Goal linkage",
+          "reason": "To demonstrate how this support session relates to the participant's NDIS goals, particularly regarding medication management or health maintenance.",
+          "placeholder": "[GOAL LINKAGE REQUIRED \u2014 connection to participant's medication management or health goals]"
+        }
+      ],
+      "bracket_flags": [
+        "[GOAL LINKAGE REQUIRED \u2014 connection to participant's medication management or health goals]"
+      ]
+    },
+    "agent2_output": {
+      "audited_note": "Date: 18 March 2026\nTime: 6:30 PM\nDuration: 1 hour\n\nSupport was provided to participant PL-160 during the evening shift. The support worker JW-466 administered medication but identified an error in dosage: the participant received 10mg of her blood pressure tablet instead of the prescribed 5mg. Upon recognizing the error immediately after administration, the support worker contacted the on-call nurse, Associate, and followed instructions to monitor the participant for two hours. The participant reportedly showed no adverse effects during this period. The support worker extended the monitoring time accordingly and reported the incident to the supervisor, Associate, via phone.\n\nParticipant response: The participant appeared stable and did not exhibit any negative reactions to the incorrect medication dose.\n\nMeasurable outcomes: The participant remained stable with no adverse effects observed during the monitoring period following the medication error.\n\nGoal linkage: [GOAL LINKAGE REQUIRED \u2014 connection to participant's medication management or health goals]\n\nSafety statement: A medication administration error occurred; however, the participant was monitored closely with no adverse effects noted. The incident was reported to appropriate clinical staff and supervisor. No further safety concerns were observed during this session.",
+      "hallucination_check": true,
+      "hallucination_details": "No hallucinations detected. All clinical facts, events, and observations in the rewritten note are supported by the original raw note or metadata.",
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "No specific or vague reference to any NDIS plan goal or goal area was made; the note includes a placeholder indicating missing goal linkage."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 1,
+          "met": false,
+          "feedback": "The participant's condition was described by the worker's observation ('appeared stable') but no participant preferences, choices, or direct quotes were documented."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific observable outcomes were described, including the participant showing no adverse effects and remaining stable during the monitoring period."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Clear description of support activities including medication administration, error recognition, contacting nurse, monitoring for two hours, and reporting to supervisor."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "Comprehensive safety assessment covering the medication error, monitoring period, absence of adverse effects, and reporting to clinical staff and supervisor."
+        }
+      ],
+      "traffic_light": "RED",
+      "audit_notes": "The rewritten note accurately reflects the original raw note and metadata with no hallucinations. However, a critical red flag was detected due to the medication dosage error, which mandates a RED traffic light. The note lacks goal linkage and participant voice is minimal, but safety and support delivery are well documented."
+    },
+    "final_note": "Date: 18 March 2026\nTime: 6:30 PM\nDuration: 1 hour\n\nSupport was provided to participant PL-160 during the evening shift. The support worker JW-466 administered medication but identified an error in dosage: the participant received 10mg of her blood pressure tablet instead of the prescribed 5mg. Upon recognizing the error immediately after administration, the support worker contacted the on-call nurse, Associate, and followed instructions to monitor the participant for two hours. The participant reportedly showed no adverse effects during this period. The support worker extended the monitoring time accordingly and reported the incident to the supervisor, Associate, via phone.\n\nParticipant response: The participant appeared stable and did not exhibit any negative reactions to the incorrect medication dose.\n\nMeasurable outcomes: The participant remained stable with no adverse effects observed during the monitoring period following the medication error.\n\nGoal linkage: [GOAL LINKAGE REQUIRED \u2014 connection to participant's medication management or health goals]\n\nSafety statement: A medication administration error occurred; however, the participant was monitored closely with no adverse effects noted. The incident was reported to appropriate clinical staff and supervisor. No further safety concerns were observed during this session.",
+    "expected_traffic_light": "RED",
+    "actual_traffic_light": "RED",
+    "traffic_light_pass": true,
+    "expected_red_flags": 1,
+    "actual_red_flags": 1,
+    "red_flags_pass": true,
+    "pii_scrub_pass": true,
+    "hallucination_pass": true,
+    "overall_pass": true
+  },
+  {
+    "test_id": "test_004",
+    "description": "Good note \u2014 strong participant voice, goal linkage, measurable outcomes",
+    "participant": "Thomas Nguyen",
+    "raw_note": "Community access with Thomas today. Went to the community garden at 42 Smith Street Footscray. He was really into it - planted some tomatoes and talked to the other gardeners. He asked if we could come back next week. Working on Goal 1 community connections. Thomas said he enjoyed meeting new people and wants to join the Wednesday group too. No safety concerns.",
+    "scrubbed_note": "Community access with [Participant] today. Went to the community garden at [Location]. He was really into it - planted some tomatoes and talked to the other gardeners. He asked if we could come back next week. Working on Goal 1 community connections. [Participant] said he enjoyed meeting new people and wants to join the Wednesday group too. No safety concerns.",
+    "pii_mappings": [
+      {
+        "original": "Thomas",
+        "tag": "[Participant]",
+        "category": "participant_name"
+      },
+      {
+        "original": "42 Smith Street",
+        "tag": "[Location]",
+        "category": "address"
+      },
+      {
+        "original": "Footscray",
+        "tag": "[Location]",
+        "category": "suburb"
+      }
+    ],
+    "agent1_output": {
+      "rewritten_note": "Date: 19 March 2026\nTime: 2:00 PM\nDuration: 2.5 hours\n\nSupport was provided to participant TN-466 to facilitate community access. The session took place at a community garden located at [Location]. The participant engaged in planting tomatoes and interacted positively with other gardeners. The participant expressed enjoyment in the activity and requested to return the following week. This support session was linked to Goal 1: Community Connections. The participant reported that they enjoyed meeting new people and expressed interest in joining the Wednesday group as well. No incidents, medication events, or safety concerns were observed or reported during this session.",
+      "red_flags": [],
+      "missing_data": [
+        {
+          "field_name": "Location",
+          "reason": "The specific location of the community garden is needed for audit and safety documentation.",
+          "placeholder": "[LOCATION REQUIRED \u2014 specify the community garden location]"
+        }
+      ],
+      "bracket_flags": [
+        "[LOCATION REQUIRED \u2014 specify the community garden location]"
+      ]
+    },
+    "agent2_output": {
+      "audited_note": "Date: 19 March 2026\nTime: 2:00 PM\nDuration: 2.5 hours\n\nSupport was provided to participant TN-466 to facilitate community access. The session took place at a community garden located at [Location]. The participant engaged in planting tomatoes and interacted positively with other gardeners. The participant expressed enjoyment in the activity and requested to return the following week. This support session was linked to Goal 1: Community Connections. The participant reported that they enjoyed meeting new people and expressed interest in joining the Wednesday group as well. No incidents, medication events, or safety concerns were observed or reported during this session.",
+      "hallucination_check": true,
+      "hallucination_details": "",
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 3,
+          "met": true,
+          "feedback": "The note specifically references 'Goal 1: Community Connections' as linked to the support session."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 3,
+          "met": true,
+          "feedback": "Direct quotes and participant expressions are documented, such as enjoyment and request to return next week."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific observable outcomes are described, including planting tomatoes and interacting with gardeners, but no quantifiable data is provided."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Clear description of support activities is provided, including community access and gardening, but lacks detailed duration or method of engagement."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific safety statement confirms no incidents, medication events, or safety concerns during the session."
+        }
+      ],
+      "traffic_light": "GREEN",
+      "audit_notes": "The rewritten note accurately reflects the original raw note and metadata with no hallucinations detected. It clearly links the session to a specific NDIS goal, includes participant voice with direct quotes, describes specific outcomes and support activities, and provides a specific safety statement. All pillars score 2 or above, and no red flags are present, resulting in a GREEN traffic light."
+    },
+    "final_note": "Date: 19 March 2026\nTime: 2:00 PM\nDuration: 2.5 hours\n\nSupport was provided to participant TN-466 to facilitate community access. The session took place at a community garden located at 42 Smith Street. The participant engaged in planting tomatoes and interacted positively with other gardeners. The participant expressed enjoyment in the activity and requested to return the following week. This support session was linked to Goal 1: Community Connections. The participant reported that they enjoyed meeting new people and expressed interest in joining the Wednesday group as well. No incidents, medication events, or safety concerns were observed or reported during this session.",
+    "expected_traffic_light": "GREEN",
+    "actual_traffic_light": "GREEN",
+    "traffic_light_pass": true,
+    "expected_red_flags": 0,
+    "actual_red_flags": 0,
+    "red_flags_pass": true,
+    "pii_scrub_pass": true,
+    "hallucination_pass": true,
+    "overall_pass": true
+  },
+  {
+    "test_id": "test_005",
+    "description": "Red flags \u2014 behavioural incident (throwing cup, aggression) AND abuse/neglect indicators (unexplained bruise, named perpetrator)",
+    "participant": "Sandra Reeves",
+    "raw_note": "Morning session with Sandra. She was very agitated when I arrived and refused to do her morning routine. She started yelling and threw a cup at the wall. I tried to calm her down but she wouldn't listen. Eventually she settled after about 20 mins. We then did some light cleaning together. She didn't want to talk much after that. I noticed a bruise on her arm that wasn't there last visit - she said Uncle Jim did it. I'm concerned about this. Reported to my coordinator.",
+    "scrubbed_note": "Morning session with [Participant]. She was very agitated when I arrived and refused to do her morning routine. She started yelling and threw a cup at the wall. I tried to calm her down but she wouldn't listen. Eventually she settled after about 20 mins. We then did some light cleaning together. She didn't want to talk much after that. I noticed a bruise on her arm that wasn't there last visit - she said [Associate] it. I'm concerned about this. Reported to my coordinator.",
+    "pii_mappings": [
+      {
+        "original": "Sandra",
+        "tag": "[Participant]",
+        "category": "participant_name"
+      },
+      {
+        "original": "Uncle Jim did",
+        "tag": "[Associate]",
+        "category": "associate_name"
+      }
+    ],
+    "agent1_output": {
+      "rewritten_note": "Date: 20 March 2026\nTime: 10:00 AM\nDuration: 3 hours\nParticipant Code: SR-873\nSupport Worker Code: KM-076\n\nSupport was provided to the participant during a morning session. Upon arrival, the participant was observed to be very agitated and refused to engage in her morning routine. The participant exhibited verbal agitation by yelling and demonstrated physical agitation by throwing a cup at the wall. The support worker attempted to de-escalate the participant's distress, which took approximately 20 minutes before the participant settled. Following this, the participant and support worker completed light cleaning tasks together. The participant was minimally communicative after the incident.\n\nThe participant's voice was limited; however, she acknowledged the presence of a bruise on her arm, which was not present during the previous visit. The participant attributed the bruise to an individual identified as [Associate]. The support worker expressed concern regarding this injury and reported the matter to their coordinator.\n\nMeasurable outcomes include the participant's eventual de-escalation and participation in light cleaning activities. Goal linkage is [GOAL LINKAGE REQUIRED \u2014 specify which NDIS goals this session supports].\n\nSafety statement: The participant sustained a bruise of unknown cause that was reported to the support worker and escalated to the coordinator for further action. No other incidents, medication events, or safety concerns were observed or reported during this session.",
+      "red_flags": [
+        {
+          "category": "Abuse / Neglect / Exploitation indicators",
+          "description": "A new bruise was observed on the participant's arm, and the participant indicated it was caused by an associate, raising concerns about potential abuse.",
+          "keywords_matched": [
+            "I noticed a bruise on her arm that wasn't there last visit - she said [Associate] it",
+            "I'm concerned about this"
+          ],
+          "severity": "CRITICAL"
+        },
+        {
+          "category": "Behavioural Incident requiring reporting",
+          "description": "The participant exhibited significant agitation, yelling, and threw a cup at the wall, requiring de-escalation efforts.",
+          "keywords_matched": [
+            "She was very agitated",
+            "started yelling",
+            "threw a cup at the wall",
+            "I tried to calm her down"
+          ],
+          "severity": "MEDIUM"
+        }
+      ],
+      "missing_data": [
+        {
+          "field_name": "Goal linkage",
+          "reason": "Linkage to specific NDIS goals is required to demonstrate how the support session contributes to the participant's plan.",
+          "placeholder": "[GOAL LINKAGE REQUIRED \u2014 specify which NDIS goals this session supports]"
+        }
+      ],
+      "bracket_flags": [
+        "[GOAL LINKAGE REQUIRED \u2014 specify which NDIS goals this session supports]"
+      ]
+    },
+    "agent2_output": {
+      "audited_note": "Date: 20 March 2026\nTime: 10:00 AM\nDuration: 3 hours\nParticipant Code: SR-873\nSupport Worker Code: KM-076\n\nSupport was provided to the participant during a morning session. Upon arrival, the participant was observed to be very agitated and refused to engage in her morning routine. The participant exhibited verbal agitation by yelling and demonstrated physical agitation by throwing a cup at the wall. The support worker attempted to de-escalate the participant's distress, which took approximately 20 minutes before the participant settled. Following this, the participant and support worker completed light cleaning tasks together. The participant was minimally communicative after the incident.\n\nThe participant's voice was limited; however, she acknowledged the presence of a bruise on her arm, which was not present during the previous visit. The participant attributed the bruise to an individual identified as [Associate]. The support worker expressed concern regarding this injury and reported the matter to their coordinator.\n\nMeasurable outcomes include the participant's eventual de-escalation and participation in light cleaning activities. Goal linkage is [GOAL LINKAGE REQUIRED \u2014 specify which NDIS goals this session supports].\n\nSafety statement: The participant sustained a bruise of unknown cause that was reported to the support worker and escalated to the coordinator for further action. No other incidents, medication events, or safety concerns were observed or reported during this session.",
+      "hallucination_check": true,
+      "hallucination_details": "No hallucinations detected. All clinical facts, events, observations, and quotes in the rewritten note are supported by the original raw note or metadata.",
+      "pillar_scores": [
+        {
+          "pillar_name": "Goal Linkage",
+          "pillar_id": 1,
+          "score": 0,
+          "met": false,
+          "feedback": "No specific NDIS plan goal is referenced; the note includes a placeholder for goal linkage but does not specify any goal."
+        },
+        {
+          "pillar_name": "Participant Voice",
+          "pillar_id": 2,
+          "score": 2,
+          "met": true,
+          "feedback": "Participant's perspective is documented through her acknowledgment of the bruise and attribution to an associate, though no direct quotes are provided."
+        },
+        {
+          "pillar_name": "Measurable Outcomes",
+          "pillar_id": 3,
+          "score": 2,
+          "met": true,
+          "feedback": "Specific observable outcomes are described, including participant's de-escalation after 20 minutes and participation in light cleaning activities."
+        },
+        {
+          "pillar_name": "Support Delivered",
+          "pillar_id": 4,
+          "score": 2,
+          "met": true,
+          "feedback": "Clear description of support activities such as de-escalation efforts and assistance with light cleaning; however, lacks detailed duration and engagement level."
+        },
+        {
+          "pillar_name": "Risk & Safety",
+          "pillar_id": 5,
+          "score": 3,
+          "met": true,
+          "feedback": "Comprehensive safety assessment including observation of a new bruise, participant's report, concern raised, and escalation to coordinator; also notes no other incidents or safety concerns."
+        }
+      ],
+      "traffic_light": "RED",
+      "audit_notes": "The rewritten note accurately reflects the original raw note and metadata with no hallucinations. It documents participant agitation, the behavioral incident, and the discovery of a new bruise attributed to an associate, which are serious red flags requiring reporting. The note lacks specific goal linkage, but participant voice, measurable outcomes, support delivered, and risk & safety are adequately documented. Due to the presence of red flags related to potential abuse and behavioral incidents, the overall traffic light status is RED, indicating urgent attention is needed."
+    },
+    "final_note": "Date: 20 March 2026\nTime: 10:00 AM\nDuration: 3 hours\nParticipant Code: SR-873\nSupport Worker Code: KM-076\n\nSupport was provided to the participant during a morning session. Upon arrival, the participant was observed to be very agitated and refused to engage in her morning routine. The participant exhibited verbal agitation by yelling and demonstrated physical agitation by throwing a cup at the wall. The support worker attempted to de-escalate the participant's distress, which took approximately 20 minutes before the participant settled. Following this, the participant and support worker completed light cleaning tasks together. The participant was minimally communicative after the incident.\n\nThe participant's voice was limited; however, she acknowledged the presence of a bruise on her arm, which was not present during the previous visit. The participant attributed the bruise to an individual identified as Uncle Jim did. The support worker expressed concern regarding this injury and reported the matter to their coordinator.\n\nMeasurable outcomes include the participant's eventual de-escalation and participation in light cleaning activities. Goal linkage is [GOAL LINKAGE REQUIRED \u2014 specify which NDIS goals this session supports].\n\nSafety statement: The participant sustained a bruise of unknown cause that was reported to the support worker and escalated to the coordinator for further action. No other incidents, medication events, or safety concerns were observed or reported during this session.",
+    "expected_traffic_light": "RED",
+    "actual_traffic_light": "RED",
+    "traffic_light_pass": true,
+    "expected_red_flags": 2,
+    "actual_red_flags": 2,
+    "red_flags_pass": true,
+    "pii_scrub_pass": true,
+    "hallucination_pass": true,
+    "overall_pass": true
+  }
+]

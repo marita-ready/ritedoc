@@ -1,0 +1,177 @@
+{
+  "state": "VIC",
+  "version": "1.0.0",
+  "last_updated": "2026-03-01",
+  "description": "Victorian NDIS 5-pillar audit scoring rubric",
+  "scoring_system": {
+    "min_score": 0,
+    "max_score": 3,
+    "pass_threshold": 2,
+    "note": "Internal scores (0-3) are NEVER displayed to users. Only traffic light indicators are shown."
+  },
+  "traffic_light_rules": {
+    "GREEN": {
+      "description": "All 5 pillars score 2 or above, no red flags, no bracket flags indicating missing critical data.",
+      "label": "Review and Approve",
+      "user_message": "This note has been prepared to audit-ready standard."
+    },
+    "ORANGE": {
+      "description": "Any pillar scores below 2, or bracket flags exist indicating missing data, but no red flags detected.",
+      "label": "Review Required",
+      "user_message": "This note requires additional information before it meets audit-ready standard."
+    },
+    "RED": {
+      "description": "Any red flag detected, regardless of pillar scores. Note floats to top of list.",
+      "label": "Needs Attention",
+      "user_message": "An incident or concern has been detected in this note that requires your immediate attention."
+    }
+  },
+  "pillars": [
+    {
+      "id": 1,
+      "name": "Goal Linkage",
+      "description": "Does the note reference a participant NDIS plan goal?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No goal referenced at all. The note does not connect the support delivered to any NDIS plan goal.",
+          "bracket_flag": "[GOAL LINK REQUIRED — specify the NDIS plan goal this activity supports]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Vague reference to a goal area (e.g., 'daily living') without specifying the actual goal.",
+          "bracket_flag": "[SPECIFIC GOAL REQUIRED — the note references a goal area but not a specific NDIS plan goal]"
+        },
+        "2": {
+          "label": "Met",
+          "description": "Specific goal referenced but not by exact name or number from the NDIS plan."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Specific NDIS plan goal referenced by name or number (e.g., 'Goal 2: Increase independence with daily living tasks')."
+        }
+      },
+      "examples": {
+        "good": "Support was provided in accordance with Goal 2: Increase independence with household management and daily living tasks.",
+        "poor": "Helped with cooking."
+      }
+    },
+    {
+      "id": 2,
+      "name": "Participant Voice",
+      "description": "Does the note capture what the participant said, chose, or preferred?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No participant perspective captured. The note is entirely from the worker's perspective.",
+          "bracket_flag": "[PARTICIPANT RESPONSE REQUIRED — document the participant's observable response to the session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Worker's interpretation of participant's feelings without direct evidence (e.g., 'seemed happy')."
+        },
+        "2": {
+          "label": "Met",
+          "description": "Participant's preferences or choices documented (e.g., 'participant chose to walk to the shops')."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Direct quotes or specific participant-directed decisions documented (e.g., 'participant stated she would like to continue this activity next week')."
+        }
+      },
+      "examples": {
+        "good": "The participant verbally confirmed satisfaction with the session and indicated a preference to continue this routine at the next visit.",
+        "poor": "Client seemed fine."
+      }
+    },
+    {
+      "id": 3,
+      "name": "Measurable Outcomes",
+      "description": "Are there specific, observable outcomes documented?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No outcomes documented. The note does not describe what was achieved.",
+          "bracket_flag": "[OUTCOME REQUIRED — describe the observable outcome of this session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "General statement about how the session went (e.g., 'session went well')."
+        },
+        "2": {
+          "label": "Met",
+          "description": "Specific observable outcomes described (e.g., 'participant completed three of five meal preparation steps independently')."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Quantifiable or clearly measurable outcomes with comparison to baseline (e.g., 'participant completed 3 of 5 steps independently, up from 1 of 5 last month')."
+        }
+      },
+      "examples": {
+        "good": "The participant independently selected grocery items from a prepared list, completing the task without physical assistance for the first time.",
+        "poor": "Did shopping."
+      }
+    },
+    {
+      "id": 4,
+      "name": "Support Delivered",
+      "description": "Is the actual support activity clearly described?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No description of support provided.",
+          "bracket_flag": "[SUPPORT DESCRIPTION REQUIRED — describe the specific support activities delivered during this session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Vague description of support type (e.g., 'helped with tasks')."
+        },
+        "2": {
+          "label": "Met",
+          "description": "Clear description of specific support activities (e.g., 'assisted with meal preparation including planning the week's menu')."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Detailed description with duration, method, and participant engagement level (e.g., 'assisted with meal preparation for 45 minutes, providing verbal prompts only while participant completed all physical tasks independently')."
+        }
+      },
+      "examples": {
+        "good": "The support worker assisted participant with meal preparation, including planning the week's menu and preparing a cooked breakfast. The participant directed the session, choosing the menu items and completing the majority of preparation steps independently with verbal guidance only.",
+        "poor": "Cooking support."
+      }
+    },
+    {
+      "id": 5,
+      "name": "Risk & Safety",
+      "description": "Are any safety concerns or incidents properly flagged?",
+      "weight": 1.0,
+      "scoring": {
+        "0": {
+          "label": "Not Met",
+          "description": "No safety information included in the note.",
+          "bracket_flag": "[SAFETY STATEMENT REQUIRED — confirm whether any incidents, medication events, or safety concerns occurred during this session]"
+        },
+        "1": {
+          "label": "Partially Met",
+          "description": "Generic safety statement without specifics (e.g., 'no issues')."
+        },
+        "2": {
+          "label": "Met",
+          "description": "Specific safety observations documented (e.g., 'no incidents, medication events, or safety concerns were observed')."
+        },
+        "3": {
+          "label": "Exceeded",
+          "description": "Comprehensive safety assessment with specific observations and nil-incident confirmation covering incidents, medication, and environmental safety."
+        }
+      },
+      "examples": {
+        "good": "No incidents, medication events, or safety concerns were observed or reported during this session.",
+        "poor": "All good."
+      }
+    }
+  ]
+}

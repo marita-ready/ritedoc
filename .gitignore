@@ -1,0 +1,43 @@
+# Rust
+/src-tauri/target/
+**/*.rs.bk
+
+# Node
+node_modules/
+dist/
+.pnpm-store/
+
+# Tauri
+/src-tauri/WixTools/
+/src-tauri/gen/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Build artifacts
+*.deb
+*.AppImage
+*.dmg
+*.msi
+*.exe
+
+# Test artifacts (keep test_results.md and test_results.json)
+__pycache__/
+*.pyc
+
+# LLM models (too large for git)
+*.gguf
+*.bin
+models/

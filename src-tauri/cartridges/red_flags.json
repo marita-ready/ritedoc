@@ -1,0 +1,467 @@
+{
+  "state": "VIC",
+  "version": "1.0.0",
+  "last_updated": "2026-03-01",
+  "description": "Victorian NDIS red flag categories, keywords, and required forms",
+  "red_flag_categories": [
+    {
+      "id": 1,
+      "name": "Unauthorised Restrictive Practice",
+      "description": "Physical guidance, restraint, seclusion, or restricting movement, communication, or access without documented authorisation in a Behaviour Support Plan.",
+      "severity": "HIGH",
+      "keywords": [
+        "physically guided",
+        "physical guidance",
+        "restrained",
+        "restraint",
+        "held down",
+        "held back",
+        "seclusion",
+        "secluded",
+        "locked in",
+        "locked room",
+        "restricted movement",
+        "restricted access",
+        "prevented from leaving",
+        "stopped from",
+        "blocked exit",
+        "grabbed",
+        "forcibly",
+        "forced",
+        "refused to let",
+        "would not allow",
+        "restricted communication",
+        "took phone",
+        "removed device",
+        "chemical restraint",
+        "PRN for behaviour",
+        "given medication to calm"
+      ],
+      "context_keywords": [
+        "refused",
+        "declined",
+        "agitated",
+        "aggressive",
+        "distressed",
+        "non-compliant",
+        "uncooperative"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Restrictive Practice Notification Form",
+          "authority": "NDIS Quality and Safeguards Commission",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Practice", "auto_fill": null, "required": true},
+            {"label": "Duration", "auto_fill": null, "required": true},
+            {"label": "Authorisation Status", "auto_fill": null, "required": true},
+            {"label": "Staff Identifier", "auto_fill": "support_worker", "required": true},
+            {"label": "Description of Circumstances", "auto_fill": null, "required": true},
+            {"label": "Less Restrictive Alternatives Attempted", "auto_fill": null, "required": true}
+          ]
+        },
+        {
+          "form_name": "Behaviour Support Plan Review Request",
+          "authority": "Behaviour Support Practitioner",
+          "fields": [
+            {"label": "Date of Request", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Reason for Review", "auto_fill": null, "required": true},
+            {"label": "Current BSP Reference Number", "auto_fill": null, "required": true},
+            {"label": "Behaviour Specialist Assigned", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Medication Error / Missed Medication",
+      "description": "Any medication administration error including wrong dose, wrong medication, wrong time, missed dose, or administration without proper authorisation.",
+      "severity": "HIGH",
+      "keywords": [
+        "wrong dose",
+        "wrong medication",
+        "missed medication",
+        "missed dose",
+        "forgot medication",
+        "medication error",
+        "double dose",
+        "incorrect dose",
+        "labelling mix-up",
+        "label error",
+        "wrong tablet",
+        "wrong pill",
+        "administered incorrectly",
+        "medication not given",
+        "skipped medication",
+        "refused medication",
+        "medication refused",
+        "PRN not documented",
+        "expired medication",
+        "medication reaction",
+        "adverse reaction"
+      ],
+      "context_keywords": [
+        "error",
+        "mistake",
+        "incident",
+        "noticed after",
+        "realised",
+        "discovered"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Incident Report Form",
+          "authority": "Organisation Management",
+          "fields": [
+            {"label": "Date of Incident", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Incident Type", "auto_fill": null, "required": true},
+            {"label": "Medication Name", "auto_fill": null, "required": true},
+            {"label": "Prescribed Dose", "auto_fill": null, "required": true},
+            {"label": "Dose Administered", "auto_fill": null, "required": true},
+            {"label": "Immediate Actions Taken", "auto_fill": null, "required": true}
+          ]
+        },
+        {
+          "form_name": "Medication Incident Report",
+          "authority": "NDIS Quality and Safeguards Commission",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Medication Incident", "auto_fill": null, "required": true},
+            {"label": "Outcome for Participant", "auto_fill": null, "required": true},
+            {"label": "Notified Parties", "auto_fill": null, "required": true},
+            {"label": "Corrective Action Taken", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Injury / Fall / Medical Emergency",
+      "description": "Any physical harm, fall, medical event, or emergency requiring medical attention or hospital visit.",
+      "severity": "HIGH",
+      "keywords": [
+        "fell",
+        "fall",
+        "fallen",
+        "tripped",
+        "slipped",
+        "injured",
+        "injury",
+        "bruise",
+        "bruising",
+        "cut",
+        "bleeding",
+        "broken",
+        "fracture",
+        "ambulance",
+        "hospital",
+        "emergency",
+        "seizure",
+        "unconscious",
+        "unresponsive",
+        "choking",
+        "choked",
+        "burn",
+        "burned",
+        "scalded",
+        "allergic reaction",
+        "anaphylaxis",
+        "chest pain",
+        "difficulty breathing",
+        "collapsed"
+      ],
+      "context_keywords": [
+        "called",
+        "paramedic",
+        "first aid",
+        "medical attention"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Incident Report Form",
+          "authority": "Organisation Management",
+          "fields": [
+            {"label": "Date of Incident", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Incident", "auto_fill": null, "required": true},
+            {"label": "Description of Injury/Event", "auto_fill": null, "required": true},
+            {"label": "First Aid Provided", "auto_fill": null, "required": true},
+            {"label": "Medical Attention Required", "auto_fill": null, "required": true},
+            {"label": "Witnesses", "auto_fill": null, "required": false}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Abuse / Neglect / Exploitation Indicators",
+      "description": "Any indicators of verbal, physical, sexual, or emotional abuse, neglect, or financial exploitation of the participant.",
+      "severity": "CRITICAL",
+      "keywords": [
+        "yelled at",
+        "shouted at",
+        "verbally abused",
+        "threatened",
+        "intimidated",
+        "hit",
+        "struck",
+        "slapped",
+        "punched",
+        "kicked",
+        "unexplained bruise",
+        "unexplained injury",
+        "unexplained mark",
+        "afraid",
+        "scared",
+        "fearful",
+        "cowering",
+        "flinching",
+        "unwanted touch",
+        "inappropriate touch",
+        "sexual",
+        "neglected",
+        "malnourished",
+        "dehydrated",
+        "dirty",
+        "soiled",
+        "unchanged",
+        "left alone",
+        "unsupervised",
+        "abandoned",
+        "exploited",
+        "financial abuse",
+        "money missing",
+        "coerced"
+      ],
+      "context_keywords": [
+        "concerned",
+        "worried",
+        "noticed",
+        "observed",
+        "reported"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Reportable Incident Notification",
+          "authority": "NDIS Quality and Safeguards Commission",
+          "fields": [
+            {"label": "Date of Incident/Discovery", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Abuse/Neglect", "auto_fill": null, "required": true},
+            {"label": "Description", "auto_fill": null, "required": true},
+            {"label": "Immediate Safety Actions", "auto_fill": null, "required": true},
+            {"label": "Reported To", "auto_fill": null, "required": true}
+          ]
+        },
+        {
+          "form_name": "Safeguarding Concern Report",
+          "authority": "Organisation Safeguarding Team",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Nature of Concern", "auto_fill": null, "required": true},
+            {"label": "Evidence/Observations", "auto_fill": null, "required": true},
+            {"label": "Risk Assessment", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Missing Consent / Capacity Concerns",
+      "description": "Decisions made without proper consent, or concerns about a participant's decision-making capacity.",
+      "severity": "MEDIUM",
+      "keywords": [
+        "without consent",
+        "no consent",
+        "did not consent",
+        "refused consent",
+        "capacity concern",
+        "lacks capacity",
+        "unable to decide",
+        "confused",
+        "disoriented",
+        "not competent",
+        "guardian decision",
+        "overridden",
+        "decided for",
+        "did not agree",
+        "against wishes"
+      ],
+      "context_keywords": [
+        "decision",
+        "choice",
+        "agreement",
+        "permission"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Consent Review Form",
+          "authority": "Organisation Management",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Decision in Question", "auto_fill": null, "required": true},
+            {"label": "Consent Status", "auto_fill": null, "required": true},
+            {"label": "Guardian/Nominee Contacted", "auto_fill": null, "required": false}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Property Damage / Financial Irregularity",
+      "description": "Damage to participant's property, missing belongings, or financial irregularities.",
+      "severity": "MEDIUM",
+      "keywords": [
+        "property damage",
+        "damaged",
+        "broken item",
+        "smashed",
+        "destroyed",
+        "missing money",
+        "money gone",
+        "missing belongings",
+        "stolen",
+        "theft",
+        "financial irregularity",
+        "unauthorised purchase",
+        "unauthorised transaction",
+        "missing valuables",
+        "receipt missing",
+        "unaccounted funds"
+      ],
+      "context_keywords": [
+        "noticed",
+        "discovered",
+        "reported",
+        "missing"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Property/Financial Incident Report",
+          "authority": "Organisation Management",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Incident", "auto_fill": null, "required": true},
+            {"label": "Description", "auto_fill": null, "required": true},
+            {"label": "Estimated Value", "auto_fill": null, "required": false},
+            {"label": "Actions Taken", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Behavioural Incident Requiring Reporting",
+      "description": "Significant behavioural events including aggression, self-harm, absconding, or other behaviours requiring formal documentation.",
+      "severity": "HIGH",
+      "keywords": [
+        "aggressive",
+        "aggression",
+        "hit worker",
+        "hit staff",
+        "attacked",
+        "self-harm",
+        "self harm",
+        "self-injury",
+        "cutting",
+        "head banging",
+        "absconded",
+        "absconding",
+        "ran away",
+        "left unsupervised",
+        "eloped",
+        "elopement",
+        "threatening",
+        "verbal aggression",
+        "physical aggression",
+        "property destruction",
+        "spitting",
+        "biting",
+        "scratching",
+        "throwing objects"
+      ],
+      "context_keywords": [
+        "escalated",
+        "de-escalation",
+        "triggered",
+        "antecedent"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Behavioural Incident Report",
+          "authority": "Organisation Management / Behaviour Support",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Behaviour", "auto_fill": null, "required": true},
+            {"label": "Antecedent (Trigger)", "auto_fill": null, "required": true},
+            {"label": "Behaviour Description", "auto_fill": null, "required": true},
+            {"label": "Consequence/Response", "auto_fill": null, "required": true},
+            {"label": "De-escalation Strategies Used", "auto_fill": null, "required": true},
+            {"label": "Outcome", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Worker Safety / WHS Concerns",
+      "description": "Threats to worker safety, unsafe work environment, or workplace health and safety breaches.",
+      "severity": "HIGH",
+      "keywords": [
+        "worker injured",
+        "staff injured",
+        "unsafe environment",
+        "hazard",
+        "WHS",
+        "workplace safety",
+        "threatened worker",
+        "threatened staff",
+        "biohazard",
+        "needle stick",
+        "needlestick",
+        "manual handling",
+        "lifting injury",
+        "back injury",
+        "slip hazard",
+        "trip hazard",
+        "aggressive toward worker",
+        "aggressive toward staff",
+        "verbal threat",
+        "physical threat",
+        "unsafe conditions",
+        "equipment failure",
+        "faulty equipment"
+      ],
+      "context_keywords": [
+        "safety",
+        "risk",
+        "concern",
+        "dangerous"
+      ],
+      "required_forms": [
+        {
+          "form_name": "WHS Incident Report",
+          "authority": "Organisation WHS Officer",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Location", "auto_fill": null, "required": true},
+            {"label": "Worker Involved", "auto_fill": "support_worker", "required": true},
+            {"label": "Type of Hazard/Incident", "auto_fill": null, "required": true},
+            {"label": "Description", "auto_fill": null, "required": true},
+            {"label": "Injury Sustained", "auto_fill": null, "required": true},
+            {"label": "Immediate Actions", "auto_fill": null, "required": true},
+            {"label": "Corrective Actions Required", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    }
+  ]
+}
