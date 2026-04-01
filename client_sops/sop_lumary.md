@@ -1,0 +1,89 @@
+# Standard Operating Procedure: Lumary Integration with RiteDoc
+
+This Standard Operating Procedure (SOP) details the click-by-click process for exporting progress notes from Lumary, processing them through the RiteDoc compliance engine, and re-importing the audit-prepared drafts back into Lumary.
+
+## 1. Exporting Progress Notes from Lumary
+
+The first step is to extract the raw support worker progress notes from Lumary in a format compatible with RiteDoc. Lumary is built on the Salesforce platform, so the export process utilises Salesforce's reporting capabilities.
+
+### 1.1 Accessing the Reports Tab
+
+1.  Log in to your Lumary administrator account.
+2.  Navigate to the main navigation bar at the top of the screen.
+3.  Click on the **Reports** tab [1]. If it is not visible, click the App Launcher (the grid icon in the top left corner) and search for "Reports".
+
+### 1.2 Creating or Running a Report
+
+1.  If you already have a custom report set up for exporting case notes, locate it in your "Recent" or "All Reports" list and click on its name to run it.
+2.  If you need to create a new report:
+    *   Click the **New Report** button.
+    *   Select the appropriate report type that includes case notes (e.g., "Case Notes with Clients" or similar, depending on your specific Lumary configuration).
+    *   Click **Continue**.
+    *   Use the report builder to add the necessary columns: Note ID, Client Name, Support Worker Name, Date, and the raw Note Content.
+    *   Apply filters to select the specific date range or criteria for the notes you wish to process.
+    *   Click **Save & Run** [1].
+
+### 1.3 Exporting to CSV
+
+1.  Once the report is running and displaying the correct data, locate the drop-down arrow next to the "Edit" button in the top right corner of the report view.
+2.  Click the drop-down arrow and select **Export**.
+3.  In the Export dialog box, choose the **Details Only** export view.
+4.  Select **Comma Delimited .csv** as the format.
+5.  Click the **Export** button.
+6.  The file will be generated and downloaded to your local machine. Locate the downloaded file in your computer's "Downloads" folder.
+
+## 2. Processing Notes in RiteDoc
+
+With the raw data exported, you will now use RiteDoc to scrub PII and generate audit-prepared drafts.
+
+### 2.1 Importing into RiteDoc
+
+1.  Open the RiteDoc desktop application on your local machine.
+2.  On the main dashboard, click the **Import CSV** button.
+3.  In the file browser window that appears, navigate to your "Downloads" folder and select the CSV file exported from Lumary.
+4.  Click **Open** to load the file into RiteDoc.
+
+### 2.2 Running the Compliance Engine
+
+1.  Once the file is loaded, RiteDoc will display a summary of the imported notes.
+2.  Click the **Process Notes** button to initiate the compliance engine.
+3.  RiteDoc will automatically perform the following steps offline:
+    *   **PII Scrubbing:** The Nanoclaw scrubber will identify and redact all personally identifiable information, replacing it with standardised tags (e.g., `[Participant]`, `[Support Worker]`).
+    *   **AI Rewrite:** The local AI model will rewrite the raw notes into professional, audit-prepared drafts based on the active state cartridge.
+    *   **Compliance Scoring:** The engine will evaluate each note against the 5-pillar rubric and assign an internal score.
+    *   **Traffic Light Assignment:** Based on the score and identified red flags, each note will be assigned a traffic light indicator (GREEN, ORANGE, RED).
+
+### 2.3 Reviewing the Output
+
+1.  After processing is complete, RiteDoc will display the results in a clear, tabular format.
+2.  Review the traffic light indicators:
+    *   **GREEN:** The note is audit-ready and requires no further action.
+    *   **ORANGE:** The note requires additional information or clarification. Review the bracketed flags (e.g., `[UPPERCASE FIELD — plain English explanation]`) and update the note accordingly.
+    *   **RED:** A critical incident or severe compliance risk has been detected. These notes will float to the top of the list for immediate attention.
+3.  Make any necessary manual edits directly within the RiteDoc interface.
+
+### 2.4 Exporting the Processed Drafts
+
+1.  Once you are satisfied with the processed notes, click the **Export Processed CSV** button.
+2.  Choose a secure location on your local machine to save the new CSV file containing the audit-prepared drafts.
+
+## 3. Re-importing into Lumary
+
+The final step is to update the original records in Lumary with the processed, compliant notes.
+
+### 3.1 Using the Data Import Wizard or Data Loader
+
+1.  Return to your Lumary administrator account.
+2.  Navigate to the Salesforce Setup menu (click the gear icon in the top right corner and select **Setup**).
+3.  In the Quick Find box, type "Data Import Wizard" or "Data Loader" and select the appropriate tool.
+4.  Follow the on-screen instructions to upload the processed CSV file generated by RiteDoc.
+5.  Select the option to **Update existing records**.
+6.  Map the columns in the CSV file to the corresponding fields in Lumary (e.g., mapping the "Processed Note" column to the "Case Note Content" field).
+7.  Ensure you use the unique Note ID from the original export to match the records accurately.
+8.  Initiate the import process to update the records in bulk.
+
+*Note: The exact menu path for the Data Import Wizard or Data Loader in Lumary may vary depending on your specific account configuration and the version of the software. Please consult the Lumary Help Center or your Salesforce administrator if you cannot locate the tool.*
+
+## References
+
+[1] Lumary Help Center. "Get started with reports". https://support.lumary.com/hc/en-us/articles/360026021811-Get-started-with-reports
