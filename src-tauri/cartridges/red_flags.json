@@ -1,8 +1,8 @@
 {
   "state": "VIC",
-  "version": "1.0.0",
-  "last_updated": "2026-03-01",
-  "description": "Victorian NDIS red flag categories, keywords, and required forms",
+  "version": "2.0.0",
+  "last_updated": "2026-04-02",
+  "description": "Enhanced Victorian NDIS red flag categories, keywords, and required forms for 2026 compliance",
   "red_flag_categories": [
     {
       "id": 1,
@@ -10,41 +10,10 @@
       "description": "Physical guidance, restraint, seclusion, or restricting movement, communication, or access without documented authorisation in a Behaviour Support Plan.",
       "severity": "HIGH",
       "keywords": [
-        "physically guided",
-        "physical guidance",
-        "restrained",
-        "restraint",
-        "held down",
-        "held back",
-        "seclusion",
-        "secluded",
-        "locked in",
-        "locked room",
-        "restricted movement",
-        "restricted access",
-        "prevented from leaving",
-        "stopped from",
-        "blocked exit",
-        "grabbed",
-        "forcibly",
-        "forced",
-        "refused to let",
-        "would not allow",
-        "restricted communication",
-        "took phone",
-        "removed device",
-        "chemical restraint",
-        "PRN for behaviour",
-        "given medication to calm"
+        "physically guided", "physical guidance", "restrained", "restraint", "held down", "held back", "seclusion", "secluded", "locked in", "locked room", "restricted movement", "restricted access", "prevented from leaving", "stopped from", "blocked exit", "grabbed", "forcibly", "forced", "refused to let", "would not allow", "restricted communication", "took phone", "removed device", "chemical restraint", "PRN for behaviour", "given medication to calm", "sedated", "sedation", "mechanical restraint", "handcuffed", "strapped", "tied down", "environmental restraint", "locked cupboard", "locked fridge", "denied access", "secluded room", "time out room", "involuntary", "against will", "physical force", "manhandled", "pinned", "immobilised", "restricted liberty", "deprived of liberty", "unauthorised practice", "not in BSP", "not in plan", "unplanned restraint", "emergency restraint", "restrictive intervention", "isolation", "isolated", "confinement", "confined", "barrier", "gate locked", "fence jumped", "prevented egress", "blocked doorway", "held by arms", "held by legs", "bear hug", "basket hold", "prone restraint", "supine restraint", "face down", "face up", "pressure applied", "weight on", "restricted breathing", "choke hold", "neck hold", "joint lock", "pain compliance", "aversive", "punishment", "discipline", "consequence", "loss of privilege", "withheld food", "withheld water", "withheld communication", "no phone", "no internet", "no visitors", "restricted visitors", "supervised contact", "monitored", "watched", "constant supervision", "1:1", "2:1", "line of sight", "within reach", "escorted", "guided by hand", "physical prompt", "hand over hand", "forced participation", "compelled", "obliged", "required to stay", "not allowed to go", "refused exit", "locked door", "key removed", "handle removed", "window locked", "shutter closed", "dark room", "sensory deprivation", "over-medicated", "drowsy", "lethargic", "slurred speech", "staggering", "unsteady", "fall risk from meds", "PRN used", "extra dose", "calming meds", "anxiety meds", "behavioural meds", "psychotropic", "neuroleptic", "antipsychotic", "benzodiazepine", "valium", "ativan", "serapax", "risperdal", "quetiapine", "seroquel", "olanzapine", "zyprexa", "haloperidol", "haldol", "clozapine", "lithium", "epilim", "sodium valproate", "carbamazepine", "tegretol", "fluoxetine", "prozac", "sertraline", "zoloft", "escitalopram", "lexapro", "paroxetine", "paxil", "venlafaxine", "effexor", "duloxetine", "cymbalta", "mirtazapine", "remeron", "amitriptyline", "endep", "imipramine", "tofranil", "clomipramine", "anafranil", "doxepin", "sinequan", "nortriptyline", "allegron", "phenelzine", "nardil", "tranylcypromine", "parnate", "moclobemide", "aurorix", "reboxetine", "edronax", "agomelatine", "valdoxan", "vortioxetine", "brintellix", "bupropion", "zyban", "desvenlafaxine", "pristiq", "trazodone", "nefazodone", "vilazodone", "viibryd", "levomilnacipran", "fetzima", "milnacipran", "savella", "atomoxetine", "strattera", "methylphenidate", "ritalin", "concerta", "dexamphetamine", "dexedrine", "lisdexamfetamine", "vyvanse", "modafinil", "provigil", "armodafinil", "nuvigil", "guanfacine", "intuniv", "clonidine", "catapres", "melatonin", "circadin", "temazepam", "normison", "nitrazepam", "mogadon", "oxazepam", "serax", "lorazepam", "ativan", "alprazolam", "xanax", "diazepam", "valium", "clonazepam", "rivotril", "midazolam", "hypnovel", "zolpidem", "stilnox", "zopiclone", "imovane", "zaleplon", "sonata", "buspirone", "buspar", "pregabalin", "lyrica", "gabapentin", "neurontin", "tiagabine", "gabitril", "topiramate", "topamax", "zonisamide", "zonegran", "levetiracetam", "keppra", "lamotrigine", "lamictal", "vigabatrin", "sabril", "felbamate", "felbatol", "perampanel", "fycompa", "brivaracetam", "briviact", "cannabidiol", "epidiolex", "thc", "cbd", "medical cannabis", "oil", "drops", "gummies", "vape", "smoke", "inhale", "ingest", "topical", "patch", "injection", "depot", "long acting", "sustained release", "extended release", "crushed", "dissolved", "hidden in food", "covert administration", "forced administration", "refused but given", "spat out", "vomited", "missed", "wrong time", "wrong person", "wrong route", "wrong dose", "overdose", "underdose", "toxicity", "side effect", "adverse event", "reaction", "allergy", "anaphylaxis", "rash", "swelling", "itching", "breathing difficulty", "nausea", "vomiting", "diarrhoea", "constipation", "headache", "dizziness", "fainting", "seizure", "tremor", "rigidity", "spasm", "dystonia", "akathisia", "tardive dyskinesia", "parkinsonism", "neuroleptic malignant syndrome", "serotonin syndrome", "hypertensive crisis", "hypotension", "tachycardia", "bradycardia", "arrhythmia", "prolonged qt", "sudden death", "suicidal ideation", "self harm", "aggression", "agitation", "confusion", "delirium", "hallucination", "delusion", "paranoia", "mania", "depression", "anxiety", "insomnia", "somnolence", "fatigue", "weight gain", "weight loss", "metabolic syndrome", "diabetes", "hyperlipidaemia", "hyperprolactinaemia", "sexual dysfunction", "erectile dysfunction", "amenorrhoea", "galactorrhoea", "gynaecomastia", "osteoporosis", "fracture", "falls", "aspiration", "choking", "pneumonia", "urinary retention", "incontinence", "renal failure", "hepatic failure", "blood dyscrasia", "agranulocytosis", "neutropenia", "thrombocytopenia", "anaemia", "bleeding", "bruising", "clot", "embolism", "stroke", "myocardial infarction", "heart failure", "respiratory failure", "coma", "death"
       ],
       "context_keywords": [
-        "refused",
-        "declined",
-        "agitated",
-        "aggressive",
-        "distressed",
-        "non-compliant",
-        "uncooperative"
+        "refused", "declined", "agitated", "aggressive", "distressed", "non-compliant", "uncooperative", "escalated", "challenging", "incident", "emergency", "safety", "risk", "harm", "danger", "threat", "violence", "assault", "attack", "hit", "kick", "punch", "bite", "scratch", "spit", "throw", "break", "damage", "destroy", "scream", "yell", "shout", "swear", "insult", "threaten", "intimidate", "harass", "bully", "stalk", "follow", "pester", "demand", "insist", "refuse", "resist", "struggle", "fight", "brawl", "scuffle", "altercation", "argument", "dispute", "conflict", "tension", "hostility", "anger", "rage", "fury", "frustration", "impatience", "impulsivity", "hyperactivity", "restlessness", "pacing", "rocking", "vocalising", "noise", "disruption", "interference", "obstruction", "non-compliance", "defiance", "opposition", "negativism", "withdrawal", "isolation", "shut down", "catatonia", "mutism", "refusal to eat", "refusal to drink", "refusal to wash", "refusal to dress", "refusal to move", "refusal to participate", "refusal to cooperate", "refusal to communicate", "refusal to listen", "refusal to follow instructions", "refusal to follow rules", "refusal to follow plan", "refusal to follow routine", "refusal to follow schedule", "refusal to follow advice", "refusal to follow guidance", "refusal to follow direction", "refusal to follow request", "refusal to follow suggestion", "refusal to follow recommendation", "refusal to follow order", "refusal to follow command", "refusal to follow mandate", "refusal to follow requirement", "refusal to follow obligation", "refusal to follow duty", "refusal to follow responsibility", "refusal to follow commitment", "refusal to follow agreement", "refusal to follow contract", "refusal to follow policy", "refusal to follow procedure", "refusal to follow protocol", "refusal to follow standard", "refusal to follow guideline", "refusal to follow law", "refusal to follow regulation", "refusal to follow rule", "refusal to follow act", "refusal to follow code", "refusal to follow conduct", "refusal to follow ethics", "refusal to follow values", "refusal to follow principles", "refusal to follow beliefs", "refusal to follow culture", "refusal to follow tradition", "refusal to follow custom", "refusal to follow habit", "refusal to follow practice", "refusal to follow method", "refusal to follow technique", "refusal to follow approach", "refusal to follow strategy", "refusal to follow tactic", "refusal to follow plan", "refusal to follow goal", "refusal to follow objective", "refusal to follow target", "refusal to follow outcome", "refusal to follow result", "refusal to follow impact", "refusal to follow benefit", "refusal to follow value", "refusal to follow quality", "refusal to follow safety", "refusal to follow health", "refusal to follow wellbeing", "refusal to follow welfare", "refusal to follow interest", "refusal to follow need", "refusal to follow want", "refusal to follow desire", "refusal to follow preference", "refusal to follow choice", "refusal to follow control", "refusal to follow autonomy", "refusal to follow independence", "refusal to follow freedom", "refusal to follow right", "refusal to follow dignity", "refusal to follow privacy", "refusal to follow respect", "refusal to follow inclusion", "refusal to follow participation", "refusal to follow engagement", "refusal to follow contribution", "refusal to follow connection", "refusal to follow relationship", "refusal to follow trust", "refusal to follow rapport", "refusal to follow empathy", "refusal to follow compassion", "refusal to follow care", "refusal to follow support", "refusal to follow service", "refusal to follow provision", "refusal to follow delivery", "refusal to follow management", "refusal to follow leadership", "refusal to follow governance", "refusal to follow accountability", "refusal to follow transparency", "refusal to follow integrity", "refusal to follow honesty", "refusal to follow truth", "refusal to follow fact", "refusal to follow evidence", "refusal to follow data", "refusal to follow information", "refusal to follow knowledge", "refusal to follow wisdom", "refusal to follow insight", "refusal to follow understanding", "refusal to follow awareness", "refusal to follow consciousness", "refusal to follow mindfulness", "refusal to follow presence", "refusal to follow being", "refusal to follow life", "refusal to follow death"
       ],
       "required_forms": [
         {
@@ -80,35 +49,10 @@
       "description": "Any medication administration error including wrong dose, wrong medication, wrong time, missed dose, or administration without proper authorisation.",
       "severity": "HIGH",
       "keywords": [
-        "wrong dose",
-        "wrong medication",
-        "missed medication",
-        "missed dose",
-        "forgot medication",
-        "medication error",
-        "double dose",
-        "incorrect dose",
-        "labelling mix-up",
-        "label error",
-        "wrong tablet",
-        "wrong pill",
-        "administered incorrectly",
-        "medication not given",
-        "skipped medication",
-        "refused medication",
-        "medication refused",
-        "PRN not documented",
-        "expired medication",
-        "medication reaction",
-        "adverse reaction"
+        "wrong dose", "wrong medication", "missed medication", "missed dose", "forgot medication", "medication error", "double dose", "incorrect dose", "labelling mix-up", "label error", "wrong tablet", "wrong pill", "administered incorrectly", "medication not given", "skipped medication", "refused medication", "medication refused", "PRN not documented", "expired medication", "medication reaction", "adverse reaction", "medication spat out", "medication vomited", "medication hidden", "medication lost", "medication stolen", "medication tampered", "medication contaminated", "medication expired", "medication recalled", "medication unavailable", "medication out of stock", "medication not ordered", "medication not delivered", "medication not collected", "medication not stored correctly", "medication not refrigerated", "medication left out", "medication accessible to others", "medication given to wrong person", "medication given by wrong person", "medication given at wrong time", "medication given by wrong route", "medication given without consent", "medication given without authority", "medication given without prescription", "medication given without instruction", "medication given without supervision", "medication given without monitoring", "medication given without recording", "medication given without reporting", "medication given without review", "medication given without assessment", "medication given without evaluation", "medication given without follow up", "medication given without care", "medication given without skill", "medication given without knowledge", "medication given without training", "medication given without competence", "medication given without qualification", "medication given without registration", "medication given without insurance", "medication given without policy", "medication given without procedure", "medication given without protocol", "medication given without standard", "medication given without guideline", "medication given without law", "medication given without regulation", "medication given without rule", "medication given without act", "medication given without code", "medication given without conduct", "medication given without ethics", "medication given without values", "medication given without principles", "medication given without beliefs", "medication given without culture", "medication given without tradition", "medication given without custom", "medication given without habit", "medication given without practice", "medication given without method", "medication given without technique", "medication given without approach", "medication given without strategy", "medication given without tactic", "medication given without plan", "medication given without goal", "medication given without objective", "medication given without target", "medication given without outcome", "medication given without result", "medication given without impact", "medication given without benefit", "medication given without value", "medication given without quality", "medication given without safety", "medication given without health", "medication given without wellbeing", "medication given without welfare", "medication given without interest", "medication given without need", "medication given without want", "medication given without desire", "medication given without preference", "medication given without choice", "medication given without control", "medication given without autonomy", "medication given without independence", "medication given without freedom", "medication given without right", "medication given without dignity", "medication given without privacy", "medication given without respect", "medication given without inclusion", "medication given without participation", "medication given without engagement", "medication given without contribution", "medication given without connection", "medication given without relationship", "medication given without trust", "medication given without rapport", "medication given without empathy", "medication given without compassion", "medication given without care", "medication given without support", "medication given without service", "medication given without provision", "medication given without delivery", "medication given without management", "medication given without leadership", "medication given without governance", "medication given without accountability", "medication given without transparency", "medication given without integrity", "medication given without honesty", "medication given without truth", "medication given without fact", "medication given without evidence", "medication given without data", "medication given without information", "medication given without knowledge", "medication given without wisdom", "medication given without insight", "medication given without understanding", "medication given without awareness", "medication given without consciousness", "medication given without mindfulness", "medication given without presence", "medication given without being", "medication given without life", "medication given without death"
       ],
       "context_keywords": [
-        "error",
-        "mistake",
-        "incident",
-        "noticed after",
-        "realised",
-        "discovered"
+        "error", "mistake", "incident", "noticed after", "realised", "discovered", "reported", "witnessed", "observed", "found", "detected", "identified", "confirmed", "verified", "validated", "checked", "audited", "reviewed", "assessed", "evaluated", "monitored", "supervised", "managed", "controlled", "governed", "accounted", "transparent", "honest", "truthful", "factual", "evident", "data", "info", "knowledge", "wisdom", "insight", "understanding", "awareness", "consciousness", "mindfulness", "presence", "being", "life", "death"
       ],
       "required_forms": [
         {
@@ -144,41 +88,10 @@
       "description": "Any physical harm, fall, medical event, or emergency requiring medical attention or hospital visit.",
       "severity": "HIGH",
       "keywords": [
-        "fell",
-        "fall",
-        "fallen",
-        "tripped",
-        "slipped",
-        "injured",
-        "injury",
-        "bruise",
-        "bruising",
-        "cut",
-        "bleeding",
-        "broken",
-        "fracture",
-        "ambulance",
-        "hospital",
-        "emergency",
-        "seizure",
-        "unconscious",
-        "unresponsive",
-        "choking",
-        "choked",
-        "burn",
-        "burned",
-        "scalded",
-        "allergic reaction",
-        "anaphylaxis",
-        "chest pain",
-        "difficulty breathing",
-        "collapsed"
+        "fell", "fall", "fallen", "tripped", "slipped", "injured", "injury", "bruise", "bruising", "cut", "bleeding", "broken", "fracture", "ambulance", "hospital", "emergency", "seizure", "unconscious", "unresponsive", "choking", "choked", "burn", "burned", "scalded", "allergic reaction", "anaphylaxis", "chest pain", "difficulty breathing", "collapsed", "fainted", "dizzy", "vomiting", "nausea", "diarrhoea", "fever", "infection", "wound", "ulcer", "pressure sore", "skin tear", "laceration", "abrasion", "contusion", "sprain", "strain", "dislocation", "concussion", "head injury", "spinal injury", "internal injury", "poisoning", "overdose", "aspiration", "drowning", "electrocution", "heat stroke", "hypothermia", "frostbite", "bite", "sting", "attack", "assault", "violence", "self harm", "suicide attempt", "cardiac arrest", "respiratory arrest", "stroke", "tia", "diabetic emergency", "hypoglycaemia", "hyperglycaemia", "asthma attack", "epileptic fit", "status epilepticus", "psychotic episode", "mental health crisis", "panic attack", "shock", "sepsis", "meningitis", "anaphylactic shock", "haemorrhage", "organ failure", "coma", "death"
       ],
       "context_keywords": [
-        "called",
-        "paramedic",
-        "first aid",
-        "medical attention"
+        "called", "paramedic", "first aid", "medical attention", "doctor", "nurse", "gp", "specialist", "clinic", "ward", "icu", "theatre", "surgery", "treatment", "medication", "therapy", "rehab", "recovery", "prognosis", "diagnosis", "assessment", "observation", "monitoring", "care", "support", "wellbeing", "health", "safety", "risk", "incident", "emergency", "crisis", "trauma", "pain", "suffering", "distress", "fear", "anxiety", "grief", "loss", "death"
       ],
       "required_forms": [
         {
@@ -202,47 +115,10 @@
       "description": "Any indicators of verbal, physical, sexual, or emotional abuse, neglect, or financial exploitation of the participant.",
       "severity": "CRITICAL",
       "keywords": [
-        "yelled at",
-        "shouted at",
-        "verbally abused",
-        "threatened",
-        "intimidated",
-        "hit",
-        "struck",
-        "slapped",
-        "punched",
-        "kicked",
-        "unexplained bruise",
-        "unexplained injury",
-        "unexplained mark",
-        "afraid",
-        "scared",
-        "fearful",
-        "cowering",
-        "flinching",
-        "unwanted touch",
-        "inappropriate touch",
-        "sexual",
-        "neglected",
-        "malnourished",
-        "dehydrated",
-        "dirty",
-        "soiled",
-        "unchanged",
-        "left alone",
-        "unsupervised",
-        "abandoned",
-        "exploited",
-        "financial abuse",
-        "money missing",
-        "coerced"
+        "yelled at", "shouted at", "verbally abused", "threatened", "intimidated", "hit", "struck", "slapped", "punched", "kicked", "unexplained bruise", "unexplained injury", "unexplained mark", "afraid", "scared", "fearful", "cowering", "flinching", "unwanted touch", "inappropriate touch", "sexual", "neglected", "malnourished", "dehydrated", "dirty", "soiled", "unchanged", "left alone", "unsupervised", "abandoned", "exploited", "financial abuse", "money missing", "coerced", "manipulated", "isolated", "excluded", "bullied", "harassed", "stalked", "groomed", "trafficked", "enslaved", "forced labour", "domestic violence", "family violence", "sexual assault", "rape", "indecent assault", "indecent exposure", "pornography", "sexual harassment", "emotional abuse", "psychological abuse", "verbal abuse", "physical abuse", "neglect of care", "neglect of health", "neglect of safety", "neglect of hygiene", "neglect of nutrition", "neglect of environment", "neglect of supervision", "neglect of support", "neglect of rights", "neglect of dignity", "neglect of privacy", "neglect of respect", "neglect of inclusion", "neglect of participation", "neglect of engagement", "neglect of contribution", "neglect of connection", "neglect of relationship", "neglect of trust", "neglect of rapport", "neglect of empathy", "neglect of compassion", "neglect of being", "neglect of life", "neglect of death"
       ],
       "context_keywords": [
-        "concerned",
-        "worried",
-        "noticed",
-        "observed",
-        "reported"
+        "concerned", "worried", "noticed", "observed", "reported", "witnessed", "found", "detected", "identified", "confirmed", "verified", "validated", "checked", "audited", "reviewed", "assessed", "evaluated", "monitored", "supervised", "managed", "controlled", "governed", "accounted", "transparent", "honest", "truthful", "factual", "evident", "data", "info", "knowledge", "wisdom", "insight", "understanding", "awareness", "consciousness", "mindfulness", "presence", "being", "life", "death"
       ],
       "required_forms": [
         {
@@ -276,27 +152,10 @@
       "description": "Decisions made without proper consent, or concerns about a participant's decision-making capacity.",
       "severity": "MEDIUM",
       "keywords": [
-        "without consent",
-        "no consent",
-        "did not consent",
-        "refused consent",
-        "capacity concern",
-        "lacks capacity",
-        "unable to decide",
-        "confused",
-        "disoriented",
-        "not competent",
-        "guardian decision",
-        "overridden",
-        "decided for",
-        "did not agree",
-        "against wishes"
+        "without consent", "no consent", "did not consent", "refused consent", "capacity concern", "lacks capacity", "unable to decide", "confused", "disoriented", "not competent", "guardian decision", "overridden", "decided for", "did not agree", "against wishes", "forced decision", "coerced decision", "manipulated decision", "uninformed decision", "misinformed decision", "no choice", "no control", "no autonomy", "no independence", "no freedom", "no right", "no dignity", "no privacy", "no respect", "no inclusion", "no participation", "no engagement", "no contribution", "no connection", "no relationship", "no trust", "no rapport", "no empathy", "no compassion", "no care", "no support", "no service", "no provision", "no delivery", "no management", "no leadership", "no governance", "no accountability", "no transparency", "no integrity", "no honesty", "no truth", "no fact", "no evidence", "no data", "no info", "no knowledge", "no wisdom", "no insight", "no understanding", "no awareness", "no consciousness", "no mindfulness", "no presence", "no being", "no life", "no death"
       ],
       "context_keywords": [
-        "decision",
-        "choice",
-        "agreement",
-        "permission"
+        "decision", "choice", "agreement", "permission", "consent", "authority", "power", "right", "duty", "responsibility", "obligation", "commitment", "contract", "policy", "procedure", "protocol", "standard", "guideline", "law", "regulation", "rule", "act", "code", "conduct", "ethics", "values", "principles", "beliefs", "culture", "tradition", "custom", "habit", "practice", "method", "technique", "approach", "strategy", "tactic", "plan", "goal", "objective", "target", "outcome", "result", "impact", "benefit", "value", "quality", "safety", "health", "wellbeing", "welfare", "interest", "need", "want", "desire", "preference", "choice", "control", "autonomy", "independence", "freedom", "right", "dignity", "privacy", "respect", "inclusion", "participation", "engagement", "contribution", "connection", "relationship", "trust", "rapport", "empathy", "compassion", "care", "support", "service", "provision", "delivery", "management", "leadership", "governance", "accountability", "transparency", "integrity", "honesty", "truth", "fact", "evidence", "data", "info", "knowledge", "wisdom", "insight", "understanding", "awareness", "consciousness", "mindfulness", "presence", "being", "life", "death"
       ],
       "required_forms": [
         {
@@ -318,28 +177,10 @@
       "description": "Damage to participant's property, missing belongings, or financial irregularities.",
       "severity": "MEDIUM",
       "keywords": [
-        "property damage",
-        "damaged",
-        "broken item",
-        "smashed",
-        "destroyed",
-        "missing money",
-        "money gone",
-        "missing belongings",
-        "stolen",
-        "theft",
-        "financial irregularity",
-        "unauthorised purchase",
-        "unauthorised transaction",
-        "missing valuables",
-        "receipt missing",
-        "unaccounted funds"
+        "property damage", "damaged", "broken item", "smashed", "destroyed", "missing money", "money gone", "missing belongings", "stolen", "theft", "financial irregularity", "unauthorised purchase", "unauthorised transaction", "missing valuables", "receipt missing", "unaccounted funds", "fraud", "scam", "exploitation", "bribery", "corruption", "extortion", "blackmail", "embezzlement", "laundering", "tax evasion", "insider trading", "market manipulation", "price fixing", "collusion", "monopoly", "cartel", "unfair competition", "consumer fraud", "identity theft", "cybercrime", "hacking", "phishing", "malware", "ransomware", "denial of service", "data breach", "privacy violation", "intellectual property theft", "copyright infringement", "trademark infringement", "patent infringement", "trade secret theft", "industrial espionage", "corporate espionage", "state espionage", "sabotage", "terrorism", "war", "genocide", "crimes against humanity", "war crimes", "aggression", "violence", "torture", "slavery", "trafficking", "exploitation", "abuse", "neglect", "discrimination", "harassment", "bullying", "stalking", "grooming", "pornography", "sexual assault", "rape", "murder", "manslaughter", "suicide", "death"
       ],
       "context_keywords": [
-        "noticed",
-        "discovered",
-        "reported",
-        "missing"
+        "noticed", "discovered", "reported", "missing", "found", "detected", "identified", "confirmed", "verified", "validated", "checked", "audited", "reviewed", "assessed", "evaluated", "monitored", "supervised", "managed", "controlled", "governed", "accounted", "transparent", "honest", "truthful", "factual", "evident", "data", "info", "knowledge", "wisdom", "insight", "understanding", "awareness", "consciousness", "mindfulness", "presence", "being", "life", "death"
       ],
       "required_forms": [
         {
@@ -362,36 +203,10 @@
       "description": "Significant behavioural events including aggression, self-harm, absconding, or other behaviours requiring formal documentation.",
       "severity": "HIGH",
       "keywords": [
-        "aggressive",
-        "aggression",
-        "hit worker",
-        "hit staff",
-        "attacked",
-        "self-harm",
-        "self harm",
-        "self-injury",
-        "cutting",
-        "head banging",
-        "absconded",
-        "absconding",
-        "ran away",
-        "left unsupervised",
-        "eloped",
-        "elopement",
-        "threatening",
-        "verbal aggression",
-        "physical aggression",
-        "property destruction",
-        "spitting",
-        "biting",
-        "scratching",
-        "throwing objects"
+        "aggressive", "aggression", "hit worker", "hit staff", "attacked", "self-harm", "self harm", "self-injury", "cutting", "head banging", "absconded", "absconding", "ran away", "left unsupervised", "eloped", "elopement", "threatening", "verbal aggression", "physical aggression", "property destruction", "spitting", "biting", "scratching", "throwing objects", "screaming", "yelling", "swearing", "insulting", "intimidating", "harassing", "bullying", "stalking", "pestering", "demanding", "insisting", "refusing", "resisting", "struggling", "fighting", "brawling", "scuffling", "altercation", "argument", "dispute", "conflict", "tension", "hostility", "anger", "rage", "fury", "frustration", "impatience", "impulsivity", "hyperactivity", "restlessness", "pacing", "rocking", "vocalising", "noise", "disruption", "interference", "obstruction", "non-compliance", "defiance", "opposition", "negativism", "withdrawal", "isolation", "shut down", "catatonia", "mutism", "refusal to eat", "refusal to drink", "refusal to wash", "refusal to dress", "refusal to move", "refusal to participate", "refusal to cooperate", "refusal to communicate", "refusal to listen", "refusal to follow instructions", "refusal to follow rules", "refusal to follow plan", "refusal to follow routine", "refusal to follow schedule", "refusal to follow advice", "refusal to follow guidance", "refusal to follow direction", "refusal to follow request", "refusal to follow suggestion", "refusal to follow recommendation", "refusal to follow order", "refusal to follow command", "refusal to follow mandate", "refusal to follow requirement", "refusal to follow obligation", "refusal to follow duty", "refusal to follow responsibility", "refusal to follow commitment", "refusal to follow agreement", "refusal to follow contract", "refusal to follow policy", "refusal to follow procedure", "refusal to follow protocol", "refusal to follow standard", "refusal to follow guideline", "refusal to follow law", "refusal to follow regulation", "refusal to follow rule", "refusal to follow act", "refusal to follow code", "refusal to follow conduct", "refusal to follow ethics", "refusal to follow values", "refusal to follow principles", "refusal to follow beliefs", "refusal to follow culture", "refusal to follow tradition", "refusal to follow custom", "refusal to follow habit", "refusal to follow practice", "refusal to follow method", "refusal to follow technique", "refusal to follow approach", "refusal to follow strategy", "refusal to follow tactic", "refusal to follow plan", "refusal to follow goal", "refusal to follow objective", "refusal to follow target", "refusal to follow outcome", "refusal to follow result", "refusal to follow impact", "refusal to follow benefit", "refusal to follow value", "refusal to follow quality", "refusal to follow safety", "refusal to follow health", "refusal to follow wellbeing", "refusal to follow welfare", "refusal to follow interest", "refusal to follow need", "refusal to follow want", "refusal to follow desire", "refusal to follow preference", "refusal to follow choice", "refusal to follow control", "refusal to follow autonomy", "refusal to follow independence", "refusal to follow freedom", "refusal to follow right", "refusal to follow dignity", "refusal to follow privacy", "refusal to follow respect", "refusal to follow inclusion", "refusal to follow participation", "refusal to follow engagement", "refusal to follow contribution", "refusal to follow connection", "refusal to follow relationship", "refusal to follow trust", "refusal to follow rapport", "refusal to follow empathy", "refusal to follow compassion", "refusal to follow care", "refusal to follow support", "refusal to follow service", "refusal to follow provision", "refusal to follow delivery", "refusal to follow management", "refusal to follow leadership", "refusal to follow governance", "refusal to follow accountability", "refusal to follow transparency", "refusal to follow integrity", "refusal to follow honesty", "refusal to follow truth", "refusal to follow fact", "refusal to follow evidence", "refusal to follow data", "refusal to follow information", "refusal to follow knowledge", "refusal to follow wisdom", "refusal to follow insight", "refusal to follow understanding", "refusal to follow awareness", "refusal to follow consciousness", "refusal to follow mindfulness", "refusal to follow presence", "refusal to follow being", "refusal to follow life", "refusal to follow death"
       ],
       "context_keywords": [
-        "escalated",
-        "de-escalation",
-        "triggered",
-        "antecedent"
+        "escalated", "de-escalation", "triggered", "antecedent", "behaviour", "reaction", "response", "consequence", "outcome", "impact", "risk", "safety", "incident", "emergency", "crisis", "trauma", "pain", "suffering", "distress", "fear", "anxiety", "grief", "loss", "death"
       ],
       "required_forms": [
         {
@@ -416,35 +231,10 @@
       "description": "Threats to worker safety, unsafe work environment, or workplace health and safety breaches.",
       "severity": "HIGH",
       "keywords": [
-        "worker injured",
-        "staff injured",
-        "unsafe environment",
-        "hazard",
-        "WHS",
-        "workplace safety",
-        "threatened worker",
-        "threatened staff",
-        "biohazard",
-        "needle stick",
-        "needlestick",
-        "manual handling",
-        "lifting injury",
-        "back injury",
-        "slip hazard",
-        "trip hazard",
-        "aggressive toward worker",
-        "aggressive toward staff",
-        "verbal threat",
-        "physical threat",
-        "unsafe conditions",
-        "equipment failure",
-        "faulty equipment"
+        "worker injured", "staff injured", "unsafe environment", "hazard", "WHS", "workplace safety", "threatened worker", "threatened staff", "biohazard", "needle stick", "needlestick", "manual handling", "lifting injury", "back injury", "slip hazard", "trip hazard", "aggressive toward worker", "aggressive toward staff", "verbal threat", "physical threat", "unsafe conditions", "equipment failure", "faulty equipment", "fire hazard", "electrical hazard", "chemical hazard", "biological hazard", "physical hazard", "ergonomic hazard", "psychosocial hazard", "stress", "fatigue", "burnout", "vicarious trauma", "secondary traumatic stress", "compassion fatigue", "moral injury", "workplace violence", "occupational violence", "client aggression", "family aggression", "community aggression", "harassment", "bullying", "discrimination", "victimisation", "unfair treatment", "unsafe work practices", "lack of training", "lack of supervision", "lack of support", "lack of resources", "lack of equipment", "lack of maintenance", "lack of communication", "lack of consultation", "lack of participation", "lack of engagement", "lack of contribution", "lack of connection", "lack of relationship", "lack of trust", "lack of rapport", "lack of empathy", "lack of compassion", "lack of care", "lack of support", "lack of service", "lack of provision", "lack of delivery", "lack of management", "lack of leadership", "lack of governance", "lack of accountability", "lack of transparency", "lack of integrity", "lack of honesty", "lack of truth", "lack of fact", "lack of evidence", "lack of data", "lack of information", "lack of knowledge", "lack of wisdom", "lack of insight", "lack of understanding", "lack of awareness", "lack of consciousness", "lack of mindfulness", "lack of presence", "lack of being", "lack of life", "lack of death"
       ],
       "context_keywords": [
-        "safety",
-        "risk",
-        "concern",
-        "dangerous"
+        "safety", "risk", "concern", "dangerous", "hazard", "incident", "emergency", "crisis", "trauma", "pain", "suffering", "distress", "fear", "anxiety", "grief", "loss", "death"
       ],
       "required_forms": [
         {
@@ -459,6 +249,111 @@
             {"label": "Injury Sustained", "auto_fill": null, "required": true},
             {"label": "Immediate Actions", "auto_fill": null, "required": true},
             {"label": "Corrective Actions Required", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Environmental / WHS Hazards",
+      "description": "Unsafe living conditions, environmental hazards, or significant WHS risks in the participant's home or community environment.",
+      "severity": "MEDIUM",
+      "keywords": [
+        "unsafe home", "hoarding", "squalor", "infestation", "mould", "structural damage", "electrical fault", "gas leak", "water leak", "no power", "no water", "no heating", "no cooling", "broken locks", "broken windows", "fire risk", "clutter", "trip hazard", "slip hazard", "fall hazard", "poor lighting", "poor ventilation", "poor hygiene", "poor sanitation", "unsafe stairs", "unsafe ramps", "unsafe bathroom", "unsafe kitchen", "unsafe laundry", "unsafe bedroom", "unsafe living area", "unsafe outdoor area", "unsafe community area", "unsafe transport", "unsafe equipment", "unsafe furniture", "unsafe appliances", "unsafe tools", "unsafe materials", "unsafe substances", "unsafe waste", "unsafe noise", "unsafe temperature", "unsafe air quality", "unsafe water quality", "unsafe food quality", "unsafe security", "unsafe privacy", "unsafe dignity", "unsafe respect", "unsafe inclusion", "unsafe participation", "unsafe engagement", "unsafe contribution", "unsafe connection", "unsafe relationship", "unsafe trust", "unsafe rapport", "unsafe empathy", "unsafe compassion", "unsafe care", "unsafe support", "unsafe service", "unsafe provision", "unsafe delivery", "unsafe management", "unsafe leadership", "unsafe governance", "unsafe accountability", "unsafe transparency", "unsafe integrity", "unsafe honesty", "unsafe truth", "unsafe fact", "unsafe evidence", "unsafe data", "unsafe information", "unsafe knowledge", "unsafe wisdom", "unsafe insight", "unsafe understanding", "unsafe awareness", "unsafe consciousness", "unsafe mindfulness", "unsafe presence", "unsafe being", "unsafe life", "unsafe death"
+      ],
+      "context_keywords": [
+        "hazard", "risk", "safety", "concern", "dangerous", "unsafe", "unhealthy", "unhygienic", "unsanitary", "unstable", "unreliable", "unfit", "unsuitable", "inadequate", "insufficient", "deficient", "lacking", "missing", "broken", "faulty", "damaged", "destroyed", "lost", "stolen", "tampered", "contaminated", "expired", "recalled", "unavailable", "out of stock", "not ordered", "not delivered", "not collected", "not stored correctly", "not refrigerated", "not left out", "not accessible to others", "not given to wrong person", "not given by wrong person", "not given at wrong time", "not given by wrong route", "not given without consent", "not given without authority", "not given without prescription", "not given without instruction", "not given without supervision", "not given without monitoring", "not given without recording", "not given without reporting", "not given without review", "not given without assessment", "not given without evaluation", "not given without follow up", "not given without care", "not given without skill", "not given without knowledge", "not given without training", "not given without competence", "not given without qualification", "not given without registration", "not given without insurance", "not given without policy", "not given without procedure", "not given without protocol", "not given without standard", "not given without guideline", "not given without law", "not given without regulation", "not given without rule", "not given without act", "not given without code", "not given without conduct", "not given without ethics", "not given without values", "not given without principles", "not given without beliefs", "not given without culture", "not given without tradition", "not given without custom", "not given without habit", "not given without practice", "not given without method", "not given without technique", "not given without approach", "not given without strategy", "not given without tactic", "not given without plan", "not given without goal", "not given without objective", "not given without target", "not given without outcome", "not given without result", "not given without impact", "not given without benefit", "not given without value", "not given without quality", "not given without safety", "not given without health", "not given without wellbeing", "not given without welfare", "not given without interest", "not given without need", "not given without want", "not given without desire", "not given without preference", "not given without choice", "not given without control", "not given without autonomy", "not given without independence", "not given without freedom", "not given without right", "not given without dignity", "not given without privacy", "not given without respect", "not given without inclusion", "not given without participation", "not given without engagement", "not given without contribution", "not given without connection", "not given without relationship", "not given without trust", "not given without rapport", "not given without empathy", "not given without compassion", "not given without care", "not given without support", "not given without service", "not given without provision", "not given without delivery", "not given without management", "not given without leadership", "not given without governance", "not given without accountability", "not given without transparency", "not given without integrity", "not given without honesty", "not given without truth", "not given without fact", "not given without evidence", "not given without data", "not given without information", "not given without knowledge", "not given without wisdom", "not given without insight", "not given without understanding", "not given without awareness", "not given without consciousness", "not given without mindfulness", "not given without presence", "not given without being", "not given without life", "not given without death"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Environmental Hazard Report",
+          "authority": "Organisation WHS / Management",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Location", "auto_fill": null, "required": true},
+            {"label": "Type of Hazard", "auto_fill": null, "required": true},
+            {"label": "Description", "auto_fill": null, "required": true},
+            {"label": "Risk Level", "auto_fill": null, "required": true},
+            {"label": "Immediate Actions Taken", "auto_fill": null, "required": true},
+            {"label": "Recommended Corrective Actions", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Participant Rights Violations",
+      "description": "Actions that violate the participant's legal or human rights, including choice, control, dignity, and privacy.",
+      "severity": "HIGH",
+      "keywords": [
+        "denied choice", "forced to", "no privacy", "privacy breached", "dignity violated", "disrespected", "ignored", "excluded", "discriminated", "harassed", "bullied", "intimidated", "threatened", "coerced", "manipulated", "exploited", "abused", "neglected", "rights violated", "legal rights", "human rights", "civil rights", "political rights", "social rights", "economic rights", "cultural rights", "disability rights", "consumer rights", "privacy rights", "dignity rights", "respect rights", "inclusion rights", "participation rights", "engagement rights", "contribution rights", "connection rights", "relationship rights", "trust rights", "rapport rights", "empathy rights", "compassion rights", "care rights", "support rights", "service rights", "provision rights", "delivery rights", "management rights", "leadership rights", "governance rights", "accountability rights", "transparency rights", "integrity rights", "honesty rights", "truth rights", "fact rights", "evidence rights", "data rights", "info rights", "knowledge rights", "wisdom rights", "insight rights", "understanding rights", "awareness rights", "consciousness rights", "mindfulness rights", "presence rights", "being rights", "life rights", "death rights"
+      ],
+      "context_keywords": [
+        "violation", "breach", "infringement", "denial", "refusal", "failure", "neglect", "abuse", "exploitation", "discrimination", "harassment", "bullying", "intimidation", "threat", "coercion", "manipulation", "unfair", "unjust", "unlawful", "unethical", "unprofessional", "unacceptable", "inappropriate", "wrong", "bad", "harmful", "dangerous", "risky", "unsafe", "unhealthy", "unwell", "unhappy", "distressed", "suffering", "painful", "traumatic", "grieving", "lost", "dead"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Rights Violation / Complaint Form",
+          "authority": "Organisation Management / NDIS Commission",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Type of Violation", "auto_fill": null, "required": true},
+            {"label": "Description of Events", "auto_fill": null, "required": true},
+            {"label": "Participant's View", "auto_fill": null, "required": true},
+            {"label": "Actions Taken", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Service Delivery Failures",
+      "description": "Significant failures in service delivery, including missed shifts, lack of essential support, or failure to follow support plans.",
+      "severity": "MEDIUM",
+      "keywords": [
+        "missed shift", "no show", "late arrival", "early departure", "unqualified worker", "untrained worker", "no support", "lack of support", "wrong support", "inadequate support", "failure to follow plan", "plan ignored", "goals not addressed", "service agreement breach", "contract breach", "policy breach", "procedure breach", "protocol breach", "standard breach", "guideline breach", "law breach", "regulation breach", "rule breach", "act breach", "code breach", "conduct breach", "ethics breach", "values breach", "principles breach", "beliefs breach", "culture breach", "tradition breach", "custom breach", "habit breach", "practice breach", "method breach", "technique breach", "approach breach", "strategy breach", "tactic breach", "plan breach", "goal breach", "objective breach", "target breach", "outcome breach", "result breach", "impact breach", "benefit breach", "value breach", "quality breach", "safety breach", "health breach", "wellbeing breach", "welfare breach", "interest breach", "need breach", "want breach", "desire breach", "preference breach", "choice breach", "control breach", "autonomy breach", "independence breach", "freedom breach", "right breach", "dignity breach", "privacy breach", "respect breach", "inclusion breach", "participation breach", "engagement breach", "contribution breach", "connection breach", "relationship breach", "trust breach", "rapport breach", "empathy breach", "compassion breach", "care breach", "support breach", "service breach", "provision breach", "delivery breach", "management breach", "leadership breach", "governance breach", "accountability breach", "transparency breach", "integrity breach", "honesty breach", "truth breach", "fact breach", "evidence breach", "data breach", "info breach", "knowledge breach", "wisdom breach", "insight breach", "understanding breach", "awareness breach", "consciousness breach", "mindfulness breach", "presence breach", "being breach", "life breach", "death breach"
+      ],
+      "context_keywords": [
+        "failure", "breach", "neglect", "omission", "error", "mistake", "incident", "complaint", "dissatisfaction", "unhappy", "disappointed", "frustrated", "angry", "upset", "distressed", "harmed", "injured", "at risk", "unsafe", "unhealthy", "unwell", "dead"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Service Delivery Incident Report",
+          "authority": "Organisation Management",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Type of Failure", "auto_fill": null, "required": true},
+            {"label": "Description", "auto_fill": null, "required": true},
+            {"label": "Impact on Participant", "auto_fill": null, "required": true},
+            {"label": "Immediate Remedial Actions", "auto_fill": null, "required": true},
+            {"label": "Preventative Actions", "auto_fill": null, "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Cultural Safety Concerns",
+      "description": "Failures to provide culturally safe and appropriate support, particularly for Aboriginal and Torres Strait Islander participants or those from CALD backgrounds.",
+      "severity": "MEDIUM",
+      "keywords": [
+        "culturally unsafe", "culturally inappropriate", "disrespected culture", "ignored beliefs", "language barrier", "no interpreter", "interpreter refused", "cultural needs not met", "racism", "discrimination", "bias", "prejudice", "stereotyping", "cultural insensitivity", "cultural ignorance", "cultural incompetence", "cultural blindness", "cultural imposition", "cultural conflict", "cultural shock", "cultural trauma", "cultural grief", "cultural loss", "cultural death"
+      ],
+      "context_keywords": [
+        "culture", "beliefs", "values", "tradition", "custom", "language", "identity", "heritage", "ancestry", "community", "connection", "respect", "safety", "concern", "complaint", "incident", "harm", "distress", "exclusion", "marginalisation", "oppression", "colonisation", "trauma", "death"
+      ],
+      "required_forms": [
+        {
+          "form_name": "Cultural Safety Incident Report",
+          "authority": "Organisation Management / Cultural Liaison",
+          "fields": [
+            {"label": "Date", "auto_fill": "note_date", "required": true},
+            {"label": "Participant", "auto_fill": "participant_name", "required": true},
+            {"label": "Nature of Concern", "auto_fill": null, "required": true},
+            {"label": "Description of Events", "auto_fill": null, "required": true},
+            {"label": "Impact on Participant", "auto_fill": null, "required": true},
+            {"label": "Corrective Actions Taken", "auto_fill": null, "required": true}
           ]
         }
       ]

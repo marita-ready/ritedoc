@@ -1,0 +1,108 @@
+{
+  "state": "VIC",
+  "version": "2.0.0",
+  "last_updated": "2026-04-02",
+  "description": "Victorian NDIS Practice Standards, Rules, and Legislative Timeframes",
+  "practice_standards": {
+    "core_module": [
+      {
+        "outcome_area": "Rights and Responsibilities",
+        "indicators": [
+          "Person-Centred Supports",
+          "Individual Values and Beliefs",
+          "Privacy and Dignity",
+          "Independence and Informed Choice",
+          "Violence, Abuse, Neglect, Exploitation, and Discrimination"
+        ]
+      },
+      {
+        "outcome_area": "Governance and Operational Management",
+        "indicators": [
+          "Governance and Operational Management",
+          "Risk Management",
+          "Quality Management",
+          "Information Management",
+          "Feedback and Complaints Management",
+          "Incident Management",
+          "Human Resource Management",
+          "Continuity of Supports"
+        ]
+      },
+      {
+        "outcome_area": "Provision of Supports",
+        "indicators": [
+          "Access to Supports",
+          "Support Planning",
+          "Service Agreements with Participants",
+          "Responsive Support Provision",
+          "Transitions to or from the Provider",
+          "Mealtime Management"
+        ]
+      },
+      {
+        "outcome_area": "Support Provision Environment",
+        "indicators": [
+          "Safe Environment",
+          "Participant Money and Property",
+          "Management of Medication",
+          "Waste Management",
+          "Emergency and Disaster Management"
+        ]
+      }
+    ],
+    "supplementary_modules": [
+      "High Intensity Daily Personal Activities",
+      "Specialist Behaviour Support",
+      "Early Childhood Supports",
+      "Specialist Disability Accommodation"
+    ]
+  },
+  "code_of_conduct": [
+    "Act with respect for individual rights to freedom of expression, self-determination, and decision-making",
+    "Respect the privacy of people with disability",
+    "Provide supports and services in a safe and competent manner with care and skill",
+    "Act with integrity, honesty, and transparency",
+    "Promptly take steps to raise and act on concerns about matters that might have an impact on the quality and safety of supports",
+    "Take all reasonable steps to prevent and respond to all forms of violence, exploitation, neglect, and abuse",
+    "Take all reasonable steps to prevent and respond to sexual misconduct",
+    "Not engage in, or encourage, any practice that is unlawful, unsafe, or unethical",
+    "Not engage in any practice that is or may be corrupt, fraudulent, or dishonest"
+  ],
+  "reporting_timeframes": {
+    "reportable_incidents": {
+      "death": "24 hours",
+      "serious_injury": "24 hours",
+      "abuse_or_neglect": "24 hours",
+      "unlawful_sexual_or_physical_contact": "24 hours",
+      "sexual_misconduct": "24 hours",
+      "unauthorised_restrictive_practice_with_harm": "24 hours",
+      "unauthorised_restrictive_practice_no_harm": "5 business days"
+    },
+    "follow_up_reports": {
+      "standard_follow_up": "5 business days",
+      "final_report_if_requested": "60 days"
+    },
+    "restrictive_practices": {
+      "monthly_reporting": "By the 15th of the following month",
+      "interim_bsp_validity": "6 months",
+      "comprehensive_bsp_validity": "12 months"
+    }
+  },
+  "legislative_changes_2026": {
+    "mandatory_registration": [
+      "Supported Independent Living (SIL) Providers (Effective 1 July 2026)",
+      "Platform Providers (Effective 1 July 2026)"
+    ],
+    "new_standards": [
+      "SIL Practice Standards (Effective 1 July 2026)"
+    ],
+    "funding_reforms": [
+      "Structured Funding Periods (Effective May 2025)",
+      "Impairment Notices (Ongoing rollout)"
+    ]
+  },
+  "worker_screening": {
+    "clearance_validity": "5 years",
+    "monitoring": "Ongoing national monitoring"
+  }
+}
