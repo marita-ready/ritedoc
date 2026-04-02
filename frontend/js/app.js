@@ -1061,11 +1061,12 @@ function simulateCommand(cmd, args) {
     return Promise.resolve({ is_activated: true, key_code: 'DEMO-KEY', hardware_fingerprint: 'RDOC-DEMO', subscription_type: 'founders', activated_at: new Date().toISOString() });
   }
   if (cmd === 'get_cartridge_version') {
-    return Promise.resolve('2.0.0');
+    // Returns a date string in browser/demo mode
+    return Promise.resolve('current');
   }
   if (cmd === 'silent_update_cartridges') {
     // In browser mode, silently no-op (Tauri only)
-    return Promise.resolve('2.0.0');
+    return Promise.resolve('current');
   }
   if (cmd === 'get_hardware_fingerprint') {
     return Promise.resolve('RDOC-BROWSER-DEMO');
@@ -1178,11 +1179,12 @@ function formatSubscriptionType(type) {
 async function runSilentCartridgeUpdate() {
   if (!isTauri) return; // Only runs in the real Tauri app
   try {
-    const newVersion = await invokeCommand('silent_update_cartridges');
-    // Silently refresh the version display in Settings if it's already loaded
-    const versionEl = document.getElementById('settingsCartridgeVersion');
-    if (versionEl && newVersion) {
-      versionEl.textContent = 'v' + newVersion;
+    // Returns a date string like "2 Apr 2026", or "current" if no update was needed
+    const dateDisplay = await invokeCommand('silent_update_cartridges');
+    // Silently refresh the date display in Settings if it's already loaded
+    const dateEl = document.getElementById('settingsCartridgeVersion');
+    if (dateEl && dateDisplay) {
+      dateEl.textContent = dateDisplay;
     }
   } catch (e) {
     // Completely silent — no error shown to user
@@ -1191,11 +1193,11 @@ async function runSilentCartridgeUpdate() {
 
 async function loadSettingsData() {
   try {
-    // Load cartridge version for the Settings info line
-    const version = await invokeCommand('get_cartridge_version');
-    const versionEl = document.getElementById('settingsCartridgeVersion');
-    if (versionEl) {
-      versionEl.textContent = version ? 'v' + version : 'v2.0.0';
+    // Returns a date string like "2 Apr 2026", or "current" if never updated
+    const dateDisplay = await invokeCommand('get_cartridge_version');
+    const dateEl = document.getElementById('settingsCartridgeVersion');
+    if (dateEl) {
+      dateEl.textContent = dateDisplay || 'current';
     }
 
     // Load processing mode from hardware badge

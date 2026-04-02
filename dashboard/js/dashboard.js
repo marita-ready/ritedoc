@@ -697,6 +697,28 @@ function renderCartridgeVersions() {
   `).join('');
 }
 
+/**
+ * Compute the SHA-256 hash of an ArrayBuffer and return it as a lowercase hex string.
+ * Uses the Web Crypto API — available in all modern browsers, no dependencies.
+ */
+async function sha256Hex(arrayBuffer) {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Read a File object as an ArrayBuffer.
+ */
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 async function handleCartridgeUpload() {
   const version = document.getElementById('cartridgeVersionInput').value.trim();
   const notes = document.getElementById('cartridgeNotesInput').value.trim();
@@ -725,33 +747,71 @@ async function handleCartridgeUpload() {
   }
 
   statusEl.className = 'cartridge-status info';
-  statusEl.textContent = 'Uploading cartridge files...';
+  statusEl.textContent = 'Computing checksums...';
   statusEl.style.display = 'block';
 
   try {
-    // Upload each file to Supabase Storage
-    let uploadedCount = 0;
+    // ── Step 1: Read all files into memory and compute SHA-256 hashes ──────
+    // We must hash the exact bytes that will be stored — before any upload.
+    // The app will re-hash the downloaded bytes and compare, so they must match.
+    const checksums = {};
+    const fileBuffers = {};
+
     for (const [filename, file] of Object.entries(files)) {
-      if (file) {
-        const path = `v${version}/${filename}`;
-        await dashState.supabaseClient.uploadToStorage('cartridges', path, file);
-        uploadedCount++;
-      }
+      if (!file) continue;
+
+      const buffer = await readFileAsArrayBuffer(file);
+      const hash = await sha256Hex(buffer);
+      checksums[filename] = hash;
+      fileBuffers[filename] = buffer;
     }
 
-    // Create version record in database
+    // ── Step 2: Upload each cartridge file ─────────────────────────────────
+    statusEl.textContent = 'Uploading cartridge files...';
+    let uploadedCount = 0;
+
+    for (const [filename, buffer] of Object.entries(fileBuffers)) {
+      const path = `v${version}/${filename}`;
+      // Upload from the original File object (preserves content-type)
+      await dashState.supabaseClient.uploadToStorage('cartridges', path, files[filename]);
+      uploadedCount++;
+    }
+
+    // ── Step 3: Generate and upload checksums.json ─────────────────────────
+    // This file is downloaded by the app before installing any update.
+    // If ANY hash doesn't match, the entire update is rejected.
+    statusEl.textContent = 'Uploading checksums.json...';
+
+    const checksumsJson = JSON.stringify(checksums, null, 2);
+    const checksumsBlob = new Blob([checksumsJson], { type: 'application/json' });
+    const checksumsFile = new File([checksumsBlob], 'checksums.json', { type: 'application/json' });
+
+    await dashState.supabaseClient.uploadToStorage(
+      'cartridges',
+      `v${version}/checksums.json`,
+      checksumsFile
+    );
+
+    // ── Step 4: Create version record in database ──────────────────────────
     await dashState.supabaseClient.insert('cartridge_versions', {
       version,
-      filename: Object.entries(files).filter(([_, f]) => f).map(([n]) => n).join(', '),
+      filename: Object.keys(fileBuffers).join(', '),
       notes,
       uploaded_at: new Date().toISOString(),
     });
 
-    statusEl.className = 'cartridge-status success';
-    statusEl.textContent = `Cartridge v${version} uploaded successfully (${uploadedCount} files).`;
-    showToast('Cartridge uploaded');
+    // ── Step 5: Show success with checksum summary ─────────────────────────
+    const hashSummary = Object.entries(checksums)
+      .map(([name, hash]) => `${name}: ${hash.slice(0, 12)}...`)
+      .join(' | ');
 
-    // Reload versions
+    statusEl.className = 'cartridge-status success';
+    statusEl.textContent =
+      `Cartridge v${version} uploaded (${uploadedCount} files + checksums.json). ` +
+      `SHA-256: ${hashSummary}`;
+    showToast(`Cartridge v${version} uploaded with checksums`);
+
+    // Reload versions table
     await loadAllData();
   } catch (e) {
     statusEl.className = 'cartridge-status error';
@@ -796,18 +856,20 @@ async function handleNotifySubscribers() {
       body: JSON.stringify({
         sender: { name: 'ReadyCompliant', email: 'updates@readycompliant.com' },
         to: activeClients.map(c => ({ email: c.email, name: c.name })),
-        subject: `RiteDoc Compliance Update Available — Version ${latestVersion}`,
+        subject: `RiteDoc Compliance Data Updated`,
         htmlContent: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
-            <h1 style="color: #111827; font-size: 24px;">Compliance Update Available</h1>
+            <h1 style="color: #111827; font-size: 24px;">Your Compliance Data Has Been Updated</h1>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
-              A new compliance data update (Version ${latestVersion}) is now available for RiteDoc.
+              We’ve just released a compliance data update for RiteDoc.
             </p>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
-              To update, open RiteDoc and go to <strong>Settings</strong> &rarr; <strong>Check for Updates</strong> &rarr; <strong>Install Update</strong>.
+              <strong>No action needed on your end.</strong> The next time you open RiteDoc, it will automatically
+              download and install the update in the background. You’ll see the updated date in Settings.
             </p>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
-              This update ensures your progress notes are assessed against the latest NDIS Practice Standards and compliance requirements.
+              This update ensures your progress notes are assessed against the latest NDIS Practice Standards
+              and compliance requirements.
             </p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
             <p style="color: #9ca3af; font-size: 13px;">

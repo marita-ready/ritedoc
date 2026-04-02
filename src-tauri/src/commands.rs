@@ -60,12 +60,14 @@ pub async fn get_hardware_fingerprint() -> Result<String, String> {
 
 // ===== Cartridge Update Commands =====
 
-/// Get current cartridge version (for Settings info display only)
+/// Get the cartridge update date display string for the Settings info line.
+/// Returns e.g. "2 Apr 2026" if an update has been applied, or "current" if never updated.
+/// No version number is exposed to the client.
 #[tauri::command]
 pub async fn get_cartridge_version(
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    Ok(cartridge_updater::get_current_version(&state.app_data_dir))
+    Ok(cartridge_updater::get_update_date_display(&state.app_data_dir))
 }
 
 /// Silent background cartridge update — checks and applies if available.
@@ -106,16 +108,18 @@ pub async fn silent_update_cartridges(
 
         if apply.success {
             log::info!(
-                "Cartridge silently updated to version {}",
-                apply.version
+                "Cartridge silently updated ({}) — all files SHA-256 verified",
+                apply.updated_date
             );
-            return Ok(apply.version);
+            // Return the date display string — no version number exposed to frontend
+            return Ok(apply.updated_date);
         }
-        // apply failed — fall through to return current version
+        // apply failed — fall through to return current display date
         log::info!("Silent cartridge update failed (network/server issue) — using existing cartridge");
     }
 
-    Ok(cartridge_updater::get_current_version(&app_data_dir))
+    // Return date display (or "current" if never updated)
+    Ok(cartridge_updater::get_update_date_display(&app_data_dir))
 }
 
 // ===== CSV & Processing Commands =====
