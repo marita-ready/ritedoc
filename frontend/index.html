@@ -8,11 +8,48 @@
 </head>
 <body>
 
-<div class="app-shell">
+<!-- ===== ACTIVATION SCREEN (shown on first launch before anything else) ===== -->
+<div id="activationOverlay" class="activation-overlay" style="display:none;">
+  <div class="activation-card">
+    <div class="activation-logo">
+      <span class="home-logo-rite">Rite</span><span class="home-logo-doc">Doc</span>
+    </div>
+    <div class="activation-tagline">Technology-Assisted Documentation Drafting</div>
+
+    <div class="activation-form">
+      <label class="activation-label" for="activationKeyInput">Enter your activation key</label>
+      <input type="text" id="activationKeyInput" class="activation-input"
+             placeholder="XXXX-XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off" />
+      <div class="activation-error" id="activationError" style="display:none;"></div>
+      <button class="btn-activate" id="btnActivate" onclick="handleActivation()">
+        Activate RiteDoc
+      </button>
+      <div class="activation-spinner" id="activationSpinner" style="display:none;">
+        <div class="spinner"></div>
+        <span>Validating your activation key...</span>
+      </div>
+    </div>
+
+    <div class="activation-footer">
+      <p>Your activation key was included in your welcome email.</p>
+      <p>Need help? Contact <a href="mailto:support@readycompliant.com">support@readycompliant.com</a></p>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell" style="display:none;">
   <!-- ===== TOP BAR ===== -->
   <header class="topbar">
     <div class="topbar-logo" onclick="showScreen('s0')">Rite<span>Doc</span></div>
-    <div class="hw-badge" id="hwBadge">Standard Mode</div>
+    <div class="topbar-right">
+      <div class="hw-badge" id="hwBadge">Standard Mode</div>
+      <button class="settings-btn" id="btnSettings" onclick="showScreen('s5')" title="Settings">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <!-- ===== SCREEN NAVIGATION ===== -->
@@ -21,6 +58,7 @@
     <button class="nav-btn" data-screen="s1" onclick="showScreen('s1')">Import</button>
     <button class="nav-btn" data-screen="s3" onclick="showScreen('s3')" disabled id="navResults">Results</button>
     <button class="nav-btn" data-screen="s4" onclick="showScreen('s4')" disabled id="navSummary">Summary</button>
+    <button class="nav-btn" data-screen="s5" onclick="showScreen('s5')">Settings</button>
   </nav>
 
   <!-- ===== MAIN CONTENT ===== -->
@@ -166,6 +204,82 @@
           </svg>
           Copy All Green Notes
         </button>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 5: SETTINGS ===== -->
+    <div id="s5" class="screen">
+      <div class="screen-title">Settings</div>
+      <div class="screen-desc">Manage your RiteDoc installation and compliance data.</div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Activation</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-label">Status</div>
+            <div class="settings-value" id="settingsActivationStatus">Checking...</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">Subscription</div>
+            <div class="settings-value" id="settingsSubscriptionType">—</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">Device Fingerprint</div>
+            <div class="settings-value settings-mono" id="settingsFingerprint">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Compliance Data</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-label">Current Version</div>
+            <div class="settings-value" id="settingsCartridgeVersion">—</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">Update Status</div>
+            <div class="settings-value" id="settingsUpdateStatus">Not checked</div>
+          </div>
+          <div class="settings-actions">
+            <button class="btn-settings-action" id="btnCheckUpdates" onclick="handleCheckUpdates()">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Check for Updates
+            </button>
+            <button class="btn-settings-action btn-settings-apply" id="btnApplyUpdate" onclick="handleApplyUpdate()" style="display:none;">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Install Update
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">System</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-label">Processing Mode</div>
+            <div class="settings-value" id="settingsProcessingMode">—</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">App Version</div>
+            <div class="settings-value">1.0.0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Support</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-label">Email</div>
+            <div class="settings-value"><a href="mailto:support@readycompliant.com">support@readycompliant.com</a></div>
+          </div>
+        </div>
       </div>
     </div>
 

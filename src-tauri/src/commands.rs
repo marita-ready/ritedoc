@@ -1,9 +1,102 @@
+use crate::activation;
+use crate::cartridge_updater;
 use crate::csv_parser;
 use crate::llm_integration;
 use crate::models::*;
 use crate::pipeline;
 use crate::self_fix;
 use tauri::State;
+
+// ===== Activation Commands =====
+
+/// Check if the app is activated (local check only, no network)
+#[tauri::command]
+pub async fn check_activation(
+    state: State<'_, AppState>,
+) -> Result<activation::ActivationState, String> {
+    match activation::check_local_activation(&state.app_data_dir) {
+        Some(activation_state) => {
+            let mut activated = state.is_activated.lock().map_err(|e| e.to_string())?;
+            *activated = true;
+            Ok(activation_state)
+        }
+        None => Ok(activation::ActivationState {
+            is_activated: false,
+            key_code: String::new(),
+            hardware_fingerprint: String::new(),
+            subscription_type: String::new(),
+            activated_at: String::new(),
+        }),
+    }
+}
+
+/// Activate the app with a key (ONE HTTPS call to Supabase)
+#[tauri::command]
+pub async fn activate_key(
+    key_code: String,
+    state: State<'_, AppState>,
+) -> Result<activation::ActivationResult, String> {
+    let result = activation::activate_with_supabase(
+        &key_code,
+        &state.app_data_dir,
+        &state.supabase_config.url,
+        &state.supabase_config.anon_key,
+    )
+    .await;
+
+    if result.success {
+        let mut activated = state.is_activated.lock().map_err(|e| e.to_string())?;
+        *activated = true;
+    }
+
+    Ok(result)
+}
+
+/// Get the hardware fingerprint for display/debugging
+#[tauri::command]
+pub async fn get_hardware_fingerprint() -> Result<String, String> {
+    Ok(activation::generate_hardware_fingerprint())
+}
+
+// ===== Cartridge Update Commands =====
+
+/// Check for cartridge updates
+#[tauri::command]
+pub async fn check_cartridge_updates(
+    state: State<'_, AppState>,
+) -> Result<cartridge_updater::UpdateCheckResult, String> {
+    Ok(cartridge_updater::check_for_updates(
+        &state.app_data_dir,
+        &state.supabase_config.url,
+        &state.supabase_config.anon_key,
+    )
+    .await)
+}
+
+/// Apply cartridge updates
+#[tauri::command]
+pub async fn apply_cartridge_update(
+    state: State<'_, AppState>,
+) -> Result<cartridge_updater::UpdateApplyResult, String> {
+    let cartridge_dir = state.resource_dir.join("cartridges");
+    Ok(cartridge_updater::apply_update(
+        &state.app_data_dir,
+        &cartridge_dir,
+        &state.supabase_config.url,
+        &state.supabase_config.anon_key,
+    )
+    .await)
+}
+
+/// Get current cartridge version
+#[tauri::command]
+pub async fn get_cartridge_version(
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    Ok(cartridge_updater::get_current_version(&state.app_data_dir))
+}
+
+// ===== CSV & Processing Commands =====
 
 /// Parse a CSV file and return the detected platform and note count
 #[tauri::command]
@@ -15,7 +108,9 @@ pub async fn parse_csv(
 
     let mode_label = {
         let hw = state.hardware_profile.lock().map_err(|e| e.to_string())?;
-        hw.as_ref().map(|h| h.mode.label().to_string()).unwrap_or_else(|| "Standard Mode".to_string())
+        hw.as_ref()
+            .map(|h| h.mode.label().to_string())
+            .unwrap_or_else(|| "Standard Mode".to_string())
     };
 
     let batch = BatchState {

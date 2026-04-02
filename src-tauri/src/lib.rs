@@ -1,3 +1,5 @@
+pub mod activation;
+pub mod cartridge_updater;
 pub mod csv_parser;
 pub mod pii_scrubber;
 pub mod llm_integration;
@@ -21,13 +23,34 @@ pub fn run() {
 
             // Store cartridge path
             let resource_path = app.path().resource_dir().unwrap_or_default();
-            let state = models::AppState::new(app_data_dir, resource_path);
+            let state = models::AppState::new(app_data_dir.clone(), resource_path);
+
+            // Check local activation status on startup
+            match activation::check_local_activation(&app_data_dir) {
+                Some(activation_state) => {
+                    log::info!(
+                        "App is activated: key={}, subscription={}",
+                        &activation_state.key_code[..8.min(activation_state.key_code.len())],
+                        activation_state.subscription_type
+                    );
+                    let mut activated = state.is_activated.lock().unwrap();
+                    *activated = true;
+                }
+                None => {
+                    log::info!("App is not yet activated — activation screen will be shown");
+                }
+            }
 
             // Run hardware detection on startup
             match llm_integration::detect_hardware() {
                 Ok(profile) => {
-                    log::info!("Hardware detected: {} ({:.1}GB RAM, {} cores, GPU: {})",
-                        profile.mode.label(), profile.ram_gb, profile.cpu_cores, profile.has_gpu);
+                    log::info!(
+                        "Hardware detected: {} ({:.1}GB RAM, {} cores, GPU: {})",
+                        profile.mode.label(),
+                        profile.ram_gb,
+                        profile.cpu_cores,
+                        profile.has_gpu
+                    );
                     let mut hw = state.hardware_profile.lock().unwrap();
                     *hw = Some(profile);
                 }
@@ -41,6 +64,15 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Activation
+            commands::check_activation,
+            commands::activate_key,
+            commands::get_hardware_fingerprint,
+            // Cartridge updates
+            commands::check_cartridge_updates,
+            commands::apply_cartridge_update,
+            commands::get_cartridge_version,
+            // CSV & Processing
             commands::parse_csv,
             commands::process_note,
             commands::process_batch,

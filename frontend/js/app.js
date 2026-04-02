@@ -1057,7 +1057,184 @@ function escapeRegex(string) {
 
 function simulateCommand(cmd, args) {
   // Fallback simulation for browser mode
+  if (cmd === 'check_activation') {
+    return Promise.resolve({ is_activated: true, key_code: 'DEMO-KEY', hardware_fingerprint: 'RDOC-DEMO', subscription_type: 'founders', activated_at: new Date().toISOString() });
+  }
+  if (cmd === 'get_cartridge_version') {
+    return Promise.resolve('2.0.0');
+  }
+  if (cmd === 'check_cartridge_updates') {
+    return Promise.resolve({ update_available: false, current_version: '2.0.0', latest_version: '2.0.0', message: 'Your compliance data is up to date.' });
+  }
+  if (cmd === 'get_hardware_fingerprint') {
+    return Promise.resolve('RDOC-BROWSER-DEMO');
+  }
   return Promise.resolve(null);
+}
+
+// ===== ACTIVATION =====
+async function checkActivationStatus() {
+  try {
+    const result = await invokeCommand('check_activation');
+    if (result && result.is_activated) {
+      // App is activated — show main UI
+      document.getElementById('activationOverlay').style.display = 'none';
+      document.getElementById('appShell').style.display = 'flex';
+      // Update settings screen
+      document.getElementById('settingsActivationStatus').textContent = 'Activated';
+      document.getElementById('settingsActivationStatus').style.color = 'var(--green)';
+      document.getElementById('settingsSubscriptionType').textContent = formatSubscriptionType(result.subscription_type);
+      // Get fingerprint
+      const fp = await invokeCommand('get_hardware_fingerprint');
+      document.getElementById('settingsFingerprint').textContent = fp || '—';
+    } else {
+      // Not activated — show activation screen
+      document.getElementById('activationOverlay').style.display = 'flex';
+      document.getElementById('appShell').style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Activation check error:', e);
+    // On error, show activation screen
+    document.getElementById('activationOverlay').style.display = 'flex';
+    document.getElementById('appShell').style.display = 'none';
+  }
+}
+
+async function handleActivation() {
+  const input = document.getElementById('activationKeyInput');
+  const keyCode = input.value.trim();
+  const errorEl = document.getElementById('activationError');
+  const spinner = document.getElementById('activationSpinner');
+  const btn = document.getElementById('btnActivate');
+
+  // Validate input
+  if (!keyCode) {
+    input.classList.add('error');
+    errorEl.textContent = 'Please enter your activation key.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  // Show loading state
+  input.classList.remove('error');
+  errorEl.style.display = 'none';
+  btn.disabled = true;
+  spinner.style.display = 'flex';
+
+  try {
+    const result = await invokeCommand('activate_key', { keyCode });
+
+    if (result && result.success) {
+      // Success — transition to main app
+      spinner.querySelector('span').textContent = 'Activation successful! Loading RiteDoc...';
+      await sleep(1000);
+      document.getElementById('activationOverlay').style.display = 'none';
+      document.getElementById('appShell').style.display = 'flex';
+      // Update settings
+      document.getElementById('settingsActivationStatus').textContent = 'Activated';
+      document.getElementById('settingsActivationStatus').style.color = 'var(--green)';
+      document.getElementById('settingsSubscriptionType').textContent = formatSubscriptionType(result.subscription_type);
+      const fp = await invokeCommand('get_hardware_fingerprint');
+      document.getElementById('settingsFingerprint').textContent = fp || '—';
+      showToast(result.message);
+    } else {
+      // Failure — show error
+      input.classList.add('error');
+      errorEl.textContent = result ? result.message : 'Activation failed. Please try again.';
+      errorEl.style.display = 'block';
+    }
+  } catch (e) {
+    input.classList.add('error');
+    errorEl.textContent = 'An error occurred during activation. Please check your internet connection and try again.';
+    errorEl.style.display = 'block';
+    console.error('Activation error:', e);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+function formatSubscriptionType(type) {
+  const types = {
+    'founders': 'Founders Edition',
+    'standard': 'Standard',
+    'biab': 'Business in a Box',
+  };
+  return types[type] || type || '—';
+}
+
+// ===== CARTRIDGE UPDATES =====
+async function handleCheckUpdates() {
+  const statusEl = document.getElementById('settingsUpdateStatus');
+  const applyBtn = document.getElementById('btnApplyUpdate');
+  const checkBtn = document.getElementById('btnCheckUpdates');
+
+  statusEl.textContent = 'Checking for updates...';
+  checkBtn.disabled = true;
+
+  try {
+    const result = await invokeCommand('check_cartridge_updates');
+
+    if (result && result.update_available) {
+      statusEl.textContent = `Update available: Version ${result.latest_version}`;
+      statusEl.style.color = 'var(--orange)';
+      applyBtn.style.display = 'inline-flex';
+    } else {
+      statusEl.textContent = result ? result.message : 'Your compliance data is up to date.';
+      statusEl.style.color = 'var(--green)';
+      applyBtn.style.display = 'none';
+    }
+  } catch (e) {
+    statusEl.textContent = 'Unable to check for updates. Please try again later.';
+    statusEl.style.color = 'var(--red)';
+    console.error('Update check error:', e);
+  } finally {
+    checkBtn.disabled = false;
+  }
+}
+
+async function handleApplyUpdate() {
+  const statusEl = document.getElementById('settingsUpdateStatus');
+  const applyBtn = document.getElementById('btnApplyUpdate');
+
+  statusEl.textContent = 'Downloading and installing update...';
+  applyBtn.disabled = true;
+
+  try {
+    const result = await invokeCommand('apply_cartridge_update');
+
+    if (result && result.success) {
+      statusEl.textContent = result.message;
+      statusEl.style.color = 'var(--green)';
+      applyBtn.style.display = 'none';
+      // Update version display
+      document.getElementById('settingsCartridgeVersion').textContent = result.version;
+      showToast(result.message);
+    } else {
+      statusEl.textContent = result ? result.message : 'Update failed. Please try again.';
+      statusEl.style.color = 'var(--red)';
+    }
+  } catch (e) {
+    statusEl.textContent = 'Update failed. Please try again later.';
+    statusEl.style.color = 'var(--red)';
+    console.error('Update apply error:', e);
+  } finally {
+    applyBtn.disabled = false;
+  }
+}
+
+async function loadSettingsData() {
+  try {
+    // Load cartridge version
+    const version = await invokeCommand('get_cartridge_version');
+    document.getElementById('settingsCartridgeVersion').textContent = version || '2.0.0';
+
+    // Load processing mode from hardware badge
+    const badge = document.getElementById('hwBadge');
+    document.getElementById('settingsProcessingMode').textContent = badge.textContent;
+  } catch (e) {
+    console.error('Settings load error:', e);
+  }
 }
 
 // ===== UTILITY =====
@@ -1066,11 +1243,37 @@ function sleep(ms) {
 }
 
 // ===== INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initDropzone();
-  
+
+  // Check activation status first
+  await checkActivationStatus();
+
   // Set hardware mode badge
-  const cores = navigator.hardwareConcurrency || 4;
-  const badge = document.getElementById('hwBadge');
-  badge.textContent = cores >= 8 ? 'Performance Mode' : 'Standard Mode';
+  if (isTauri) {
+    try {
+      const hw = await invokeCommand('get_hardware_profile');
+      if (hw) {
+        const badge = document.getElementById('hwBadge');
+        badge.textContent = hw.mode === 'Turbo' ? 'Turbo Mode' : 'Standard Mode';
+      }
+    } catch (e) {
+      console.log('Hardware detection fallback:', e);
+    }
+  } else {
+    const cores = navigator.hardwareConcurrency || 4;
+    const badge = document.getElementById('hwBadge');
+    badge.textContent = cores >= 8 ? 'Performance Mode' : 'Standard Mode';
+  }
+
+  // Load settings data
+  await loadSettingsData();
+
+  // Allow Enter key to trigger activation
+  const activationInput = document.getElementById('activationKeyInput');
+  if (activationInput) {
+    activationInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleActivation();
+    });
+  }
 });

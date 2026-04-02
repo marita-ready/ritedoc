@@ -67,6 +67,24 @@ pub struct CartridgeSet {
     pub system_prompts: serde_json::Value,
 }
 
+// ===== Supabase Config =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SupabaseConfig {
+    pub url: String,
+    pub anon_key: String,
+}
+
+impl Default for SupabaseConfig {
+    fn default() -> Self {
+        Self {
+            // These will be overridden by environment or config file
+            url: "https://your-project.supabase.co".to_string(),
+            anon_key: "your-anon-key".to_string(),
+        }
+    }
+}
+
 // ===== Application State =====
 
 pub struct AppState {
@@ -77,10 +95,15 @@ pub struct AppState {
     pub hardware_profile: Mutex<Option<HardwareProfile>>,
     pub self_fix_state: Mutex<SelfFixState>,
     pub cartridges: Mutex<Option<CartridgeSet>>,
+    pub is_activated: Mutex<bool>,
+    pub supabase_config: SupabaseConfig,
 }
 
 impl AppState {
     pub fn new(app_data_dir: PathBuf, resource_dir: PathBuf) -> Self {
+        // Load Supabase config from environment or config file
+        let supabase_config = load_supabase_config(&app_data_dir);
+
         Self {
             app_data_dir,
             resource_dir,
@@ -98,8 +121,31 @@ impl AppState {
                 issues: Vec::new(),
             }),
             cartridges: Mutex::new(None),
+            is_activated: Mutex::new(false),
+            supabase_config,
         }
     }
+}
+
+/// Load Supabase configuration from config file or environment
+fn load_supabase_config(app_data_dir: &PathBuf) -> SupabaseConfig {
+    // Try config file first
+    let config_path = app_data_dir.join("supabase_config.json");
+    if config_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
+            if let Ok(config) = serde_json::from_str::<SupabaseConfig>(&content) {
+                return config;
+            }
+        }
+    }
+
+    // Try environment variables
+    let url = std::env::var("RITEDOC_SUPABASE_URL")
+        .unwrap_or_else(|_| "https://your-project.supabase.co".to_string());
+    let anon_key = std::env::var("RITEDOC_SUPABASE_ANON_KEY")
+        .unwrap_or_else(|_| "your-anon-key".to_string());
+
+    SupabaseConfig { url, anon_key }
 }
 
 // ===== Participant Profile =====
