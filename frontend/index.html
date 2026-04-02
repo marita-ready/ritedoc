@@ -37,6 +37,83 @@
   </div>
 </div>
 
+<!-- ===== ONBOARDING OVERLAY (shown once after first activation) ===== -->
+<div id="onboardingOverlay" class="onboarding-overlay" style="display:none;">
+  <div class="onboarding-card">
+
+    <!-- Step 1: Welcome -->
+    <div class="onboarding-step active" id="onboarding-step-1">
+      <div class="onboarding-icon">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <div class="onboarding-title">Welcome to RiteDoc</div>
+      <div class="onboarding-text">
+        RiteDoc helps you prepare audit-ready NDIS progress notes in minutes instead of hours.
+        Everything runs on your computer — your data never leaves your device.
+      </div>
+      <div class="onboarding-actions">
+        <button class="btn-onboarding-next" onclick="nextOnboardingStep(1)">Next</button>
+        <button class="btn-onboarding-skip" onclick="skipOnboarding()">Skip</button>
+      </div>
+    </div>
+
+    <!-- Step 2: How it works -->
+    <div class="onboarding-step" id="onboarding-step-2">
+      <div class="onboarding-icon">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+      </div>
+      <div class="onboarding-title">How It Works</div>
+      <div class="onboarding-text">
+        <strong>1. Import</strong> — Upload a CSV from your case management system (ShiftCare, Brevity, Lumary, and more).<br><br>
+        <strong>2. Review</strong> — RiteDoc rewrites each note to audit-ready standard, flags red flags, and identifies missing information.<br><br>
+        <strong>3. Approve</strong> — Copy the prepared notes back into your system. Done.
+      </div>
+      <div class="onboarding-actions">
+        <button class="btn-onboarding-next" onclick="nextOnboardingStep(2)">Next</button>
+        <button class="btn-onboarding-skip" onclick="skipOnboarding()">Skip</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Traffic lights -->
+    <div class="onboarding-step" id="onboarding-step-3">
+      <div class="onboarding-icon">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="onboarding-title">Understanding the Traffic Lights</div>
+      <div class="onboarding-text">
+        <div class="onboarding-traffic-row">
+          <span class="onboarding-dot green"></span>
+          <span><strong>Green</strong> — Ready to approve. The note meets all five compliance pillars.</span>
+        </div>
+        <div class="onboarding-traffic-row">
+          <span class="onboarding-dot orange"></span>
+          <span><strong>Orange</strong> — Review required. Some information may be missing or needs your input.</span>
+        </div>
+        <div class="onboarding-traffic-row">
+          <span class="onboarding-dot red"></span>
+          <span><strong>Red</strong> — Needs attention. A red flag was detected that may require incident reporting.</span>
+        </div>
+      </div>
+      <div class="onboarding-actions">
+        <button class="btn-onboarding-next" onclick="completeOnboarding()">Get Started</button>
+      </div>
+    </div>
+
+    <!-- Progress dots -->
+    <div class="onboarding-dots">
+      <span class="onboarding-dot-nav active" id="onboarding-dot-1" onclick="showOnboardingStep(1)"></span>
+      <span class="onboarding-dot-nav" id="onboarding-dot-2" onclick="showOnboardingStep(2)"></span>
+      <span class="onboarding-dot-nav" id="onboarding-dot-3" onclick="showOnboardingStep(3)"></span>
+    </div>
+  </div>
+</div>
+
 <div class="app-shell" id="appShell" style="display:none;">
   <!-- ===== TOP BAR ===== -->
   <header class="topbar">
@@ -56,6 +133,7 @@
   <nav class="screen-nav" id="screenNav">
     <button class="nav-btn active" data-screen="s0" onclick="showScreen('s0')">Home</button>
     <button class="nav-btn" data-screen="s1" onclick="showScreen('s1')">Import</button>
+    <button class="nav-btn" data-screen="s2" onclick="showScreen('s2')" disabled id="navMissing">Missing Data</button>
     <button class="nav-btn" data-screen="s3" onclick="showScreen('s3')" disabled id="navResults">Results</button>
     <button class="nav-btn" data-screen="s4" onclick="showScreen('s4')" disabled id="navSummary">Summary</button>
     <button class="nav-btn" data-screen="s5" onclick="showScreen('s5')">Settings</button>
@@ -116,7 +194,7 @@
 
     <!-- ===== SCREEN 1: IMPORT ===== -->
     <div id="s1" class="screen">
-      <div class="screen-label">Step 1 of 4</div>
+      <div class="screen-label">Step 1 of 5</div>
       <div class="screen-title">Import Progress Notes</div>
       <div class="screen-desc">Upload your CSV file to begin. All processing happens on this computer — your data never leaves your device.</div>
 
@@ -144,15 +222,39 @@
       </div>
     </div>
 
-    <!-- ===== SCREEN 2: MISSING DATA (Modal Overlay) ===== -->
-    <!-- This is rendered as a modal overlay, not a separate screen -->
+    <!-- ===== SCREEN 2: MISSING DATA (Batch-Level) ===== -->
+    <div id="s2" class="screen">
+      <div class="screen-label">Step 2 of 5</div>
+      <div class="screen-title">Missing Information</div>
+      <div class="screen-desc">
+        The following fields were not found in your notes. Fill in what you can — anything left blank will appear as a placeholder in the final note for you to complete later.
+      </div>
+      <div class="missing-data-count" id="missingDataCount"></div>
+
+      <div class="missing-data-list" id="missingDataList">
+        <!-- Missing data fields are dynamically inserted here -->
+      </div>
+
+      <div class="missing-data-actions">
+        <button class="btn-fill-reprocess" onclick="handleFillAllAndReprocess()">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          Apply and Continue
+        </button>
+        <button class="btn-skip-missing" onclick="handleSkipMissingData()">
+          Skip — Proceed with Placeholders
+        </button>
+      </div>
+    </div>
 
     <!-- ===== SCREEN 3: RESULTS ===== -->
     <div id="s3" class="screen">
       <div class="results-header">
         <div>
-          <div class="screen-label">Step 3 of 4</div>
+          <div class="screen-label">Step 3 of 5</div>
           <div class="screen-title">Processed Notes</div>
+          <div class="results-platform-badge" id="platformBadge"></div>
         </div>
         <div class="results-counter"><strong id="reviewedCount">0</strong> of <span id="totalNotesCount">0</span> notes reviewed</div>
       </div>
@@ -172,7 +274,7 @@
 
     <!-- ===== SCREEN 4: BATCH SUMMARY ===== -->
     <div id="s4" class="screen">
-      <div class="screen-label">Step 4 of 4</div>
+      <div class="screen-label">Step 4 of 5</div>
       <div class="screen-title">Batch Complete</div>
       <div class="screen-desc">All notes have been processed. Review the summary below and export your results.</div>
 
@@ -197,6 +299,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
           </svg>
           Export All (CSV)
+        </button>
+        <button class="btn-export-summary" id="btnExportBatchSummary">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Export Batch Summary
         </button>
         <button class="btn-copy-green" id="btnCopyGreen">
           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -268,7 +376,7 @@
   </main>
 </div>
 
-<!-- ===== MISSING DATA MODAL ===== -->
+<!-- ===== MISSING DATA MODAL (per-note, during processing) ===== -->
 <div class="modal-overlay" id="missingDataModal">
   <div class="modal-box">
     <div class="modal-header">

@@ -55,6 +55,10 @@
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         BIAB Agencies
       </button>
+      <button class="sidebar-btn" data-section="automation" onclick="showSection('automation')">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        Automation &amp; API
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="sidebar-btn sidebar-logout" onclick="handleLogout()">
@@ -244,6 +248,146 @@
               <tr><td colspan="4" class="table-empty">Loading versions...</td></tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ===== AUTOMATION & API ===== -->
+      <section id="sec-automation" class="section">
+        <div class="api-intro">
+          <h3>API Configuration</h3>
+          <p class="api-desc">All Supabase tables are accessible via the PostgREST API. Use the <strong>service_role</strong> key (not the anon key) for full CRUD access from automation scripts, Zapier, or webhook handlers.</p>
+          <div class="api-config-card">
+            <div class="api-config-row">
+              <span class="api-config-label">Supabase Project URL</span>
+              <code class="api-config-value" id="apiProjectUrl">—</code>
+            </div>
+            <div class="api-config-row">
+              <span class="api-config-label">Auth Header</span>
+              <code class="api-config-value">Authorization: Bearer &lt;service_role_key&gt;</code>
+            </div>
+            <div class="api-config-row">
+              <span class="api-config-label">API Key Header</span>
+              <code class="api-config-value">apikey: &lt;service_role_key&gt;</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-endpoints">
+          <h3>Available API Endpoints</h3>
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/rest/v1/activation_keys</div>
+            <div class="api-endpoint-desc">Generate a new activation key</div>
+            <pre class="api-example">curl -X POST '${URL}/rest/v1/activation_keys' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
+  -H 'Content-Type: application/json' \
+  -d '{"key_code":"ABCD-EFGH-JKLM-NPQR","subscription_type":"standard"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method patch">PATCH</div>
+            <div class="api-path">/rest/v1/activation_keys?key_code=eq.XXXX-XXXX-XXXX-XXXX</div>
+            <div class="api-endpoint-desc">Deactivate an activation key</div>
+            <pre class="api-example">curl -X PATCH '${URL}/rest/v1/activation_keys?key_code=eq.ABCD-EFGH-JKLM-NPQR' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
+  -H 'Content-Type: application/json' \
+  -d '{"is_active":false,"deactivated_at":"2026-04-02T00:00:00Z"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/rest/v1/clients</div>
+            <div class="api-endpoint-desc">List all clients</div>
+            <pre class="api-example">curl '${URL}/rest/v1/clients?select=*&order=created_at.desc' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/rest/v1/clients</div>
+            <div class="api-endpoint-desc">Add a new client</div>
+            <pre class="api-example">curl -X POST '${URL}/rest/v1/clients' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Jane Smith","email":"jane@example.com","subscription_type":"standard","subscription_status":"active"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/rest/v1/support_tickets?status=eq.open</div>
+            <div class="api-endpoint-desc">Get all open support tickets</div>
+            <pre class="api-example">curl '${URL}/rest/v1/support_tickets?status=eq.open&order=created_at.desc' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method patch">PATCH</div>
+            <div class="api-path">/rest/v1/support_tickets?id=eq.{uuid}</div>
+            <div class="api-endpoint-desc">Resolve a support ticket</div>
+            <pre class="api-example">curl -X PATCH '${URL}/rest/v1/support_tickets?id=eq.abc-123' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"resolved","resolution":"Issue fixed","resolved_at":"2026-04-02T00:00:00Z"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/rest/v1/cartridge_versions</div>
+            <div class="api-endpoint-desc">Log a new cartridge version</div>
+            <pre class="api-example">curl -X POST '${URL}/rest/v1/cartridge_versions' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
+  -H 'Content-Type: application/json' \
+  -d '{"version":"2.2.0","filename":"red_flags_v2.json, rubric_v2.json","notes":"Updated keywords"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/rest/v1/agencies</div>
+            <div class="api-endpoint-desc">List all BIAB agencies</div>
+            <pre class="api-example">curl '${URL}/rest/v1/agencies?select=*&order=created_at.desc' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/rest/v1/automation_log</div>
+            <div class="api-endpoint-desc">Log an automated action (audit trail)</div>
+            <pre class="api-example">curl -X POST '${URL}/rest/v1/automation_log' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"key_generated","details_json":{"key_code":"ABCD-EFGH","trigger":"stripe_webhook"},"performed_by":"manus"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/rest/v1/automation_log?order=performed_at.desc&limit=50</div>
+            <div class="api-endpoint-desc">View recent automation audit trail</div>
+            <pre class="api-example">curl '${URL}/rest/v1/automation_log?order=performed_at.desc&limit=50' \
+  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
+          </div>
+        </div>
+
+        <div class="api-log-section">
+          <h3>Automation Audit Log</h3>
+          <p class="api-desc">All automated actions are logged in the <code>automation_log</code> table for full traceability.</p>
+          <div class="section-toolbar">
+            <button class="btn-primary" onclick="loadAutomationLog()">Refresh Log</button>
+          </div>
+          <div class="data-table-wrapper">
+            <table class="data-table" id="automationLogTable">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th>Performed By</th>
+                </tr>
+              </thead>
+              <tbody id="automationLogBody">
+                <tr><td colspan="4" class="table-empty">Click "Refresh Log" to load entries</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

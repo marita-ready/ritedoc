@@ -210,6 +210,12 @@ function showSection(sectionId) {
 
   document.getElementById('sectionTitle').textContent = getSectionTitle(sectionId);
   dashState.currentSection = sectionId;
+
+  // Populate API config when automation section is shown
+  if (sectionId === 'automation' && CONFIG.supabaseUrl) {
+    const urlEl = document.getElementById('apiProjectUrl');
+    if (urlEl) urlEl.textContent = CONFIG.supabaseUrl;
+  }
 }
 
 function getSectionTitle(id) {
@@ -220,6 +226,7 @@ function getSectionTitle(id) {
     support: 'Support Tickets',
     cartridges: 'Cartridge Management',
     agencies: 'BIAB Agencies',
+    automation: 'Automation & API',
   };
   return titles[id] || id;
 }
@@ -1000,6 +1007,43 @@ async function editAgency(id) {
       showToast('Error: ' + e.message);
     }
   });
+}
+
+// ===== AUTOMATION LOG =====
+async function loadAutomationLog() {
+  const sb = dashState.supabaseClient;
+  if (!sb) return;
+
+  const tbody = document.getElementById('automationLogBody');
+  tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Loading...</td></tr>';
+
+  try {
+    const logs = await sb.query('automation_log', {
+      order: 'performed_at.desc',
+      limit: 100,
+    });
+
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="table-empty">No automation log entries</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logs.map(l => {
+      const details = typeof l.details_json === 'object'
+        ? JSON.stringify(l.details_json, null, 0)
+        : (l.details_json || '—');
+      return `
+        <tr>
+          <td>${formatDate(l.performed_at)}</td>
+          <td><code style="font-size:12px;background:#f3f4f6;padding:2px 6px;border-radius:4px;">${escapeHtml(l.action)}</code></td>
+          <td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(details)}">${escapeHtml(truncate(details, 80))}</td>
+          <td>${escapeHtml(l.performed_by || '—')}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Error: ${escapeHtml(e.message)}</td></tr>`;
+  }
 }
 
 // ===== MODAL SYSTEM =====

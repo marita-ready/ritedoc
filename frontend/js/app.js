@@ -17,34 +17,51 @@ const state = {
   batchStartTime: null,
   currentMissingNote: null,
   participantProfiles: {},
+  detectedPlatform: 'Generic CSV',
+  batchMissingFields: [],   // Aggregated missing fields across all notes for Screen 3
+  onboardingComplete: false,
 };
 
+// ===== PLATFORM SECTION DEFINITIONS =====
+const PLATFORM_SECTIONS = {
+  'ShiftCare':      ['Support Provided', 'Participant Response', 'Observations', 'Follow-up Required'],
+  'Brevity':        ['Activity Summary', 'Client Engagement', 'Notes', 'Actions'],
+  'Lumary':         ['Service Delivery Notes', 'Participant Feedback', 'Risk/Incidents', 'Next Steps'],
+  'Astalty':        ['Session Notes', 'Goals Progress', 'Concerns', 'Plan'],
+  'SupportAbility': ['Shift Summary', 'Participant Wellbeing', 'Incidents', 'Recommendations'],
+  'CareMaster':     ['Care Notes', 'Response', 'Issues', 'Follow-up'],
+};
+const GENERIC_SECTIONS = ['Summary', 'Details', 'Observations', 'Actions Required'];
+
+function getSectionsForPlatform(platform) {
+  if (!platform) return GENERIC_SECTIONS;
+  for (const [key, sections] of Object.entries(PLATFORM_SECTIONS)) {
+    if (platform.toLowerCase().includes(key.toLowerCase())) return sections;
+  }
+  return GENERIC_SECTIONS;
+}
+
 // ===== TAURI API BRIDGE =====
-// Detects whether running in Tauri or standalone browser mode
 const isTauri = window.__TAURI__ !== undefined;
 
 async function invokeCommand(cmd, args = {}) {
   if (isTauri) {
     return window.__TAURI__.core.invoke(cmd, args);
   }
-  // Browser fallback — simulate commands for development/testing
   return simulateCommand(cmd, args);
 }
 
 // ===== SCREEN NAVIGATION =====
 function showScreen(screenId) {
-  // Deactivate all screens
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   
-  // Activate target screen
   const screen = document.getElementById(screenId);
   if (screen) {
     screen.classList.add('active');
     state.currentScreen = screenId;
   }
   
-  // Update nav buttons
   const navBtn = document.querySelector(`.nav-btn[data-screen="${screenId}"]`);
   if (navBtn) navBtn.classList.add('active');
 }
@@ -67,7 +84,6 @@ async function copyToClipboard(text) {
     }
     showToast('Copied to clipboard');
   } catch (e) {
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = text;
     document.body.appendChild(ta);
@@ -84,11 +100,8 @@ function initDropzone() {
   const fileInput = document.getElementById('fileInput');
   const btnBrowse = document.getElementById('btnBrowse');
   
-  // Click to browse
   dropzone.addEventListener('click', (e) => {
-    if (e.target !== btnBrowse) {
-      fileInput.click();
-    }
+    if (e.target !== btnBrowse) fileInput.click();
   });
   
   btnBrowse.addEventListener('click', (e) => {
@@ -96,14 +109,10 @@ function initDropzone() {
     fileInput.click();
   });
   
-  // File input change
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFile(e.target.files[0]);
-    }
+    if (e.target.files.length > 0) handleFile(e.target.files[0]);
   });
   
-  // Drag and drop
   dropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropzone.classList.add('dragover');
@@ -116,9 +125,7 @@ function initDropzone() {
   dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-      handleFile(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
   });
 }
 
@@ -128,7 +135,6 @@ async function handleFile(file) {
     return;
   }
   
-  // Show processing state
   document.getElementById('dropzone').style.display = 'none';
   document.getElementById('processingCard').style.display = 'block';
   
@@ -137,13 +143,12 @@ async function handleFile(file) {
   
   try {
     if (isTauri) {
-      // In Tauri, use the file dialog result path
       const result = await invokeCommand('parse_csv', { filePath: file.path || file.name });
       state.notes = result.notes;
       state.totalNotes = result.total_count;
+      state.detectedPlatform = result.platform || 'Generic CSV';
       processNotesBatch();
     } else {
-      // Browser mode — parse CSV client-side
       const text = await file.text();
       const parsed = parseCSVClientSide(text);
       state.notes = parsed;
@@ -165,9 +170,10 @@ function parseCSVClientSide(csvText) {
   
   const headers = parseCSVLine(lines[0]);
   const notes = [];
-  
-  // Auto-detect columns
   const colMap = detectColumns(headers);
+  
+  // Detect platform from headers
+  state.detectedPlatform = detectPlatformFromHeaders(headers);
   
   for (let i = 1; i < lines.length; i++) {
     const fields = parseCSVLine(lines[i]);
@@ -184,12 +190,23 @@ function parseCSVClientSide(csvText) {
       time: colMap.time !== -1 ? fields[colMap.time] || '' : '',
       duration: colMap.duration !== -1 ? fields[colMap.duration] || '' : '',
       raw_text: noteText.trim(),
-      source_platform: 'CSV Import',
+      source_platform: state.detectedPlatform,
       row_index: i,
     });
   }
   
   return notes;
+}
+
+function detectPlatformFromHeaders(headers) {
+  const joined = headers.map(h => h.toLowerCase()).join('|');
+  if (joined.includes('carer name') && joined.includes('shift date')) return 'ShiftCare';
+  if (joined.includes('staff member') && joined.includes('case note')) return 'Brevity';
+  if (joined.includes('service delivery') || joined.includes('ndis number')) return 'Lumary';
+  if (joined.includes('session notes') && joined.includes('goals progress')) return 'Astalty';
+  if (joined.includes('person supported') && joined.includes('shift summary')) return 'SupportAbility';
+  if (joined.includes('care notes') || joined.includes('care type')) return 'CareMaster';
+  return 'Generic CSV';
 }
 
 function parseCSVLine(line) {
@@ -247,13 +264,12 @@ async function processNotesBatch() {
   const total = state.notes.length;
   state.processedNotes = [];
   state.processedCount = 0;
+  state.batchMissingFields = [];
   
   updateProcessingUI(0, total);
   
-  // Enable results nav
   document.getElementById('navResults').disabled = false;
   
-  // Process notes one by one (simulating rolling delivery)
   for (let i = 0; i < total; i++) {
     const rawNote = state.notes[i];
     
@@ -262,28 +278,20 @@ async function processNotesBatch() {
       if (isTauri) {
         const response = await invokeCommand('process_note', { noteJson: JSON.stringify(rawNote) });
         processed = response.note;
-        
-        // Check for missing data
-        if (response.has_missing_data && response.missing_items.length > 0) {
-          showMissingDataModal(processed, response.missing_items, i + 1);
-          // Wait for modal to be resolved
-          await waitForMissingDataResolution();
-        }
       } else {
-        // Browser simulation
         processed = simulateProcessNote(rawNote);
       }
+      
+      // Extract missing bracket fields for the batch missing data screen
+      extractMissingFields(processed, i);
       
       state.processedNotes.push(processed);
       state.processedCount = i + 1;
       
       updateProcessingUI(i + 1, total);
-      
-      // Add card to results screen
       addNoteCard(processed);
       updateResultsCounter();
       
-      // Small delay for visual effect
       await sleep(100);
       
     } catch (e) {
@@ -291,28 +299,62 @@ async function processNotesBatch() {
     }
   }
   
-  // Processing complete
   state.isProcessing = false;
-  
-  // Enable summary nav
   document.getElementById('navSummary').disabled = false;
-  
-  // Hide rolling progress
   document.getElementById('rollingProgress').style.display = 'none';
   
-  // Auto-navigate to results if still on import screen
-  if (state.currentScreen === 's1') {
+  // Check if there are missing fields — show Screen 2 (missing data) before results
+  if (state.batchMissingFields.length > 0) {
+    buildMissingDataScreen();
+    showScreen('s2');
+  } else if (state.currentScreen === 's1') {
     showScreen('s3');
   }
   
-  // Build summary
   buildBatchSummary();
+}
+
+function extractMissingFields(processed, noteIndex) {
+  const bracketPattern = /\[MISSING:\s*([^\]]+)\]|\[([A-Z][A-Z\s\/&]+REQUIRED[^\]]*)\]/g;
+  let match;
+  while ((match = bracketPattern.exec(processed.rewritten_note)) !== null) {
+    const fieldName = match[1] || match[2];
+    state.batchMissingFields.push({
+      noteId: processed.id,
+      noteIndex: noteIndex,
+      participantName: processed.participant_name,
+      participantCode: processed.participant_code,
+      date: processed.date,
+      fieldName: fieldName.trim(),
+      fullMatch: match[0],
+      value: '',
+    });
+  }
+  // Also add from missing_data array if present
+  if (processed.missing_data && processed.missing_data.length > 0) {
+    for (const md of processed.missing_data) {
+      const alreadyAdded = state.batchMissingFields.some(
+        f => f.noteId === processed.id && f.fieldName === md.field_name
+      );
+      if (!alreadyAdded) {
+        state.batchMissingFields.push({
+          noteId: processed.id,
+          noteIndex: noteIndex,
+          participantName: processed.participant_name,
+          participantCode: processed.participant_code,
+          date: processed.date,
+          fieldName: md.field_name,
+          fullMatch: md.placeholder || `[MISSING: ${md.field_name}]`,
+          value: '',
+        });
+      }
+    }
+  }
 }
 
 function updateProcessingUI(processed, total) {
   const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
   
-  // Import screen progress
   document.getElementById('processingCount').textContent = `${processed} of ${total} complete`;
   document.getElementById('progressBarFill').style.width = `${pct}%`;
   
@@ -324,30 +366,24 @@ function updateProcessingUI(processed, total) {
     processed >= total ? 'Processing complete!' :
     `Estimated time remaining: approx. ${mins > 0 ? mins + ' minute' + (mins !== 1 ? 's' : '') + ' ' : ''}${secs} seconds`;
   
-  // Rolling progress on results screen
   const rollingProgress = document.getElementById('rollingProgress');
-  if (processed < total) {
-    rollingProgress.style.display = 'flex';
+  if (processed > 0 && processed < total) {
+    rollingProgress.style.display = 'block';
     document.getElementById('rollingProgressFill').style.width = `${pct}%`;
     document.getElementById('rollingProgressPct').textContent = `${processed} of ${total} complete`;
-  } else {
-    rollingProgress.style.display = 'none';
   }
 }
 
 function updateResultsCounter() {
-  document.getElementById('reviewedCount').textContent = state.processedNotes.length;
   document.getElementById('totalNotesCount').textContent = state.totalNotes;
+  document.getElementById('reviewedCount').textContent = state.processedNotes.filter(n => n.is_done).length;
 }
 
-// ===== NOTE CARD RENDERING =====
+// ===== NOTE CARD RENDERING (Platform-Aware) =====
 function addNoteCard(note) {
   const container = document.getElementById('noteCardContainer');
-  
-  // Sort: insert at correct position (RED first, then ORANGE, then GREEN)
   const card = createNoteCard(note);
   
-  // Find insertion point
   const existingCards = container.querySelectorAll('.note-card');
   let inserted = false;
   
@@ -364,7 +400,6 @@ function addNoteCard(note) {
   }
   
   if (!inserted) {
-    // Insert before rolling progress
     const rollingProgress = document.getElementById('rollingProgress');
     container.insertBefore(card, rollingProgress);
   }
@@ -388,7 +423,6 @@ function createNoteCard(note) {
     banner = '<div class="approve-banner">&#10003; Review and Approve</div>';
   }
   
-  // Preview text
   const preview = note.preview || note.rewritten_note.substring(0, 120) + '...';
   
   // Build expanded body content
@@ -406,7 +440,6 @@ function createNoteCard(note) {
           </div>
         </div>`;
       
-      // Required forms
       if (flag.required_forms && flag.required_forms.length > 0) {
         bodyContent += `
           <div class="required-docs-section">
@@ -448,14 +481,48 @@ function createNoteCard(note) {
     }
   }
   
-  // Rewritten note text with bracket flags highlighted
-  const highlightedNote = highlightBracketFlags(note.rewritten_note);
-  bodyContent += `<p>${highlightedNote}</p>`;
+  // ===== COPY FULL NOTE BUTTON (top of note body) =====
+  bodyContent += `
+    <div class="copy-full-note-bar">
+      <button class="btn-copy-full" onclick="copyNoteToClipboard('${note.id}')">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        Copy Full Note
+      </button>
+    </div>`;
+  
+  // ===== PLATFORM-AWARE SECTIONS =====
+  const sections = getSectionsForPlatform(state.detectedPlatform);
+  const sectionContents = splitNoteIntoSections(note.rewritten_note, sections);
+  
+  bodyContent += '<div class="platform-sections">';
+  bodyContent += `<div class="platform-sections-label">Sections for ${escapeHtml(state.detectedPlatform)}</div>`;
+  
+  for (let si = 0; si < sections.length; si++) {
+    const sectionName = sections[si];
+    const sectionText = sectionContents[si] || '';
+    const sectionId = `section-${note.id}-${si}`;
+    
+    bodyContent += `
+      <div class="platform-section">
+        <div class="platform-section-header">
+          <div class="platform-section-title">${escapeHtml(sectionName)}</div>
+          <button class="btn-copy-section" onclick="copySectionToClipboard(this, '${sectionId}')">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            Copy
+          </button>
+        </div>
+        <div class="platform-section-content" id="${sectionId}">${highlightBracketFlags(sectionText) || '<span class="text-muted">No content for this section.</span>'}</div>
+      </div>`;
+  }
+  bodyContent += '</div>';
   
   // Actions
   bodyContent += `
     <div class="note-actions">
-      <button class="btn-copy" onclick="copyNoteToClipboard('${note.id}')">&#128203; Copy to Clipboard</button>
       <button class="btn-done" onclick="toggleDone('${note.id}', this)">
         <input type="checkbox" class="done-checkbox" onclick="event.stopPropagation()" onchange="toggleDone('${note.id}', this.closest('.btn-done'))" /> Mark as Done
       </button>
@@ -479,11 +546,103 @@ function createNoteCard(note) {
   return card;
 }
 
+/**
+ * Split a rewritten note into platform-specific sections.
+ * Looks for section headers in the text (e.g. "Support Provided:" or "**Support Provided**").
+ * Falls back to intelligent paragraph splitting if no headers found.
+ */
+function splitNoteIntoSections(noteText, sectionNames) {
+  if (!noteText) return sectionNames.map(() => '');
+  
+  // Try to find explicit section markers
+  const results = [];
+  let remaining = noteText;
+  let foundExplicit = false;
+  
+  for (let i = 0; i < sectionNames.length; i++) {
+    const name = sectionNames[i];
+    // Look for patterns like "Section Name:" or "**Section Name**" or "## Section Name"
+    const patterns = [
+      new RegExp(`(?:^|\\n)\\s*\\*\\*${escapeRegex(name)}\\*\\*[:\\s]*`, 'i'),
+      new RegExp(`(?:^|\\n)\\s*##?\\s*${escapeRegex(name)}[:\\s]*`, 'i'),
+      new RegExp(`(?:^|\\n)\\s*${escapeRegex(name)}\\s*:[\\s]*`, 'i'),
+    ];
+    
+    let sectionStart = -1;
+    let matchLen = 0;
+    for (const pat of patterns) {
+      const m = pat.exec(remaining);
+      if (m) {
+        sectionStart = m.index + m[0].length;
+        matchLen = m[0].length;
+        foundExplicit = true;
+        break;
+      }
+    }
+    
+    if (sectionStart >= 0) {
+      // Find the end — next section or end of text
+      let sectionEnd = remaining.length;
+      for (let j = i + 1; j < sectionNames.length; j++) {
+        const nextName = sectionNames[j];
+        const nextPatterns = [
+          new RegExp(`(?:^|\\n)\\s*\\*\\*${escapeRegex(nextName)}\\*\\*`, 'i'),
+          new RegExp(`(?:^|\\n)\\s*##?\\s*${escapeRegex(nextName)}`, 'i'),
+          new RegExp(`(?:^|\\n)\\s*${escapeRegex(nextName)}\\s*:`, 'i'),
+        ];
+        for (const np of nextPatterns) {
+          const nm = np.exec(remaining.substring(sectionStart));
+          if (nm) {
+            sectionEnd = Math.min(sectionEnd, sectionStart + nm.index);
+            break;
+          }
+        }
+      }
+      results.push(remaining.substring(sectionStart, sectionEnd).trim());
+    } else {
+      results.push('');
+    }
+  }
+  
+  // If no explicit sections found, split by paragraphs/sentences
+  if (!foundExplicit) {
+    const sentences = noteText.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+    const perSection = Math.max(1, Math.ceil(sentences.length / sectionNames.length));
+    
+    for (let i = 0; i < sectionNames.length; i++) {
+      const start = i * perSection;
+      const end = Math.min(start + perSection, sentences.length);
+      results[i] = sentences.slice(start, end).join(' ').trim();
+    }
+  }
+  
+  return results;
+}
+
+function copySectionToClipboard(btn, sectionId) {
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+  const text = el.textContent || el.innerText;
+  copyToClipboard(text);
+  
+  const original = btn.innerHTML;
+  btn.innerHTML = '<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Copied';
+  btn.style.color = 'var(--green)';
+  btn.style.borderColor = 'var(--green-border)';
+  setTimeout(() => {
+    btn.innerHTML = original;
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }, 1800);
+}
+
 function highlightBracketFlags(text) {
-  // Replace bracket flags with styled spans
   return escapeHtml(text).replace(
     /\[([A-Z][A-Z\s\/&]+REQUIRED[^\]]*)\]/g,
     '<span class="bracket-flag">[$1]</span>'
+  ).replace(
+    /\[MISSING:\s*([^\]]+)\]/g,
+    '<span class="bracket-flag">[MISSING: $1]</span>'
   );
 }
 
@@ -498,6 +657,7 @@ function escapeHtml(text) {
 function toggleCardBody(noteId) {
   const body = document.getElementById(`body-${noteId}`);
   const btn = document.getElementById(`expand-${noteId}`);
+  if (!body || !btn) return;
   
   if (body.classList.contains('hidden')) {
     body.classList.remove('hidden');
@@ -511,7 +671,6 @@ function toggleCardBody(noteId) {
 function copyNoteToClipboard(noteId) {
   const note = state.processedNotes.find(n => n.id === noteId);
   if (note) {
-    // Strip bracket flags for clean copy
     const cleanText = note.rewritten_note.replace(/\[([^\]]+)\]/g, '[$1]');
     copyToClipboard(cleanText);
   }
@@ -521,7 +680,6 @@ function copyFormToClipboard(btn, noteId, formIndex) {
   const note = state.processedNotes.find(n => n.id === noteId);
   if (!note || !note.red_flags) return;
   
-  // Collect all form fields as plain text
   let formText = '';
   for (const flag of note.red_flags) {
     if (flag.required_forms && flag.required_forms[formIndex]) {
@@ -541,7 +699,6 @@ function copyFormToClipboard(btn, noteId, formIndex) {
   
   copyToClipboard(formText);
   
-  // Visual feedback
   const original = btn.innerHTML;
   btn.textContent = '✓ Copied!';
   btn.style.color = 'var(--green)';
@@ -570,6 +727,8 @@ function toggleDone(noteId, btn) {
     if (checkbox) checkbox.checked = false;
   }
   
+  updateResultsCounter();
+  
   if (isTauri) {
     invokeCommand('mark_note_done', { noteId, isDone: note.is_done });
   }
@@ -587,7 +746,124 @@ function toggleFlagReview(noteId) {
   }
 }
 
-// ===== MISSING DATA MODAL =====
+// ===== MISSING DATA SCREEN (Screen 2 — Batch-Level) =====
+function buildMissingDataScreen() {
+  const container = document.getElementById('missingDataList');
+  if (!container) return;
+  
+  const countEl = document.getElementById('missingDataCount');
+  if (countEl) {
+    countEl.textContent = `${state.batchMissingFields.length} missing field${state.batchMissingFields.length !== 1 ? 's' : ''} across ${new Set(state.batchMissingFields.map(f => f.noteId)).size} note${new Set(state.batchMissingFields.map(f => f.noteId)).size !== 1 ? 's' : ''}`;
+  }
+  
+  container.innerHTML = '';
+  
+  // Group by note
+  const byNote = {};
+  for (const field of state.batchMissingFields) {
+    if (!byNote[field.noteId]) byNote[field.noteId] = [];
+    byNote[field.noteId].push(field);
+  }
+  
+  let globalIdx = 0;
+  for (const [noteId, fields] of Object.entries(byNote)) {
+    const first = fields[0];
+    
+    const noteGroup = document.createElement('div');
+    noteGroup.className = 'missing-note-group';
+    noteGroup.innerHTML = `
+      <div class="missing-note-header">
+        <span class="missing-note-participant">${escapeHtml(first.participantCode)} — ${escapeHtml(first.participantName)}</span>
+        <span class="missing-note-date">${escapeHtml(first.date || 'No date')}</span>
+      </div>`;
+    
+    for (const field of fields) {
+      const idx = globalIdx++;
+      const fieldEl = document.createElement('div');
+      fieldEl.className = 'missing-field-row';
+      fieldEl.id = `missing-field-${idx}`;
+      fieldEl.innerHTML = `
+        <div class="missing-field-name">${escapeHtml(field.fieldName)}</div>
+        <div class="missing-field-input-row">
+          <input type="text" class="missing-field-input" id="missing-input-${idx}" 
+                 placeholder="Enter ${field.fieldName.toLowerCase()}..." 
+                 data-note-id="${field.noteId}" data-field-name="${escapeHtml(field.fieldName)}" data-full-match="${escapeHtml(field.fullMatch)}" />
+        </div>`;
+      noteGroup.appendChild(fieldEl);
+    }
+    
+    container.appendChild(noteGroup);
+  }
+}
+
+function handleFillAllAndReprocess() {
+  // Collect all filled values
+  const inputs = document.querySelectorAll('.missing-field-input');
+  let filledCount = 0;
+  
+  inputs.forEach(input => {
+    const value = input.value.trim();
+    if (!value) return;
+    
+    const noteId = input.dataset.noteId;
+    const fullMatch = input.dataset.fullMatch;
+    
+    const note = state.processedNotes.find(n => n.id === noteId);
+    if (note) {
+      // Replace the bracket placeholder with the filled value
+      note.rewritten_note = note.rewritten_note.replace(fullMatch, value);
+      filledCount++;
+      
+      // Save goal if applicable
+      const fieldName = input.dataset.fieldName;
+      if (fieldName.toLowerCase().includes('goal')) {
+        saveParticipantGoal(note.participant_name, value);
+      }
+    }
+  });
+  
+  // Remove filled missing fields from batch list
+  state.batchMissingFields = state.batchMissingFields.filter(f => {
+    const note = state.processedNotes.find(n => n.id === f.noteId);
+    return note && note.rewritten_note.includes(f.fullMatch);
+  });
+  
+  // Re-evaluate traffic lights for affected notes
+  for (const note of state.processedNotes) {
+    const hasBrackets = /\[MISSING:|REQUIRED\]/.test(note.rewritten_note);
+    const hasRedFlags = note.red_flags && note.red_flags.length > 0;
+    
+    if (hasRedFlags) {
+      note.traffic_light = 'RED';
+    } else if (hasBrackets || (note.missing_data && note.missing_data.some(md => !md.submitted_value))) {
+      note.traffic_light = 'ORANGE';
+    } else {
+      note.traffic_light = 'GREEN';
+    }
+  }
+  
+  // Rebuild note cards
+  const container = document.getElementById('noteCardContainer');
+  const rollingEl = document.getElementById('rollingProgress');
+  container.innerHTML = '';
+  container.appendChild(rollingEl);
+  
+  for (const note of state.processedNotes) {
+    addNoteCard(note);
+  }
+  
+  buildBatchSummary();
+  
+  showToast(`${filledCount} field${filledCount !== 1 ? 's' : ''} filled. Notes updated.`);
+  showScreen('s3');
+}
+
+function handleSkipMissingData() {
+  showToast('Proceeding with placeholders. These will show as review items.');
+  showScreen('s3');
+}
+
+// ===== MISSING DATA MODAL (per-note, during processing) =====
 let missingDataResolve = null;
 
 function showMissingDataModal(note, missingItems, noteIndex) {
@@ -609,7 +885,7 @@ function showMissingDataModal(note, missingItems, noteIndex) {
     itemEl.innerHTML = `
       <div class="missing-item-label">${escapeHtml(item.field_name)}</div>
       <div class="missing-item-reason">${escapeHtml(item.reason)}</div>
-      <input class="missing-item-input" type="text" id="missing-input-${idx}" 
+      <input class="missing-item-input" type="text" id="missing-input-modal-${idx}" 
              placeholder="e.g. ${getPlaceholderExample(item.field_name)}" />
       <div class="missing-item-actions">
         <button class="btn-submit" onclick="submitMissingItem('${note.id}', ${idx}, '${escapeAttr(item.field_name)}')">Submit</button>
@@ -643,7 +919,7 @@ function escapeAttr(str) {
 }
 
 function submitMissingItem(noteId, itemIndex, fieldName) {
-  const input = document.getElementById(`missing-input-${itemIndex}`);
+  const input = document.getElementById(`missing-input-modal-${itemIndex}`);
   const value = input.value.trim();
   
   if (!value) {
@@ -652,7 +928,6 @@ function submitMissingItem(noteId, itemIndex, fieldName) {
     return;
   }
   
-  // Update the note
   const note = state.processedNotes.find(n => n.id === noteId) || 
                (state.currentMissingNote && state.currentMissingNote.note);
   
@@ -664,12 +939,10 @@ function submitMissingItem(noteId, itemIndex, fieldName) {
     }
   }
   
-  // Save goal if it's a participant goal
   if (fieldName.toLowerCase().includes('goal') && note) {
     saveParticipantGoal(note.participant_name, value);
   }
   
-  // Mark item as resolved visually
   const itemEl = document.getElementById(`missing-item-${itemIndex}`);
   itemEl.style.opacity = '0.5';
   itemEl.innerHTML = `
@@ -699,7 +972,6 @@ function checkMissingDataComplete() {
   state.currentMissingNote.resolved++;
   
   if (state.currentMissingNote.resolved >= state.currentMissingNote.total) {
-    // Close modal after brief delay
     setTimeout(() => {
       document.getElementById('missingDataModal').classList.remove('active');
       state.currentMissingNote = null;
@@ -717,7 +989,6 @@ function waitForMissingDataResolution() {
   });
 }
 
-// Modal close button
 document.getElementById('modalClose').addEventListener('click', () => {
   document.getElementById('missingDataModal').classList.remove('active');
   if (state.currentMissingNote) {
@@ -757,14 +1028,13 @@ function buildBatchSummary() {
   document.getElementById('summaryTitle').textContent = 
     `Batch Complete — ${notes.length} notes processed`;
   document.getElementById('summarySub').textContent = 
-    `Processing completed in ${timeStr}. All notes have been prepared to audit-ready standard.`;
+    `Processing completed in ${timeStr}. Platform: ${state.detectedPlatform}. All notes have been prepared to audit-ready standard.`;
   
   document.getElementById('summaryTally').innerHTML = `
     <div class="tally-chip green"><div class="tally-dot green"></div> ${greenCount} Ready to Approve</div>
     <div class="tally-chip orange"><div class="tally-dot orange"></div> ${orangeCount} Review Required</div>
     <div class="tally-chip red"><div class="tally-dot red"></div> ${redCount} Needs Attention</div>`;
   
-  // Unresolved red flags
   const redNotes = notes.filter(n => n.traffic_light === 'RED');
   if (redNotes.length > 0) {
     document.getElementById('unresolvedSection').style.display = 'block';
@@ -789,6 +1059,135 @@ function buildBatchSummary() {
   }
 }
 
+// ===== BATCH SUMMARY EXPORT (Printable HTML) =====
+function exportBatchSummary() {
+  const notes = state.processedNotes;
+  const greenCount = notes.filter(n => n.traffic_light === 'GREEN').length;
+  const orangeCount = notes.filter(n => n.traffic_light === 'ORANGE').length;
+  const redCount = notes.filter(n => n.traffic_light === 'RED').length;
+  
+  const batchDate = new Date().toLocaleDateString('en-AU', { 
+    day: 'numeric', month: 'long', year: 'numeric' 
+  });
+  
+  const elapsed = Math.round((Date.now() - state.batchStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  
+  let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RiteDoc Batch Summary — ${batchDate}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; line-height: 1.5; color: #111827; padding: 24px; max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .subtitle { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .meta-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+    .meta-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+    .meta-value { font-size: 18px; font-weight: 600; margin-top: 2px; }
+    .tally { display: flex; gap: 16px; margin-bottom: 24px; }
+    .tally-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-green { background: #22c55e; }
+    .dot-orange { background: #f59e0b; }
+    .dot-red { background: #ef4444; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th { background: #f3f4f6; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: top; font-size: 12px; }
+    tr:nth-child(even) { background: #fafafa; }
+    .status-green { color: #16a34a; font-weight: 600; }
+    .status-orange { color: #d97706; font-weight: 600; }
+    .status-red { color: #dc2626; font-weight: 600; }
+    .note-text { max-width: 400px; word-wrap: break-word; }
+    .flags { color: #dc2626; font-size: 11px; }
+    .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 11px; text-align: center; }
+    @media print {
+      body { padding: 12px; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>RiteDoc — Batch Processing Summary</h1>
+  <div class="subtitle">Generated ${batchDate} | Platform: ${escapeHtml(state.detectedPlatform)} | ${notes.length} notes processed in ${mins}m ${secs}s</div>
+  
+  <div class="meta-grid">
+    <div class="meta-card">
+      <div class="meta-label">Total Notes</div>
+      <div class="meta-value">${notes.length}</div>
+    </div>
+    <div class="meta-card">
+      <div class="meta-label">Platform Source</div>
+      <div class="meta-value">${escapeHtml(state.detectedPlatform)}</div>
+    </div>
+    <div class="meta-card">
+      <div class="meta-label">Processing Time</div>
+      <div class="meta-value">${mins}m ${secs}s</div>
+    </div>
+  </div>
+  
+  <div class="tally">
+    <div class="tally-item"><div class="dot dot-green"></div> ${greenCount} Ready to Approve</div>
+    <div class="tally-item"><div class="dot dot-orange"></div> ${orangeCount} Review Required</div>
+    <div class="tally-item"><div class="dot dot-red"></div> ${redCount} Needs Attention</div>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Participant</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Flags</th>
+        <th>Rewritten Summary</th>
+      </tr>
+    </thead>
+    <tbody>`;
+  
+  notes.forEach((note, i) => {
+    const statusClass = note.traffic_light === 'GREEN' ? 'status-green' : 
+                        note.traffic_light === 'ORANGE' ? 'status-orange' : 'status-red';
+    const statusText = note.traffic_light === 'GREEN' ? 'Ready' : 
+                       note.traffic_light === 'ORANGE' ? 'Review' : 'Attention';
+    const flags = (note.red_flags || []).map(rf => rf.category).join(', ') || '—';
+    const summary = (note.rewritten_note || '').substring(0, 200) + (note.rewritten_note.length > 200 ? '...' : '');
+    
+    html += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(note.participant_code)}</td>
+        <td>${escapeHtml(note.date || '—')}</td>
+        <td class="${statusClass}">${statusText}</td>
+        <td class="flags">${escapeHtml(flags)}</td>
+        <td class="note-text">${escapeHtml(summary)}</td>
+      </tr>`;
+  });
+  
+  html += `
+    </tbody>
+  </table>
+  
+  <div class="footer">
+    RiteDoc by ReadyCompliant — Technology-Assisted Documentation Drafting<br>
+    This document is generated for internal admin records and audit trail purposes.
+  </div>
+  
+  <div class="no-print" style="text-align: center; margin-top: 16px;">
+    <button onclick="window.print()" style="padding: 8px 24px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Print / Save as PDF</button>
+  </div>
+</body>
+</html>`;
+  
+  // Open in new window for printing
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
 // ===== EXPORT =====
 document.getElementById('btnExport').addEventListener('click', async () => {
   try {
@@ -799,7 +1198,6 @@ document.getElementById('btnExport').addEventListener('click', async () => {
       csvContent = generateCSVExport();
     }
     
-    // Download the CSV
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -830,6 +1228,10 @@ document.getElementById('btnCopyGreen').addEventListener('click', () => {
   }
 });
 
+document.getElementById('btnExportBatchSummary').addEventListener('click', () => {
+  exportBatchSummary();
+});
+
 function generateCSVExport() {
   const headers = ['Participant', 'Participant Code', 'Support Worker', 'Date', 'Time', 'Status', 'Rewritten Note', 'Red Flags', 'Missing Data', 'Original Note'];
   
@@ -856,9 +1258,50 @@ function generateCSVExport() {
   return [headers.join(','), ...rows].join('\n');
 }
 
-// ===== BROWSER SIMULATION (when not running in Tauri) =====
+// ===== ONBOARDING FIRST-RUN EXPERIENCE =====
+function checkOnboarding() {
+  const completed = localStorage.getItem('ritedoc_onboarding_complete');
+  if (completed === 'true') {
+    state.onboardingComplete = true;
+    return false; // Don't show
+  }
+  return true; // Show onboarding
+}
+
+function showOnboarding() {
+  document.getElementById('onboardingOverlay').style.display = 'flex';
+  showOnboardingStep(1);
+}
+
+function showOnboardingStep(step) {
+  document.querySelectorAll('.onboarding-step').forEach(s => s.classList.remove('active'));
+  const stepEl = document.getElementById(`onboarding-step-${step}`);
+  if (stepEl) stepEl.classList.add('active');
+  
+  // Update dots
+  document.querySelectorAll('.onboarding-dot').forEach((d, i) => {
+    d.classList.toggle('active', i + 1 === step);
+  });
+}
+
+function nextOnboardingStep(current) {
+  if (current < 3) {
+    showOnboardingStep(current + 1);
+  }
+}
+
+function completeOnboarding() {
+  localStorage.setItem('ritedoc_onboarding_complete', 'true');
+  state.onboardingComplete = true;
+  document.getElementById('onboardingOverlay').style.display = 'none';
+}
+
+function skipOnboarding() {
+  completeOnboarding();
+}
+
+// ===== BROWSER SIMULATION =====
 function simulateProcessNote(rawNote) {
-  // PII scrubbing simulation
   let scrubbed = rawNote.raw_text;
   const piiMappings = [];
   
@@ -882,7 +1325,6 @@ function simulateProcessNote(rawNote) {
     }
   }
   
-  // Detect red flags
   const redFlagKeywords = {
     'Unauthorised Restrictive Practice': ['physically guided', 'restraint', 'restrained', 'seclusion', 'held down', 'grabbed', 'forced'],
     'Medication Error / Missed Medication': ['wrong dose', 'missed medication', 'medication error', 'wrong medication', 'labelling mix-up', 'forgot medication'],
@@ -908,14 +1350,13 @@ function simulateProcessNote(rawNote) {
     }
   }
   
-  // Detect missing data
   const missingData = [];
   
   if (!rawNote.date) {
     missingData.push({
       field_name: 'Date and Time',
-      reason: 'This note does not include a date or time. A date and time are required for audit-prepared documentation.',
-      placeholder: '[DATE AND TIME REQUIRED — confirm the date and time of this session]',
+      reason: 'This note does not include a date or time.',
+      placeholder: '[MISSING: date and time]',
       submitted_value: null,
     });
   }
@@ -923,8 +1364,8 @@ function simulateProcessNote(rawNote) {
   if (!textLower.includes('goal') && !textLower.includes('plan') && !textLower.includes('objective')) {
     missingData.push({
       field_name: 'Participant Goal',
-      reason: `This note does not reference a goal from ${rawNote.participant_name}'s NDIS plan. Which goal did this session support?`,
-      placeholder: '[GOAL LINK REQUIRED — specify the NDIS plan goal this activity supports]',
+      reason: `This note does not reference a goal from ${rawNote.participant_name}'s NDIS plan.`,
+      placeholder: '[MISSING: participant goal]',
       submitted_value: null,
     });
   }
@@ -934,13 +1375,12 @@ function simulateProcessNote(rawNote) {
       !textLower.includes('stated') && !textLower.includes('requested') && !textLower.includes('enjoyed')) {
     missingData.push({
       field_name: 'Participant Response',
-      reason: "Document the participant's observable response to the session.",
-      placeholder: "[PARTICIPANT RESPONSE REQUIRED — document participant's observable response to the session]",
+      reason: "Document the participant's observable response.",
+      placeholder: "[MISSING: participant response]",
       submitted_value: null,
     });
   }
   
-  // Determine traffic light
   let trafficLight = 'GREEN';
   if (detectedFlags.length > 0) {
     trafficLight = 'RED';
@@ -948,22 +1388,34 @@ function simulateProcessNote(rawNote) {
     trafficLight = 'ORANGE';
   }
   
-  // Generate rewritten note
-  const dateStr = rawNote.date || '[DATE AND TIME REQUIRED — confirm the date and time of this session]';
-  const workerStr = rawNote.support_worker || '[STAFF CODE REQUIRED]';
+  // Generate platform-aware rewritten note with section headers
+  const sections = getSectionsForPlatform(state.detectedPlatform);
+  const dateStr = rawNote.date || '[MISSING: date and time]';
+  const workerStr = rawNote.support_worker || '[MISSING: support worker]';
   
-  let rewritten = `On ${dateStr}, support worker ${workerStr} attended ${rawNote.participant_name}'s residence. `;
-  rewritten += rawNote.raw_text;
+  let rewritten = `**${sections[0]}**\nOn ${dateStr}, support worker ${workerStr} attended ${rawNote.participant_name}'s residence. ${rawNote.raw_text}\n\n`;
+  rewritten += `**${sections[1]}**\n`;
   
+  if (textLower.includes('said') || textLower.includes('chose') || textLower.includes('enjoyed')) {
+    rewritten += `The participant engaged positively during the session.\n\n`;
+  } else {
+    rewritten += `[MISSING: participant response]\n\n`;
+  }
+  
+  rewritten += `**${sections[2]}**\n`;
+  if (detectedFlags.length > 0) {
+    rewritten += detectedFlags.map(f => f.description).join(' ') + '\n\n';
+  } else {
+    rewritten += 'No incidents, medication events, or safety concerns were observed or reported during this session.\n\n';
+  }
+  
+  rewritten += `**${sections[3]}**\n`;
   if (!textLower.includes('goal') && !textLower.includes('plan')) {
-    rewritten += ' [GOAL LINK REQUIRED — specify the NDIS plan goal this activity supports].';
+    rewritten += '[MISSING: participant goal] — specify the NDIS plan goal this activity supports.\n';
+  } else {
+    rewritten += 'Continue with current support plan. No changes required.\n';
   }
   
-  if (!textLower.includes('incident') && !textLower.includes('safety') && !textLower.includes('concern') && detectedFlags.length === 0) {
-    rewritten += ' No incidents, medication events, or safety concerns were observed or reported during this session.';
-  }
-  
-  // Generate participant code
   const nameParts = rawNote.participant_name.split(' ');
   const initials = nameParts.length >= 2 
     ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
@@ -997,45 +1449,22 @@ function getRequiredForms(category, rawNote) {
         fields: [
           { label: 'Date', value: rawNote.date || null, placeholder: '[DATE REQUIRED]', is_missing: !rawNote.date },
           { label: 'Participant', value: rawNote.participant_name, is_missing: false },
-          { label: 'Type of Practice', value: null, placeholder: '[TYPE OF PRACTICE REQUIRED — describe the restrictive practice used]', is_missing: true },
-          { label: 'Duration', value: null, placeholder: '[DURATION REQUIRED — how long was the practice applied?]', is_missing: true },
-          { label: 'Authorisation Status', value: null, placeholder: '[AUTHORISATION STATUS REQUIRED — is this practice listed in the participant\'s Behaviour Support Plan?]', is_missing: true },
+          { label: 'Type of Practice', value: null, placeholder: '[TYPE OF PRACTICE REQUIRED]', is_missing: true },
+          { label: 'Duration', value: null, placeholder: '[DURATION REQUIRED]', is_missing: true },
+          { label: 'Authorisation Status', value: null, placeholder: '[AUTHORISATION STATUS REQUIRED]', is_missing: true },
           { label: 'Staff Identifier', value: rawNote.support_worker || null, placeholder: '[STAFF CODE REQUIRED]', is_missing: !rawNote.support_worker },
-        ],
-      },
-      {
-        form_name: 'Behaviour Support Plan Review Request',
-        fields: [
-          { label: 'Date of Request', value: rawNote.date || null, placeholder: '[DATE REQUIRED]', is_missing: !rawNote.date },
-          { label: 'Participant', value: rawNote.participant_name, is_missing: false },
-          { label: 'Reason for Review', value: 'Restrictive practice recorded in progress note without documented authorisation. BSP review required.', is_missing: false },
-          { label: 'Current BSP Reference Number', value: null, placeholder: '[BSP REFERENCE REQUIRED — check participant file]', is_missing: true },
-          { label: 'Behaviour Specialist Assigned', value: null, placeholder: '[SPECIALIST NAME REQUIRED]', is_missing: true },
         ],
       },
     ],
     'Medication Error / Missed Medication': [
       {
-        form_name: 'Incident Report Form',
+        form_name: 'Medication Incident Report',
         fields: [
           { label: 'Date of Incident', value: rawNote.date || null, placeholder: '[DATE REQUIRED]', is_missing: !rawNote.date },
           { label: 'Participant', value: rawNote.participant_name, is_missing: false },
           { label: 'Incident Type', value: 'Medication Error', is_missing: false },
-          { label: 'Medication Name', value: null, placeholder: '[MEDICATION NAME REQUIRED — specify drug involved]', is_missing: true },
-          { label: 'Prescribed Dose', value: null, placeholder: '[PRESCRIBED DOSE REQUIRED]', is_missing: true },
-          { label: 'Dose Administered', value: null, placeholder: '[ACTUAL DOSE REQUIRED — what was given?]', is_missing: true },
-          { label: 'Immediate Actions Taken', value: null, placeholder: '[RESPONSE REQUIRED — was a nurse, GP, or Poisons Information contacted?]', is_missing: true },
-        ],
-      },
-      {
-        form_name: 'Medication Incident Report',
-        fields: [
-          { label: 'Date', value: rawNote.date || null, placeholder: '[DATE REQUIRED]', is_missing: !rawNote.date },
-          { label: 'Participant', value: rawNote.participant_name, is_missing: false },
-          { label: 'Type of Medication Incident', value: null, placeholder: '[INCIDENT TYPE REQUIRED]', is_missing: true },
-          { label: 'Outcome for Participant', value: null, placeholder: '[OUTCOME REQUIRED — describe any observed effects]', is_missing: true },
-          { label: 'Notified Parties', value: null, placeholder: '[NOTIFICATION REQUIRED — list who was notified]', is_missing: true },
-          { label: 'Corrective Action Taken', value: null, placeholder: '[CORRECTIVE ACTION REQUIRED]', is_missing: true },
+          { label: 'Medication Name', value: null, placeholder: '[MEDICATION NAME REQUIRED]', is_missing: true },
+          { label: 'Outcome', value: null, placeholder: '[OUTCOME REQUIRED]', is_missing: true },
         ],
       },
     ],
@@ -1056,16 +1485,13 @@ function escapeRegex(string) {
 }
 
 function simulateCommand(cmd, args) {
-  // Fallback simulation for browser mode
   if (cmd === 'check_activation') {
     return Promise.resolve({ is_activated: true, key_code: 'DEMO-KEY', hardware_fingerprint: 'RDOC-DEMO', subscription_type: 'founders', activated_at: new Date().toISOString() });
   }
   if (cmd === 'get_cartridge_version') {
-    // Returns a date string in browser/demo mode
     return Promise.resolve('current');
   }
   if (cmd === 'silent_update_cartridges') {
-    // In browser mode, silently no-op (Tauri only)
     return Promise.resolve('current');
   }
   if (cmd === 'get_hardware_fingerprint') {
@@ -1079,26 +1505,21 @@ async function checkActivationStatus() {
   try {
     const result = await invokeCommand('check_activation');
     if (result && result.is_activated) {
-      // App is activated — show main UI
       document.getElementById('activationOverlay').style.display = 'none';
       document.getElementById('appShell').style.display = 'flex';
-      // Update settings screen
       document.getElementById('settingsActivationStatus').textContent = 'Activated';
       document.getElementById('settingsActivationStatus').style.color = 'var(--green)';
       document.getElementById('settingsSubscriptionType').textContent = formatSubscriptionType(result.subscription_type);
-      // Get fingerprint
       const fp = await invokeCommand('get_hardware_fingerprint');
       document.getElementById('settingsFingerprint').textContent = fp || '—';
-      return result; // Return for use by caller (e.g. to trigger silent update)
+      return result;
     } else {
-      // Not activated — show activation screen
       document.getElementById('activationOverlay').style.display = 'flex';
       document.getElementById('appShell').style.display = 'none';
       return null;
     }
   } catch (e) {
     console.error('Activation check error:', e);
-    // On error, show activation screen
     document.getElementById('activationOverlay').style.display = 'flex';
     document.getElementById('appShell').style.display = 'none';
     return null;
@@ -1112,7 +1533,6 @@ async function handleActivation() {
   const spinner = document.getElementById('activationSpinner');
   const btn = document.getElementById('btnActivate');
 
-  // Validate input
   if (!keyCode) {
     input.classList.add('error');
     errorEl.textContent = 'Please enter your activation key.';
@@ -1120,7 +1540,6 @@ async function handleActivation() {
     return;
   }
 
-  // Show loading state
   input.classList.remove('error');
   errorEl.style.display = 'none';
   btn.disabled = true;
@@ -1130,20 +1549,22 @@ async function handleActivation() {
     const result = await invokeCommand('activate_key', { keyCode });
 
     if (result && result.success) {
-      // Success — transition to main app
       spinner.querySelector('span').textContent = 'Activation successful! Loading RiteDoc...';
       await sleep(1000);
       document.getElementById('activationOverlay').style.display = 'none';
       document.getElementById('appShell').style.display = 'flex';
-      // Update settings
       document.getElementById('settingsActivationStatus').textContent = 'Activated';
       document.getElementById('settingsActivationStatus').style.color = 'var(--green)';
       document.getElementById('settingsSubscriptionType').textContent = formatSubscriptionType(result.subscription_type);
       const fp = await invokeCommand('get_hardware_fingerprint');
       document.getElementById('settingsFingerprint').textContent = fp || '—';
       showToast(result.message);
+      
+      // Show onboarding after first activation
+      if (checkOnboarding()) {
+        showOnboarding();
+      }
     } else {
-      // Failure — show error
       input.classList.add('error');
       errorEl.textContent = result ? result.message : 'Activation failed. Please try again.';
       errorEl.style.display = 'block';
@@ -1168,39 +1589,28 @@ function formatSubscriptionType(type) {
   return types[type] || type || '—';
 }
 
-// ===== CARTRIDGE UPDATES (silent, automatic — no user interaction) =====
-
-/**
- * Runs a silent background cartridge update check and install.
- * Called once on startup after activation passes.
- * No UI feedback is shown — the user never knows this happened.
- * All errors are silently swallowed; the existing cartridge remains intact.
- */
+// ===== CARTRIDGE UPDATES =====
 async function runSilentCartridgeUpdate() {
-  if (!isTauri) return; // Only runs in the real Tauri app
+  if (!isTauri) return;
   try {
-    // Returns a date string like "2 Apr 2026", or "current" if no update was needed
     const dateDisplay = await invokeCommand('silent_update_cartridges');
-    // Silently refresh the date display in Settings if it's already loaded
     const dateEl = document.getElementById('settingsCartridgeVersion');
     if (dateEl && dateDisplay) {
       dateEl.textContent = dateDisplay;
     }
   } catch (e) {
-    // Completely silent — no error shown to user
+    // Silent
   }
 }
 
 async function loadSettingsData() {
   try {
-    // Returns a date string like "2 Apr 2026", or "current" if never updated
     const dateDisplay = await invokeCommand('get_cartridge_version');
     const dateEl = document.getElementById('settingsCartridgeVersion');
     if (dateEl) {
       dateEl.textContent = dateDisplay || 'current';
     }
 
-    // Load processing mode from hardware badge
     const badge = document.getElementById('hwBadge');
     const modeEl = document.getElementById('settingsProcessingMode');
     if (modeEl && badge) {
@@ -1220,7 +1630,6 @@ function sleep(ms) {
 document.addEventListener('DOMContentLoaded', async () => {
   initDropzone();
 
-  // Check activation status first
   const activationState = await checkActivationStatus();
 
   // Set hardware mode badge
@@ -1240,16 +1649,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     badge.textContent = cores >= 8 ? 'Performance Mode' : 'Standard Mode';
   }
 
-  // Load settings data
   await loadSettingsData();
 
-  // Silent background cartridge update — runs after activation is confirmed.
-  // No UI feedback. Fires and forgets. User never knows it happened.
   if (activationState && activationState.is_activated) {
-    runSilentCartridgeUpdate(); // intentionally not awaited
+    runSilentCartridgeUpdate(); // fire and forget
+    
+    // Show onboarding if first run (and not just activated — that's handled in handleActivation)
+    if (checkOnboarding()) {
+      showOnboarding();
+    }
   }
 
-  // Allow Enter key to trigger activation
+  // Enter key for activation
   const activationInput = document.getElementById('activationKeyInput');
   if (activationInput) {
     activationInput.addEventListener('keydown', (e) => {
