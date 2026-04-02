@@ -222,29 +222,37 @@
       </div>
     </div>
 
-    <!-- ===== SCREEN 2: MISSING DATA (Batch-Level) ===== -->
+    <!-- ===== SCREEN 2: MISSING DATA (One Note at a Time) ===== -->
     <div id="s2" class="screen">
       <div class="screen-label">Step 2 of 5</div>
       <div class="screen-title">Missing Information</div>
-      <div class="screen-desc">
-        The following fields were not found in your notes. Fill in what you can — anything left blank will appear as a placeholder in the final note for you to complete later.
-      </div>
-      <div class="missing-data-count" id="missingDataCount"></div>
-
-      <div class="missing-data-list" id="missingDataList">
-        <!-- Missing data fields are dynamically inserted here -->
+      <div class="screen-desc" id="missingWizardDesc">
+        Some notes are missing information needed for compliance. You can fill in each field or skip it.
       </div>
 
-      <div class="missing-data-actions">
-        <button class="btn-fill-reprocess" onclick="handleFillAllAndReprocess()">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-          </svg>
-          Apply and Continue
-        </button>
-        <button class="btn-skip-missing" onclick="handleSkipMissingData()">
-          Skip — Proceed with Placeholders
-        </button>
+      <div class="missing-wizard-progress" id="missingWizardProgress">
+        <!-- e.g. "Note 1 of 5 — Field 2 of 3" -->
+      </div>
+
+      <div class="missing-wizard-card" id="missingWizardCard">
+        <div class="missing-wizard-note-header" id="missingWizardNoteHeader">
+          <!-- Participant code + date -->
+        </div>
+        <div class="missing-wizard-prompt" id="missingWizardPrompt">
+          <!-- "This note is missing: [what's missing]" -->
+        </div>
+        <textarea class="missing-wizard-input" id="missingWizardInput" rows="3" placeholder="Type your answer here..."></textarea>
+        <div class="missing-wizard-actions">
+          <button class="btn-wizard-update" id="btnWizardUpdate" onclick="handleWizardUpdate()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            Update
+          </button>
+          <button class="btn-wizard-skip" id="btnWizardSkip" onclick="handleWizardSkip()">
+            Not available at this time
+          </button>
+        </div>
       </div>
     </div>
 

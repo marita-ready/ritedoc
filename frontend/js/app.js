@@ -303,9 +303,9 @@ async function processNotesBatch() {
   document.getElementById('navSummary').disabled = false;
   document.getElementById('rollingProgress').style.display = 'none';
   
-  // Check if there are missing fields — show Screen 2 (missing data) before results
+  // Check if there are missing fields — show Screen 2 (missing data wizard) before results
   if (state.batchMissingFields.length > 0) {
-    buildMissingDataScreen();
+    startMissingDataWizard();
     showScreen('s2');
   } else if (state.currentScreen === 's1') {
     showScreen('s3');
@@ -746,89 +746,96 @@ function toggleFlagReview(noteId) {
   }
 }
 
-// ===== MISSING DATA SCREEN (Screen 2 — Batch-Level) =====
-function buildMissingDataScreen() {
-  const container = document.getElementById('missingDataList');
-  if (!container) return;
-  
-  const countEl = document.getElementById('missingDataCount');
-  if (countEl) {
-    countEl.textContent = `${state.batchMissingFields.length} missing field${state.batchMissingFields.length !== 1 ? 's' : ''} across ${new Set(state.batchMissingFields.map(f => f.noteId)).size} note${new Set(state.batchMissingFields.map(f => f.noteId)).size !== 1 ? 's' : ''}`;
-  }
-  
-  container.innerHTML = '';
-  
-  // Group by note
-  const byNote = {};
-  for (const field of state.batchMissingFields) {
-    if (!byNote[field.noteId]) byNote[field.noteId] = [];
-    byNote[field.noteId].push(field);
-  }
-  
-  let globalIdx = 0;
-  for (const [noteId, fields] of Object.entries(byNote)) {
-    const first = fields[0];
-    
-    const noteGroup = document.createElement('div');
-    noteGroup.className = 'missing-note-group';
-    noteGroup.innerHTML = `
-      <div class="missing-note-header">
-        <span class="missing-note-participant">${escapeHtml(first.participantCode)} — ${escapeHtml(first.participantName)}</span>
-        <span class="missing-note-date">${escapeHtml(first.date || 'No date')}</span>
-      </div>`;
-    
-    for (const field of fields) {
-      const idx = globalIdx++;
-      const fieldEl = document.createElement('div');
-      fieldEl.className = 'missing-field-row';
-      fieldEl.id = `missing-field-${idx}`;
-      fieldEl.innerHTML = `
-        <div class="missing-field-name">${escapeHtml(field.fieldName)}</div>
-        <div class="missing-field-input-row">
-          <input type="text" class="missing-field-input" id="missing-input-${idx}" 
-                 placeholder="Enter ${field.fieldName.toLowerCase()}..." 
-                 data-note-id="${field.noteId}" data-field-name="${escapeHtml(field.fieldName)}" data-full-match="${escapeHtml(field.fullMatch)}" />
-        </div>`;
-      noteGroup.appendChild(fieldEl);
-    }
-    
-    container.appendChild(noteGroup);
-  }
+// ===== MISSING DATA WIZARD (One Note at a Time, One Field at a Time) =====
+let wizardIndex = 0; // current position in the flat batchMissingFields array
+
+function startMissingDataWizard() {
+  wizardIndex = 0;
+  showWizardField();
 }
 
-function handleFillAllAndReprocess() {
-  // Collect all filled values
-  const inputs = document.querySelectorAll('.missing-field-input');
-  let filledCount = 0;
+function showWizardField() {
+  if (wizardIndex >= state.batchMissingFields.length) {
+    // All fields done — finalize and go to results
+    finalizeMissingDataWizard();
+    return;
+  }
   
-  inputs.forEach(input => {
-    const value = input.value.trim();
-    if (!value) return;
+  const field = state.batchMissingFields[wizardIndex];
+  
+  // Count unique notes and figure out which note/field we're on
+  const noteIds = [...new Set(state.batchMissingFields.map(f => f.noteId))];
+  const currentNoteIdx = noteIds.indexOf(field.noteId) + 1;
+  const totalNotes = noteIds.length;
+  const fieldsForThisNote = state.batchMissingFields.filter(f => f.noteId === field.noteId);
+  const fieldIdxInNote = fieldsForThisNote.indexOf(field) + 1;
+  const totalFieldsInNote = fieldsForThisNote.length;
+  
+  // Update progress
+  document.getElementById('missingWizardProgress').textContent = 
+    `Note ${currentNoteIdx} of ${totalNotes} — Field ${fieldIdxInNote} of ${totalFieldsInNote}`;
+  
+  // Update note header
+  document.getElementById('missingWizardNoteHeader').innerHTML = 
+    `<strong>${escapeHtml(field.participantCode)}</strong> — ${escapeHtml(field.participantName)}` +
+    (field.date ? ` <span style="color: var(--text-muted); margin-left: 8px;">${escapeHtml(field.date)}</span>` : '');
+  
+  // Update prompt
+  document.getElementById('missingWizardPrompt').textContent = 
+    `This note is missing: ${field.fieldName}`;
+  
+  // Clear and focus input
+  const input = document.getElementById('missingWizardInput');
+  input.value = '';
+  input.placeholder = `Enter ${field.fieldName.toLowerCase()}...`;
+  setTimeout(() => input.focus(), 100);
+}
+
+function handleWizardUpdate() {
+  const input = document.getElementById('missingWizardInput');
+  const value = input.value.trim();
+  
+  if (!value) {
+    input.style.borderColor = 'var(--red)';
+    setTimeout(() => input.style.borderColor = '', 2000);
+    return;
+  }
+  
+  const field = state.batchMissingFields[wizardIndex];
+  const note = state.processedNotes.find(n => n.id === field.noteId);
+  
+  if (note) {
+    // Replace the bracket placeholder with the filled value
+    note.rewritten_note = note.rewritten_note.replace(field.fullMatch, value);
+    field.value = value;
+    field.resolved = 'filled';
     
-    const noteId = input.dataset.noteId;
-    const fullMatch = input.dataset.fullMatch;
-    
-    const note = state.processedNotes.find(n => n.id === noteId);
-    if (note) {
-      // Replace the bracket placeholder with the filled value
-      note.rewritten_note = note.rewritten_note.replace(fullMatch, value);
-      filledCount++;
-      
-      // Save goal if applicable
-      const fieldName = input.dataset.fieldName;
-      if (fieldName.toLowerCase().includes('goal')) {
-        saveParticipantGoal(note.participant_name, value);
-      }
+    // Save goal if applicable
+    if (field.fieldName.toLowerCase().includes('goal')) {
+      saveParticipantGoal(note.participant_name, value);
     }
-  });
+    
+    // Update missing_data array if present
+    if (note.missing_data) {
+      const md = note.missing_data.find(m => m.field_name === field.fieldName);
+      if (md) md.submitted_value = value;
+    }
+  }
   
-  // Remove filled missing fields from batch list
-  state.batchMissingFields = state.batchMissingFields.filter(f => {
-    const note = state.processedNotes.find(n => n.id === f.noteId);
-    return note && note.rewritten_note.includes(f.fullMatch);
-  });
+  wizardIndex++;
+  showWizardField();
+}
+
+function handleWizardSkip() {
+  const field = state.batchMissingFields[wizardIndex];
+  field.resolved = 'skipped';
   
-  // Re-evaluate traffic lights for affected notes
+  wizardIndex++;
+  showWizardField();
+}
+
+function finalizeMissingDataWizard() {
+  // Re-evaluate traffic lights for all notes
   for (const note of state.processedNotes) {
     const hasBrackets = /\[MISSING:|REQUIRED\]/.test(note.rewritten_note);
     const hasRedFlags = note.red_flags && note.red_flags.length > 0;
@@ -854,12 +861,9 @@ function handleFillAllAndReprocess() {
   
   buildBatchSummary();
   
-  showToast(`${filledCount} field${filledCount !== 1 ? 's' : ''} filled. Notes updated.`);
-  showScreen('s3');
-}
-
-function handleSkipMissingData() {
-  showToast('Proceeding with placeholders. These will show as review items.');
+  const filledCount = state.batchMissingFields.filter(f => f.resolved === 'filled').length;
+  const skippedCount = state.batchMissingFields.filter(f => f.resolved === 'skipped').length;
+  showToast(`${filledCount} field${filledCount !== 1 ? 's' : ''} updated, ${skippedCount} skipped.`);
   showScreen('s3');
 }
 
@@ -1172,7 +1176,9 @@ function exportBatchSummary() {
   </table>
   
   <div class="footer">
-    RiteDoc by ReadyCompliant — Technology-Assisted Documentation Drafting<br>
+    <strong style="font-size: 13px; color: #374151;">RiteDoc</strong><br>
+    <span style="font-size: 10px; color: #9ca3af;">by ReadyCompliant</span><br>
+    Technology-Assisted Documentation Drafting<br>
     This document is generated for internal admin records and audit trail purposes.
   </div>
   

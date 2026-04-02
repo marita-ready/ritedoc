@@ -25,7 +25,8 @@
           "Feedback and Complaints Management",
           "Incident Management",
           "Human Resource Management",
-          "Continuity of Supports"
+          "Continuity of Supports",
+          "Emergency and Disaster Management"
         ]
       },
       {
@@ -54,7 +55,10 @@
       "High Intensity Daily Personal Activities",
       "Specialist Behaviour Support",
       "Early Childhood Supports",
-      "Specialist Disability Accommodation"
+      "Specialist Disability Accommodation",
+      "Implementing Behaviour Support Plans",
+      "Specialist Support Coordination",
+      "Verification Module"
     ]
   },
   "code_of_conduct": [
@@ -65,8 +69,7 @@
     "Promptly take steps to raise and act on concerns about matters that might have an impact on the quality and safety of supports",
     "Take all reasonable steps to prevent and respond to all forms of violence, exploitation, neglect, and abuse",
     "Take all reasonable steps to prevent and respond to sexual misconduct",
-    "Not engage in, or encourage, any practice that is unlawful, unsafe, or unethical",
-    "Not engage in any practice that is or may be corrupt, fraudulent, or dishonest"
+    "Fair Pricing: Not charge a higher price for goods or services simply because the person is an NDIS participant"
   ],
   "reporting_timeframes": {
     "reportable_incidents": {
@@ -99,10 +102,33 @@
     "funding_reforms": [
       "Structured Funding Periods (Effective May 2025)",
       "Impairment Notices (Ongoing rollout)"
+    ],
+    "new_powers": [
+      "Anti-Promotion Orders",
+      "Mandatory Electronic Claims",
+      "Increased Penalties (up to 5M for serious breaches)"
     ]
   },
   "worker_screening": {
     "clearance_validity": "5 years",
     "monitoring": "Ongoing national monitoring"
+  },
+  "specific_documentation_requirements": {
+    "pricing_and_billing": [
+      "Exact start and end times of shifts",
+      "Travel documentation (time, distance, participant)",
+      "Cancellation documentation (time, reason, short-notice criteria)"
+    ],
+    "medication_management": [
+      "PRN medication (time, dosage, reason, response)",
+      "Controlled substances (storage, administration, disposal, double-signing)"
+    ],
+    "complaints_management": [
+      "Date, nature of issue, actions taken, communication with complainant"
+    ],
+    "consent_and_capacity": [
+      "Informed consent obtained before supports/changes",
+      "Capacity assessments and substitute decision-maker involvement"
+    ]
   }
 }

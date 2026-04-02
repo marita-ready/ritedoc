@@ -41,6 +41,19 @@ Providers must use the NDIS Commission Portal to submit the required forms.
 *   **5-Day Form:** Provides a more detailed account of the incident, including the outcome of any internal investigations, ongoing support provided to the participant, and corrective actions implemented to prevent recurrence. For unauthorised restrictive practices without harm, this is the only form required initially.
 *   **Final Report (60-Day Report):** The NDIS Commission may request a final report within 60 days, detailing the comprehensive findings of an internal or external investigation, long-term systemic changes, and the final resolution of the incident.
 
+
+### 1.4 Specific Required Fields for Incident Reports
+
+When documenting an incident, the following specific fields must be captured to ensure compliance and facilitate accurate reporting:
+*   **Exact Date and Time:** The precise time the incident occurred, and the time it was discovered (if different).
+*   **Location:** The specific location where the incident took place (e.g., 'Participant's bedroom', 'Community park').
+*   **Witnesses:** Names and contact details of any staff, participants, or members of the public who witnessed the incident.
+*   **Immediate Actions Taken:** A detailed description of the immediate steps taken to ensure the safety and wellbeing of the participant and others (e.g., 'Administered first aid', 'Called 000', 'Separated participants').
+*   **Notifications:** A record of who was notified internally (e.g., manager, supervisor) and externally (e.g., family, police, ambulance), including the time of notification.
+*   **Participant's Account:** The participant's version of events, recorded in their own words where possible.
+*   **Staff Account:** A factual, objective description of what the staff member observed or did.
+*   **Impact on Participant:** A description of any physical or psychological impact on the participant.
+
 ## 2. Restrictive Practices and Behaviour Support
 
 The NDIS strictly regulates the use of restrictive practices to protect the rights and dignity of participants.

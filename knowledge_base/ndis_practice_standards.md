@@ -99,9 +99,31 @@ This module applies to providers of Specialist Disability Accommodation.
 *   **Enrolment of SDA Properties:** Dwellings meet the requirements of their design type and category.
 *   **Tenancy Management:** Participants are supported by effective tenancy management that adheres to relevant rules and legislation.
 
+### Implementing Behaviour Support Plans
+
+This module applies to providers who implement behaviour support plans (but do not necessarily develop them).
+*   **Behaviour Support in the NDIS:** Providers must understand and apply evidence-informed behaviour support practices.
+*   **Restrictive Practices:** Providers must only use restrictive practices that are authorised and documented in a Behaviour Support Plan.
+*   **Supporting the Implementation of the Behaviour Support Plan:** Workers must be trained and supported to implement the plan effectively.
+
+### Specialist Support Coordination
+
+This module applies to providers delivering specialist support coordination.
+*   **Specialist Support Coordination:** Participants receive specialist support coordination that is person-centred, builds capacity, and addresses complex barriers.
+*   **Management of a Participant's NDIS Supports:** Participants are supported to understand and implement their NDIS plan, negotiate service agreements, and manage their budget.
+*   **Conflict of Interest:** Providers must manage conflicts of interest, particularly when providing both support coordination and other funded supports.
+
+### Verification Module
+
+This module applies to providers delivering lower-risk supports and services. It requires a lighter-touch audit process compared to the Certification (Core) Module.
+*   **Human Resource Management:** Workers have the necessary qualifications, skills, and experience.
+*   **Incident Management:** The provider has a system to identify, manage, and resolve incidents.
+*   **Complaints Management:** The provider has a system to receive and resolve complaints.
+*   **Risk Management:** The provider identifies and manages risks to participants, workers, and the organisation.
+
 ## Part 3: NDIS Code of Conduct
 
-The NDIS Code of Conduct applies to all NDIS providers (registered and unregistered) and all persons employed or otherwise engaged by an NDIS provider. It comprises nine fundamental obligations:
+The NDIS Code of Conduct applies to all NDIS providers (registered and unregistered) and all persons employed or otherwise engaged by an NDIS provider. It comprises eight fundamental obligations:
 
 1.  Act with respect for individual rights to freedom of expression, self-determination, and decision-making in accordance with relevant laws and conventions.
 2.  Respect the privacy of people with disability.
@@ -110,8 +132,7 @@ The NDIS Code of Conduct applies to all NDIS providers (registered and unregiste
 5.  Promptly take steps to raise and act on concerns about matters that might have an impact on the quality and safety of supports provided to people with disability.
 6.  Take all reasonable steps to prevent and respond to all forms of violence, exploitation, neglect, and abuse of people with disability.
 7.  Take all reasonable steps to prevent and respond to sexual misconduct.
-8.  Not engage in, or encourage, any practice that is unlawful, unsafe, or unethical.
-9.  Not engage in any practice that is or may be corrupt, fraudulent, or dishonest.
+8.  **Fair Pricing:** Not charge a higher price for goods or services simply because the person is an NDIS participant (this replaces the previous obligations 8 and 9 regarding unlawful/unethical and corrupt/fraudulent practices, which are now covered under broader fraud legislation).
 
 ## Part 4: NDIS Act 2013 Key Provisions
 
@@ -165,3 +186,29 @@ The NDIA publishes the NDIS Pricing Arrangements and Price Limits, which set the
 
 *   **Documentation Requirements:** Providers must maintain comprehensive documentation (such as progress notes) to substantiate claims for payment. The documentation must clearly demonstrate that the billed hours match the delivered support and that the support aligns with the participant's plan goals.
 *   **Audit Scrutiny:** Auditors heavily scrutinise progress notes to verify service delivery against billed hours. Vague or incomplete notes that do not detail the specific support provided or its alignment with goals are a major compliance risk and can lead to funding recovery.
+
+## Part 8: Specific Documentation Requirements
+
+To ensure compliance and mitigate audit risks, providers must adhere to strict documentation standards across several key areas.
+
+### 8.1 Pricing and Billing Documentation
+
+*   **Exact Shift Times:** Progress notes must record the exact start and end times of the shift, not just the total duration.
+*   **Travel Documentation:** Claims for provider travel must be supported by documentation detailing the travel time, distance, and the specific participant the travel was for.
+*   **Cancellation Documentation:** If a participant cancels a shift, the provider must document the time of the cancellation, the reason (if known), and whether it meets the criteria for a short-notice cancellation.
+*   **Short Notice Cancellations:** Providers can only claim for a short-notice cancellation if the participant gives less than 7 clear days' notice (or as specified in the current Pricing Arrangements) and the provider is unable to find alternative billable work for the worker. This must be clearly documented.
+
+### 8.2 Medication Management
+
+*   **PRN Medication:** The administration of PRN (as-needed) medication must be meticulously documented, including the time, dosage, the specific reason/symptom prompting the administration, and the participant's response/outcome after administration.
+*   **Controlled Substances:** The storage, administration, and disposal of controlled substances (e.g., Schedule 8 drugs) must follow strict protocols, including double-signing by authorised staff and regular stock counts, with all actions recorded in a dedicated register.
+
+### 8.3 Complaints Management
+
+*   **Documentation:** All complaints, whether formal or informal, must be documented in the provider's complaints register.
+*   **Details Required:** The record must include the date of the complaint, the nature of the issue, the actions taken to investigate and resolve it, and the communication with the complainant regarding the outcome.
+
+### 8.4 Consent and Capacity
+
+*   **Informed Consent:** Providers must document that informed consent was obtained before delivering supports, sharing information, or implementing significant changes to a support plan.
+*   **Capacity Assessments:** If there are concerns about a participant's capacity to make a specific decision, the provider must document the steps taken to support decision-making or the involvement of a legally appointed substitute decision-maker (e.g., a guardian or administrator).
