@@ -880,7 +880,7 @@ async function handleNotifySubscribers() {
             </p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
             <p style="color: #9ca3af; font-size: 13px;">
-              ReadyCompliant &mdash; Technology-Assisted Documentation Drafting<br />
+              ReadyCompliant &mdash; Notes Done Right<br />
               <a href="mailto:support@readycompliant.com" style="color: #4f46e5;">support@readycompliant.com</a>
             </p>
           </div>

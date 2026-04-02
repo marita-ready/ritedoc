@@ -1,4 +1,4 @@
-# RiteDoc — Technology-Assisted Documentation Drafting
+# RiteDoc — Notes Done Right
 
 **RiteDoc** is an offline desktop application for NDIS support workers that processes progress notes using local AI. It rewrites messy, abbreviated notes to audit-prepared standard, scans for red flags, and scores against a 5-pillar quality rubric — all without any data leaving the computer.
 

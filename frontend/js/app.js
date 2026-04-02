@@ -1,6 +1,6 @@
 /**
  * RiteDoc — Frontend Application
- * Technology-assisted documentation drafting for NDIS support workers
+ * Notes Done Right — for NDIS providers
  * 
  * This file handles all UI logic, screen navigation, and communication
  * with the Tauri backend via invoke commands.
@@ -1178,7 +1178,7 @@ function exportBatchSummary() {
   <div class="footer">
     <strong style="font-size: 13px; color: #374151;">RiteDoc</strong><br>
     <span style="font-size: 10px; color: #9ca3af;">by ReadyCompliant</span><br>
-    Technology-Assisted Documentation Drafting<br>
+    Notes Done Right<br>
     This document is generated for internal admin records and audit trail purposes.
   </div>
   

@@ -1,7 +1,7 @@
 {
   "name": "ritedoc",
   "version": "1.0.0",
-  "description": "RiteDoc — Technology-assisted documentation drafting for NDIS support workers",
+  "description": "RiteDoc — Notes Done Right for NDIS providers",
   "private": true,
   "scripts": {
     "tauri": "tauri",
