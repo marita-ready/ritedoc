@@ -60,40 +60,62 @@ pub async fn get_hardware_fingerprint() -> Result<String, String> {
 
 // ===== Cartridge Update Commands =====
 
-/// Check for cartridge updates
-#[tauri::command]
-pub async fn check_cartridge_updates(
-    state: State<'_, AppState>,
-) -> Result<cartridge_updater::UpdateCheckResult, String> {
-    Ok(cartridge_updater::check_for_updates(
-        &state.app_data_dir,
-        &state.supabase_config.url,
-        &state.supabase_config.anon_key,
-    )
-    .await)
-}
-
-/// Apply cartridge updates
-#[tauri::command]
-pub async fn apply_cartridge_update(
-    state: State<'_, AppState>,
-) -> Result<cartridge_updater::UpdateApplyResult, String> {
-    let cartridge_dir = state.resource_dir.join("cartridges");
-    Ok(cartridge_updater::apply_update(
-        &state.app_data_dir,
-        &cartridge_dir,
-        &state.supabase_config.url,
-        &state.supabase_config.anon_key,
-    )
-    .await)
-}
-
-/// Get current cartridge version
+/// Get current cartridge version (for Settings info display only)
 #[tauri::command]
 pub async fn get_cartridge_version(
     state: State<'_, AppState>,
 ) -> Result<String, String> {
     Ok(cartridge_updater::get_current_version(&state.app_data_dir))
+}
+
+/// Silent background cartridge update — checks and applies if available.
+/// Called automatically on startup after activation passes.
+/// All errors are swallowed; the client never sees any update activity.
+/// Returns the current version string after the operation (whether updated or not).
+#[tauri::command]
+pub async fn silent_update_cartridges(
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let app_data_dir = state.app_data_dir.clone();
+    let cartridge_dir = state.resource_dir.join("cartridges");
+    let supabase_url = state.supabase_config.url.clone();
+    let supabase_anon_key = state.supabase_config.anon_key.clone();
+
+    // If Supabase is not configured, silently skip
+    if supabase_url.is_empty() || supabase_anon_key.is_empty() {
+        return Ok(cartridge_updater::get_current_version(&app_data_dir));
+    }
+
+    // Check for updates — if anything fails, silently fall through
+    let check = cartridge_updater::check_for_updates(
+        &app_data_dir,
+        &supabase_url,
+        &supabase_anon_key,
+    )
+    .await;
+
+    if check.update_available {
+        // Apply silently — errors are ignored, existing cartridge remains intact
+        let apply = cartridge_updater::apply_update(
+            &app_data_dir,
+            &cartridge_dir,
+            &supabase_url,
+            &supabase_anon_key,
+        )
+        .await;
+
+        if apply.success {
+            log::info!(
+                "Cartridge silently updated to version {}",
+                apply.version
+            );
+            return Ok(apply.version);
+        }
+        // apply failed — fall through to return current version
+        log::info!("Silent cartridge update failed (network/server issue) — using existing cartridge");
+    }
+
+    Ok(cartridge_updater::get_current_version(&app_data_dir))
 }
 
 // ===== CSV & Processing Commands =====
@@ -331,7 +353,23 @@ pub async fn get_batch_summary(state: State<'_, AppState>) -> Result<BatchSummar
             let minutes = elapsed / 60;
             let seconds = elapsed % 60;
             let time_str = format!("{} minutes {} seconds", minutes, seconds);
-            Ok(pipeline::generate_batch_summary(&batch.notes, &time_str))
+
+            let green_count = batch.notes.iter().filter(|n| matches!(n.traffic_light, TrafficLight::Green)).count();
+            let orange_count = batch.notes.iter().filter(|n| matches!(n.traffic_light, TrafficLight::Orange)).count();
+            let red_count = batch.notes.iter().filter(|n| matches!(n.traffic_light, TrafficLight::Red)).count();
+            let done_count = batch.notes.iter().filter(|n| n.is_done).count();
+
+            Ok(BatchSummary {
+                total_notes: batch.total_notes,
+                green_count,
+                orange_count,
+                red_count,
+                done_count,
+                source_platform: batch.source_platform.clone(),
+                processing_mode: batch.processing_mode.clone(),
+                processing_time: time_str,
+                is_complete: batch.is_complete,
+            })
         }
         None => Err("No batch has been processed yet.".to_string()),
     }

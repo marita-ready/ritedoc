@@ -1063,8 +1063,9 @@ function simulateCommand(cmd, args) {
   if (cmd === 'get_cartridge_version') {
     return Promise.resolve('2.0.0');
   }
-  if (cmd === 'check_cartridge_updates') {
-    return Promise.resolve({ update_available: false, current_version: '2.0.0', latest_version: '2.0.0', message: 'Your compliance data is up to date.' });
+  if (cmd === 'silent_update_cartridges') {
+    // In browser mode, silently no-op (Tauri only)
+    return Promise.resolve('2.0.0');
   }
   if (cmd === 'get_hardware_fingerprint') {
     return Promise.resolve('RDOC-BROWSER-DEMO');
@@ -1087,16 +1088,19 @@ async function checkActivationStatus() {
       // Get fingerprint
       const fp = await invokeCommand('get_hardware_fingerprint');
       document.getElementById('settingsFingerprint').textContent = fp || '—';
+      return result; // Return for use by caller (e.g. to trigger silent update)
     } else {
       // Not activated — show activation screen
       document.getElementById('activationOverlay').style.display = 'flex';
       document.getElementById('appShell').style.display = 'none';
+      return null;
     }
   } catch (e) {
     console.error('Activation check error:', e);
     // On error, show activation screen
     document.getElementById('activationOverlay').style.display = 'flex';
     document.getElementById('appShell').style.display = 'none';
+    return null;
   }
 }
 
@@ -1163,75 +1167,43 @@ function formatSubscriptionType(type) {
   return types[type] || type || '—';
 }
 
-// ===== CARTRIDGE UPDATES =====
-async function handleCheckUpdates() {
-  const statusEl = document.getElementById('settingsUpdateStatus');
-  const applyBtn = document.getElementById('btnApplyUpdate');
-  const checkBtn = document.getElementById('btnCheckUpdates');
+// ===== CARTRIDGE UPDATES (silent, automatic — no user interaction) =====
 
-  statusEl.textContent = 'Checking for updates...';
-  checkBtn.disabled = true;
-
+/**
+ * Runs a silent background cartridge update check and install.
+ * Called once on startup after activation passes.
+ * No UI feedback is shown — the user never knows this happened.
+ * All errors are silently swallowed; the existing cartridge remains intact.
+ */
+async function runSilentCartridgeUpdate() {
+  if (!isTauri) return; // Only runs in the real Tauri app
   try {
-    const result = await invokeCommand('check_cartridge_updates');
-
-    if (result && result.update_available) {
-      statusEl.textContent = `Update available: Version ${result.latest_version}`;
-      statusEl.style.color = 'var(--orange)';
-      applyBtn.style.display = 'inline-flex';
-    } else {
-      statusEl.textContent = result ? result.message : 'Your compliance data is up to date.';
-      statusEl.style.color = 'var(--green)';
-      applyBtn.style.display = 'none';
+    const newVersion = await invokeCommand('silent_update_cartridges');
+    // Silently refresh the version display in Settings if it's already loaded
+    const versionEl = document.getElementById('settingsCartridgeVersion');
+    if (versionEl && newVersion) {
+      versionEl.textContent = 'v' + newVersion;
     }
   } catch (e) {
-    statusEl.textContent = 'Unable to check for updates. Please try again later.';
-    statusEl.style.color = 'var(--red)';
-    console.error('Update check error:', e);
-  } finally {
-    checkBtn.disabled = false;
-  }
-}
-
-async function handleApplyUpdate() {
-  const statusEl = document.getElementById('settingsUpdateStatus');
-  const applyBtn = document.getElementById('btnApplyUpdate');
-
-  statusEl.textContent = 'Downloading and installing update...';
-  applyBtn.disabled = true;
-
-  try {
-    const result = await invokeCommand('apply_cartridge_update');
-
-    if (result && result.success) {
-      statusEl.textContent = result.message;
-      statusEl.style.color = 'var(--green)';
-      applyBtn.style.display = 'none';
-      // Update version display
-      document.getElementById('settingsCartridgeVersion').textContent = result.version;
-      showToast(result.message);
-    } else {
-      statusEl.textContent = result ? result.message : 'Update failed. Please try again.';
-      statusEl.style.color = 'var(--red)';
-    }
-  } catch (e) {
-    statusEl.textContent = 'Update failed. Please try again later.';
-    statusEl.style.color = 'var(--red)';
-    console.error('Update apply error:', e);
-  } finally {
-    applyBtn.disabled = false;
+    // Completely silent — no error shown to user
   }
 }
 
 async function loadSettingsData() {
   try {
-    // Load cartridge version
+    // Load cartridge version for the Settings info line
     const version = await invokeCommand('get_cartridge_version');
-    document.getElementById('settingsCartridgeVersion').textContent = version || '2.0.0';
+    const versionEl = document.getElementById('settingsCartridgeVersion');
+    if (versionEl) {
+      versionEl.textContent = version ? 'v' + version : 'v2.0.0';
+    }
 
     // Load processing mode from hardware badge
     const badge = document.getElementById('hwBadge');
-    document.getElementById('settingsProcessingMode').textContent = badge.textContent;
+    const modeEl = document.getElementById('settingsProcessingMode');
+    if (modeEl && badge) {
+      modeEl.textContent = badge.textContent;
+    }
   } catch (e) {
     console.error('Settings load error:', e);
   }
@@ -1247,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDropzone();
 
   // Check activation status first
-  await checkActivationStatus();
+  const activationState = await checkActivationStatus();
 
   // Set hardware mode badge
   if (isTauri) {
@@ -1268,6 +1240,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load settings data
   await loadSettingsData();
+
+  // Silent background cartridge update — runs after activation is confirmed.
+  // No UI feedback. Fires and forgets. User never knows it happened.
+  if (activationState && activationState.is_activated) {
+    runSilentCartridgeUpdate(); // intentionally not awaited
+  }
 
   // Allow Enter key to trigger activation
   const activationInput = document.getElementById('activationKeyInput');
