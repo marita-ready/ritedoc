@@ -1503,6 +1503,29 @@ function simulateCommand(cmd, args) {
   if (cmd === 'get_hardware_fingerprint') {
     return Promise.resolve('RDOC-BROWSER-DEMO');
   }
+  // Platform connector stubs
+  if (cmd === 'get_connected_platforms') {
+    return Promise.resolve([
+      { platform_id: 'shiftcare', display_name: 'ShiftCare', is_implemented: false, implementation_status: 'Coming soon', status: 'NotConfigured' },
+      { platform_id: 'brevity', display_name: 'Brevity', is_implemented: false, implementation_status: 'Coming soon', status: 'NotConfigured' },
+      { platform_id: 'lumary', display_name: 'Lumary', is_implemented: false, implementation_status: 'Coming soon', status: 'NotConfigured' },
+      { platform_id: 'astalty', display_name: 'Astalty', is_implemented: false, implementation_status: 'Coming soon', status: 'NotConfigured' },
+      { platform_id: 'supportability', display_name: 'SupportAbility', is_implemented: false, implementation_status: 'Coming soon', status: 'NotConfigured' },
+      { platform_id: 'caremaster', display_name: 'CareMaster', is_implemented: false, implementation_status: 'Coming soon', status: 'NotConfigured' },
+    ]);
+  }
+  if (cmd === 'get_online_mode_status') {
+    return Promise.resolve({ is_online: false, enabled_at: null, reason: null, session_timeout_minutes: 30, minutes_remaining: null, recent_log: [] });
+  }
+  if (cmd === 'toggle_online_mode' || cmd === 'enable_online_mode' || cmd === 'disable_online_mode') {
+    return Promise.resolve({ is_online: false, enabled_at: null, reason: null, session_timeout_minutes: 30, minutes_remaining: null, recent_log: [] });
+  }
+  if (cmd === 'disconnect_platform') {
+    return Promise.resolve('Disconnected');
+  }
+  if (cmd === 'get_stored_platform_credentials') {
+    return Promise.resolve({});
+  }
   return Promise.resolve(null);
 }
 
@@ -1622,8 +1645,113 @@ async function loadSettingsData() {
     if (modeEl && badge) {
       modeEl.textContent = badge.textContent;
     }
+
+    // Load connected platforms section
+    await loadConnectedPlatforms();
+    await loadOnlineModeStatus();
   } catch (e) {
     console.error('Settings load error:', e);
+  }
+}
+
+// ===== CONNECTED PLATFORMS =====
+
+/** Load the Connected Platforms section in Settings */
+async function loadConnectedPlatforms() {
+  try {
+    const platforms = await invokeCommand('get_connected_platforms');
+    const listEl = document.getElementById('platformsList');
+    if (!listEl || !platforms) return;
+
+    listEl.innerHTML = platforms.map(p => {
+      const statusClass = p.status.replace('_', '-').toLowerCase();
+      const statusLabel = p.is_implemented
+        ? (p.status === 'Connected' ? 'Connected'
+          : p.status === 'AuthExpired' ? 'Re-auth needed'
+          : p.status === 'Error' ? 'Connection error'
+          : 'Not configured')
+        : 'Coming soon';
+
+      const actionBtn = p.is_implemented
+        ? (p.status === 'Connected'
+            ? `<button class="btn-platform-disconnect" onclick="handleDisconnectPlatform('${p.platform_id}')">Disconnect</button>`
+            : `<button class="btn-platform-connect" onclick="handleConnectPlatform('${p.platform_id}')">Connect</button>`)
+        : `<div class="platform-action-placeholder"></div>`;
+
+      return `
+        <div class="platform-row">
+          <div class="platform-info">
+            <div class="platform-name">${p.display_name}</div>
+            <div class="platform-status ${statusClass}">${statusLabel}</div>
+          </div>
+          ${actionBtn}
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('Failed to load connected platforms:', e);
+  }
+}
+
+/** Load and display the current online mode status */
+async function loadOnlineModeStatus() {
+  try {
+    const status = await invokeCommand('get_online_mode_status');
+    const toggleBtn = document.getElementById('btnOnlineModeToggle');
+    const subLabel = document.getElementById('onlineModeSubLabel');
+    const notice = document.getElementById('onlineModeNotice');
+    const timeoutSpan = document.getElementById('onlineModeTimeout');
+
+    if (!toggleBtn) return;
+
+    if (status && status.is_online) {
+      toggleBtn.textContent = 'Disable';
+      toggleBtn.classList.add('is-online');
+      if (subLabel) subLabel.textContent = 'Online — platform API connections active';
+      if (notice) notice.style.display = 'flex';
+      if (timeoutSpan && status.session_timeout_minutes > 0) {
+        timeoutSpan.textContent = status.minutes_remaining || status.session_timeout_minutes;
+      }
+    } else {
+      toggleBtn.textContent = 'Enable';
+      toggleBtn.classList.remove('is-online');
+      if (subLabel) subLabel.textContent = 'Offline \u2014 no platform connections active';
+      if (notice) notice.style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Failed to load online mode status:', e);
+  }
+}
+
+/** Toggle online mode on/off */
+async function handleToggleOnlineMode() {
+  try {
+    const status = await invokeCommand('toggle_online_mode');
+    await loadOnlineModeStatus();
+    if (status && status.is_online) {
+      showToast('Online mode enabled. Platform connections are now permitted.');
+    } else {
+      showToast('Online mode disabled.');
+    }
+  } catch (e) {
+    showToast('Failed to toggle online mode.');
+    console.error(e);
+  }
+}
+
+/** Connect a platform (placeholder — will open auth flow when connector is implemented) */
+async function handleConnectPlatform(platformId) {
+  showToast(`${platformId} connector coming soon.`);
+}
+
+/** Disconnect a platform */
+async function handleDisconnectPlatform(platformId) {
+  try {
+    await invokeCommand('disconnect_platform', { platformId });
+    showToast(`Disconnected from ${platformId}.`);
+    await loadConnectedPlatforms();
+  } catch (e) {
+    showToast('Failed to disconnect platform.');
+    console.error(e);
   }
 }
 

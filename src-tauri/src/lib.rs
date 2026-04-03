@@ -7,6 +7,9 @@ pub mod pipeline;
 pub mod models;
 pub mod commands;
 pub mod self_fix;
+pub mod connector;
+pub mod token_store;
+pub mod online_mode;
 
 use tauri::Manager;
 
@@ -134,6 +137,14 @@ pub fn run() {
             commands::save_participant_goal,
             commands::get_hardware_profile,
             commands::get_self_fix_status,
+            // Platform Connector Interface
+            commands::get_connected_platforms,
+            commands::get_online_mode_status,
+            commands::enable_online_mode,
+            commands::disable_online_mode,
+            commands::toggle_online_mode,
+            commands::disconnect_platform,
+            commands::get_stored_platform_credentials,
         ])
         .run(tauri::generate_context!())
         .expect("error while running RiteDoc application");

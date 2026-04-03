@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use crate::online_mode::OnlineMode;
 
 // ===== Processing Mode =====
 
@@ -97,6 +98,9 @@ pub struct AppState {
     pub cartridges: Mutex<Option<CartridgeSet>>,
     pub is_activated: Mutex<bool>,
     pub supabase_config: SupabaseConfig,
+    /// Online mode state — controls whether platform connector API calls are permitted.
+    /// Starts as Offline on every launch. User must explicitly enable Online mode.
+    pub online_mode: Mutex<OnlineMode>,
 }
 
 impl AppState {
@@ -123,6 +127,7 @@ impl AppState {
             cartridges: Mutex::new(None),
             is_activated: Mutex::new(false),
             supabase_config,
+            online_mode: Mutex::new(OnlineMode::new()),
         }
     }
 }

@@ -469,3 +469,105 @@ fn get_processing_mode(state: &State<'_, AppState>) -> ProcessingMode {
         .and_then(|hw| hw.as_ref().map(|h| h.mode.clone()))
         .unwrap_or(ProcessingMode::Standard)
 }
+
+// ============================================================
+// PLATFORM CONNECTOR COMMANDS
+// ============================================================
+//
+// These commands expose the connector architecture to the frontend.
+// No actual connectors are implemented yet — these commands return
+// the interface layer (platform list, online mode status, etc.).
+
+use crate::connector;
+use crate::online_mode::OnlineModeReason;
+use crate::token_store::TokenStore;
+
+/// Get the list of all supported platforms with their current connection status.
+/// Used to populate the "Connected Platforms" section in Settings.
+#[tauri::command]
+pub async fn get_connected_platforms(
+    state: State<'_, AppState>,
+) -> Result<Vec<connector::PlatformDescriptor>, String> {
+    let platforms = connector::list_all_platforms(&state.app_data_dir);
+    Ok(platforms)
+}
+
+/// Get the current online mode status.
+/// Returns whether online mode is enabled, how long it has been active,
+/// and the recent audit log.
+#[tauri::command]
+pub async fn get_online_mode_status(
+    state: State<'_, AppState>,
+) -> Result<crate::online_mode::OnlineModeStatus, String> {
+    let online_mode = state.online_mode.lock().map_err(|e| e.to_string())?;
+    Ok(online_mode.get_status())
+}
+
+/// Enable online mode.
+/// The user must explicitly call this before any platform connector
+/// API calls will be permitted.
+///
+/// Returns the updated online mode status.
+#[tauri::command]
+pub async fn enable_online_mode(
+    state: State<'_, AppState>,
+) -> Result<crate::online_mode::OnlineModeStatus, String> {
+    let mut online_mode = state.online_mode.lock().map_err(|e| e.to_string())?;
+    online_mode.enable(OnlineModeReason::UserEnabled);
+    Ok(online_mode.get_status())
+}
+
+/// Disable online mode.
+/// Returns the updated online mode status.
+#[tauri::command]
+pub async fn disable_online_mode(
+    state: State<'_, AppState>,
+) -> Result<crate::online_mode::OnlineModeStatus, String> {
+    let mut online_mode = state.online_mode.lock().map_err(|e| e.to_string())?;
+    online_mode.disable(Some("User disabled".to_string()));
+    Ok(online_mode.get_status())
+}
+
+/// Toggle online mode on/off.
+/// Returns the updated online mode status.
+#[tauri::command]
+pub async fn toggle_online_mode(
+    state: State<'_, AppState>,
+) -> Result<crate::online_mode::OnlineModeStatus, String> {
+    let mut online_mode = state.online_mode.lock().map_err(|e| e.to_string())?;
+    online_mode.toggle();
+    Ok(online_mode.get_status())
+}
+
+/// Disconnect a platform (delete its stored token).
+/// Called when the user clicks "Disconnect" in the Connected Platforms section.
+///
+/// # Arguments
+/// * `platform_id` — The platform to disconnect (e.g. "shiftcare")
+#[tauri::command]
+pub async fn disconnect_platform(
+    platform_id: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    // Get the device fingerprint for the token store
+    let fingerprint = crate::activation::generate_hardware_fingerprint();
+    let store = TokenStore::new(&state.app_data_dir, &fingerprint);
+
+    store
+        .delete_token(&platform_id)
+        .map_err(|e| e.to_string())?;
+
+    log::info!("Platform disconnected: {}", platform_id);
+    Ok(format!("Disconnected from {}", platform_id))
+}
+
+/// Get the list of platforms that have stored credentials.
+/// Used to show which platforms are "connected" vs "not configured".
+#[tauri::command]
+pub async fn get_stored_platform_credentials(
+    state: State<'_, AppState>,
+) -> Result<std::collections::HashMap<String, crate::token_store::TokenMetadata>, String> {
+    let fingerprint = crate::activation::generate_hardware_fingerprint();
+    let store = TokenStore::new(&state.app_data_dir, &fingerprint);
+    Ok(store.list_stored_platforms())
+}

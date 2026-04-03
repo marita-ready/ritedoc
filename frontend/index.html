@@ -370,6 +370,79 @@
         </div>
       </div>
 
+      <!-- ===== CONNECTED PLATFORMS ===== -->
+      <div class="settings-section">
+        <div class="settings-section-title">Connected Platforms</div>
+        <div class="settings-card">
+          <!-- Online Mode Toggle -->
+          <div class="settings-row settings-row-online-mode">
+            <div>
+              <div class="settings-label">Online Mode</div>
+              <div class="settings-sublabel" id="onlineModeSubLabel">Offline — no platform connections active</div>
+            </div>
+            <button class="btn-online-mode-toggle" id="btnOnlineModeToggle" onclick="handleToggleOnlineMode()">
+              Enable
+            </button>
+          </div>
+          <div class="settings-online-mode-notice" id="onlineModeNotice" style="display:none;">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Online mode is active. Platform API connections are permitted. Will auto-disable after <span id="onlineModeTimeout">30</span> minutes.
+          </div>
+        </div>
+
+        <!-- Platform List -->
+        <div class="platforms-list" id="platformsList">
+          <!-- Dynamically populated by loadConnectedPlatforms() -->
+          <div class="platform-row">
+            <div class="platform-info">
+              <div class="platform-name">ShiftCare</div>
+              <div class="platform-status coming-soon">Coming soon</div>
+            </div>
+            <div class="platform-action-placeholder"></div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-info">
+              <div class="platform-name">Brevity</div>
+              <div class="platform-status coming-soon">Coming soon</div>
+            </div>
+            <div class="platform-action-placeholder"></div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-info">
+              <div class="platform-name">Lumary</div>
+              <div class="platform-status coming-soon">Coming soon</div>
+            </div>
+            <div class="platform-action-placeholder"></div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-info">
+              <div class="platform-name">Astalty</div>
+              <div class="platform-status coming-soon">Coming soon</div>
+            </div>
+            <div class="platform-action-placeholder"></div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-info">
+              <div class="platform-name">SupportAbility</div>
+              <div class="platform-status coming-soon">Coming soon</div>
+            </div>
+            <div class="platform-action-placeholder"></div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-info">
+              <div class="platform-name">CareMaster</div>
+              <div class="platform-status coming-soon">Coming soon</div>
+            </div>
+            <div class="platform-action-placeholder"></div>
+          </div>
+        </div>
+        <div class="settings-platforms-note">
+          Direct platform connections allow RiteDoc to fetch notes and push rewritten notes back — no CSV export needed. Requires Online Mode to be enabled.
+        </div>
+      </div>
+
       <div class="settings-section">
         <div class="settings-section-title">Support</div>
         <div class="settings-card">
