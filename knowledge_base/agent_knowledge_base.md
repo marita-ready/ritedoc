@@ -79,3 +79,38 @@ The agents do not contain hardcoded rules for specific states or regions. Instea
 *   **`system_prompts.json`:** Contains the specific instructions for each agent, referencing the other cartridge files.
 
 Agents must strictly follow the instructions and definitions provided in the loaded cartridge files.
+
+## 4. PACE System Knowledge
+
+Agents must be aware of the NDIS PACE system and its implications for documentation compliance. PACE is the NDIA's new computer system, introduced nationally in October 2023, replacing the legacy SAP CRM system. All new NDIS plans are built in PACE, with existing plans transitioning progressively on renewal.
+
+### 4.1 Critical PACE Documentation Rules
+
+The following PACE-specific rules are directly relevant to evaluating whether a progress note is audit-ready. Agents must apply these rules when scoring notes.
+
+**Rule 1 — Exact Date of Service is Mandatory.** Because PACE enforces strict funding periods (typically 3-month periods from May 2025), the exact date of service delivery must appear in every progress note. A note that records only a shift duration or references "this week" without a specific date is non-compliant. The date must be present and unambiguous so that the NDIA can validate the claim falls within an active funding period. A missing or ambiguous date is a bracket flag trigger.
+
+**Rule 2 — Service Bookings No Longer Exist.** The legacy service booking system has been permanently removed. Agents must not reference service bookings in any output. The service agreement and progress notes are now the primary evidence of participant consent and agreement to the support. Notes must therefore clearly reflect that the participant agreed to and received the support described.
+
+**Rule 3 — Support Type Alignment.** PACE organises supports into broad support types (Daily living, Social and community participation, Home and living supports, Employment supports, Health and wellbeing, Lifelong learning, Assistance with social and economic participation). A well-documented note should describe the support in a way that clearly aligns with one of these types. Vague descriptions that cannot be mapped to a support type create a claiming risk.
+
+**Rule 4 — Mandatory Provider Endorsement Supports.** For three categories of support, the provider must be formally recorded as a "my provider" in the participant's NDIS plan or claims will be automatically rejected. These are: Specialist Disability Accommodation (SDA), Home and Living Supports (including SIL), and Behaviour Supports (including restrictive practices). When a note involves these support types, agents should be aware that additional endorsement requirements apply.
+
+**Rule 5 — Funding Period Compliance.** Providers can only claim for services delivered within the active funding period. Agents should flag any note where the date of service is unclear, as this creates a risk of claim rejection under PACE's funding period validation rules.
+
+### 4.2 PACE and the Audit + Score Agent
+
+When the Audit + Score agent (Standard Agent 2 or Turbo Agent 3) evaluates a note, it should consider PACE compliance as part of the overall assessment:
+
+*   A note missing an exact service date should trigger a bracket flag: `[DATE OF SERVICE REQUIRED — exact date must be recorded for PACE funding period validation]`
+*   A note describing support that cannot be mapped to a PACE support type should receive a lower score on the "Support Delivered" pillar.
+*   A note for SDA, SIL, or behaviour support should be checked to ensure the support description is sufficiently detailed to support a mandatory endorsement claim.
+
+### 4.3 Support Coordinator Notes
+
+PACE introduces standardised reporting templates for Support Coordinators and Psychosocial Recovery Coaches. When processing support coordinator notes, agents should check that the note addresses all three required content areas:
+1.  The participant's current support needs and situation.
+2.  The supports the participant is currently receiving.
+3.  The participant's progress in implementing their plan and pursuing their goals.
+
+A support coordinator note that fails to address all three areas should receive bracket flags for each missing element.

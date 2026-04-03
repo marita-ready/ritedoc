@@ -1,7 +1,7 @@
 {
   "state": "VIC",
-  "version": "2.0.0",
-  "last_updated": "2026-04-02",
+  "version": "2.1.0",
+  "last_updated": "2026-04-03",
   "description": "Victorian NDIS Practice Standards, Rules, and Legislative Timeframes",
   "practice_standards": {
     "core_module": [
@@ -130,5 +130,80 @@
       "Informed consent obtained before supports/changes",
       "Capacity assessments and substitute decision-maker involvement"
     ]
+  },
+  "pace_system": {
+    "description": "The PACE (Planning and Claiming Environment) system is the NDIA's new computer system, replacing the legacy SAP CRM system. Introduced nationally in October 2023, all new NDIS plans are built in PACE, with existing plans transitioning on renewal.",
+    "portals": {
+      "myplace_provider_portal": "Used for all financial transactions, including submitting payment claims. No changes to claim submission process or support item codes.",
+      "my_ndis_provider_portal": "Used for claim and payment enquiries, accepting requests for service, and submitting support coordinator reports. Replaces the enquiry function in myplace."
+    },
+    "key_changes": {
+      "service_bookings_removed": "Service bookings have been permanently removed. Providers no longer need to create service bookings before claiming. Participants now have greater flexibility in using their funding.",
+      "my_providers_system": {
+        "description": "Participants formally record their preferred providers on their NDIS plan. Being recorded as a 'my provider' authorises the provider to receive payments.",
+        "payment_speed_recorded": "Claims from recorded 'my providers' are generally paid within 2 to 3 business days.",
+        "payment_speed_unrecorded": "Claims from providers not recorded as 'my providers' trigger an SMS validation to the participant, delaying payment by up to 10 business days.",
+        "mandatory_endorsement_required": [
+          "Specialist Disability Accommodation (SDA)",
+          "Home and Living Supports (including Supported Independent Living - SIL)",
+          "Behaviour Supports (including restrictive practices)"
+        ],
+        "mandatory_endorsement_note": "Providers delivering these supports MUST be recorded as a 'my provider' regardless of plan management type. Claims will be automatically rejected if not recorded."
+      },
+      "support_categories": {
+        "description": "PACE introduces 21 support categories (up from 15). Budgets are set at the support category level, giving participants more flexibility within categories.",
+        "support_types": [
+          "Daily living",
+          "Social and community participation",
+          "Home and living supports",
+          "Employment supports",
+          "Health and wellbeing",
+          "Lifelong learning",
+          "Assistance with social and economic participation"
+        ],
+        "flexibility_note": "Participants can generally move funding between support types within the same category (e.g., Core Supports). Capacity Building and Capital supports may have 'stated' restrictions."
+      },
+      "funding_periods": {
+        "description": "Structured funding periods control when portions of a participant's total budget become available. Introduced in legislation October 2024; 3-month periods rolling out from May 2025.",
+        "claiming_rule": "Providers can only claim for services delivered within the active funding period. Claims for services outside the active period will be rejected.",
+        "rollover": "Unused funds typically roll over to the next funding period.",
+        "documentation_implication": "Progress notes MUST record the exact date of service delivery. The date must fall within an active funding period with available funds."
+      },
+      "overnight_payments_removed": "The legacy overnight fund release process no longer occurs. Minimum 24-hour processing for all claims. Complex claims or those requiring participant validation: up to 10 business days.",
+      "business_intelligence": "PACE includes improved business intelligence to detect unusual spending patterns. The NDIA will proactively contact participants and providers when spending is significantly higher or lower than expected."
+    },
+    "documentation_requirements": {
+      "exact_service_date": "CRITICAL: The exact date of service delivery must be recorded in every progress note and invoice. This is required for funding period validation.",
+      "support_type_alignment": "Documentation must describe the support in a way that clearly aligns with the relevant PACE support type and category to justify the claim.",
+      "service_agreement_as_evidence": "With service bookings removed, the service agreement and progress notes are the primary evidence of participant consent and agreement to the support.",
+      "support_coordinator_reporting": {
+        "description": "PACE introduces mandatory standardised reporting templates for Support Coordinators and Psychosocial Recovery Coaches.",
+        "templates": [
+          "Form - Support Coordinator Progress Report",
+          "Form - Support Coordinator Implementation Report",
+          "Form - Recovery Coach Progress Report",
+          "Form - Recovery Coach Implementation Report"
+        ],
+        "submission_portal": "Reports must be submitted as attachments through the my NDIS provider portal.",
+        "content_required": [
+          "Participant's support needs and situation",
+          "Supports the participant is currently receiving",
+          "Participant's progress in implementing their plan and pursuing their goals"
+        ],
+        "timing": "Reports are due at set intervals across the life of the plan. Providers must log in to the my NDIS provider portal regularly to track due dates."
+      }
+    },
+    "claim_validation_rules": {
+      "funding_period_check": "Claim date must fall within an active funding period for the relevant support category.",
+      "my_provider_check": "For SDA, home and living, and behaviour supports: provider must be recorded as a 'my provider' or claim will be rejected.",
+      "support_item_codes": "Support item codes and descriptions are unchanged from the legacy system. Codes automatically map to the correct budget in PACE.",
+      "no_overnight_release": "Claims submitted after business hours are not processed until the next business day at the earliest."
+    },
+    "transition_status": {
+      "rollout_started": "October 2023",
+      "new_plans": "All new NDIS plans built in PACE from October 2023 onwards.",
+      "existing_plans": "Transitioning progressively on plan renewal or reassessment.",
+      "dual_system_period": "During transition, providers must operate across both legacy and PACE systems depending on the individual participant's plan."
+    }
   }
 }
