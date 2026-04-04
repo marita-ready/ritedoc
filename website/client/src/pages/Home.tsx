@@ -249,7 +249,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                href="/waitlist"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#2563EB] font-bold rounded-full hover:bg-blue-50 transition-all shadow-lg"

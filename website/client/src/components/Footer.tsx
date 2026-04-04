@@ -59,7 +59,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                  href="/waitlist"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-slate-400 text-sm hover:text-white transition-colors"

@@ -46,7 +46,7 @@ export default function Navbar() {
             </Link>
           ))}
           <a
-            href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+            href="/waitlist"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-5 py-2.5 bg-[#2563EB] text-white text-sm font-semibold rounded-full hover:bg-[#1d4ed8] transition-colors shadow-sm"
@@ -89,7 +89,7 @@ export default function Navbar() {
               </Link>
             ))}
             <a
-              href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+              href="/waitlist"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center px-5 py-2.5 bg-[#2563EB] text-white text-sm font-semibold rounded-full hover:bg-[#1d4ed8] transition-colors mt-2"

@@ -8,7 +8,7 @@ import Layout from "@/components/Layout";
 import SectionReveal from "@/components/SectionReveal";
 import { MapPin, Mail, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 
-const BREVO_API_KEY = "BREVO_API_KEY_HERE"; // Replace with your actual API key
+const BREVO_API_KEY = "REDACTED_BREVO_API_KEY";
 // List ID 7 = "Website Contact Form" list (pre-created in Brevo)
 const CONTACT_LIST_ID = 7;
 
@@ -245,7 +245,7 @@ export default function Contact() {
                     founders pricing.
                   </p>
                   <a
-                    href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                    href="/waitlist"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-[#2563EB] font-semibold text-sm hover:underline"

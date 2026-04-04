@@ -57,7 +57,7 @@ export default function RiteDoc() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                  href="/waitlist"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#2563EB] text-white font-semibold rounded-full hover:bg-[#1d4ed8] transition-all shadow-lg shadow-blue-500/25"
@@ -368,7 +368,7 @@ export default function RiteDoc() {
                     ))}
                   </ul>
                   <a
-                    href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                    href="/waitlist"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-white text-[#2563EB] font-bold rounded-full hover:bg-blue-50 transition-all"
@@ -405,7 +405,7 @@ export default function RiteDoc() {
                   ))}
                 </ul>
                 <a
-                  href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                  href="/waitlist"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-[#2563EB] text-white font-bold rounded-full hover:bg-[#1d4ed8] transition-all"
@@ -446,7 +446,7 @@ export default function RiteDoc() {
                   ))}
                 </ul>
                 <a
-                  href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                  href="/waitlist"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-[#2563EB] text-white font-bold rounded-full hover:bg-[#1d4ed8] transition-all"
@@ -505,7 +505,7 @@ export default function RiteDoc() {
                 <ExternalLink size={18} />
               </a>
               <a
-                href="https://ritedoclp-dqtvlarf.manus.space/#waitlist"
+                href="/waitlist"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent text-white font-bold rounded-full border-2 border-white/50 hover:border-white hover:bg-white/10 transition-all"
