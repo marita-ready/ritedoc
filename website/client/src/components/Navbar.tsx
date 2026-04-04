@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
 
-const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x8jEx5KEDKsd5jH6tTYGE/ritedoc-logo_2fd9866b.png";
+const LOGO_URL = "/readycompliant-logo.png";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -19,15 +19,12 @@ export default function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
       <nav className="container flex items-center justify-between py-3 md:py-4">
         {/* Logo + Company Name */}
-        <Link href="/" className="flex items-center gap-3 shrink-0">
-          <div className="hidden sm:flex flex-col leading-tight">
-            <span className="text-[15px] font-extrabold text-slate-900 tracking-tight">
-              ReadyCompliant
-            </span>
-            <span className="text-[11px] text-slate-400 font-medium tracking-wide">
-              NDIS Documentation Tools
-            </span>
-          </div>
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <img
+            src={LOGO_URL}
+            alt="ReadyCompliant"
+            className="h-10 md:h-12 w-auto"
+          />
         </Link>
 
         {/* Desktop nav */}
@@ -45,14 +42,12 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <a
+          <Link
             href="/waitlist"
-            target="_blank"
-            rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-5 py-2.5 bg-[#2563EB] text-white text-sm font-semibold rounded-full hover:bg-[#1d4ed8] transition-colors shadow-sm"
           >
             Join Waitlist
-          </a>
+          </Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -71,8 +66,7 @@ export default function Navbar() {
           <div className="container py-4 flex flex-col gap-3">
             {/* Show company name in mobile menu */}
             <div className="pb-2 mb-2 border-b border-gray-100">
-              <span className="text-sm font-bold text-slate-900">ReadyCompliant</span>
-              <span className="text-xs text-slate-400 ml-2">NDIS Documentation Tools</span>
+              <img src={LOGO_URL} alt="ReadyCompliant" className="h-8 w-auto" />
             </div>
             {navLinks.map((link) => (
               <Link
@@ -88,14 +82,13 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <a
+            <Link
               href="/waitlist"
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
               className="inline-flex items-center justify-center px-5 py-2.5 bg-[#2563EB] text-white text-sm font-semibold rounded-full hover:bg-[#1d4ed8] transition-colors mt-2"
             >
               Join Waitlist
-            </a>
+            </Link>
           </div>
         </div>
       )}

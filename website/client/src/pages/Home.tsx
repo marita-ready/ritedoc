@@ -22,7 +22,7 @@ import {
   Rocket,
 } from "lucide-react";
 
-const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x8jEx5KEDKsd5jH6tTYGE/hero-illustration-8n5tjxggeaDNWunGsXwZpU.webp";
+const HERO_IMG = "/hero-image.jpeg";
 const PRODUCT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x8jEx5KEDKsd5jH6tTYGE/ritedoc-product-visual-VebZrgvyfZ39f8LV87eQif.webp";
 
 export default function Home() {
@@ -34,8 +34,8 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left — Text */}
             <div className="animate-fade-in-up">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight mb-6">
-                ReadyCompliant
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
+                <span style={{background: "linear-gradient(180deg, #3CB371 0%, #006B3F 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"}}>Ready</span><span style={{background: "linear-gradient(90deg, #006B3F 0%, #006B3F 30%, #D4A843 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"}}>Compliant</span>
               </h1>
               <p className="text-xl md:text-2xl text-slate-600 leading-relaxed max-w-lg mb-4">
                 Practical tools for NDIS providers and their admin teams.
@@ -47,7 +47,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/ritedoc"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#2563EB] text-white font-semibold rounded-full hover:bg-[#1d4ed8] transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#16A34A] text-white font-semibold rounded-full hover:bg-[#15803D] transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
                 >
                   Discover RiteDoc
                   <ArrowRight size={18} />
@@ -65,8 +65,8 @@ export default function Home() {
             <div className="animate-fade-in-up-delay-2">
               <img
                 src={HERO_IMG}
-                alt="NDIS documentation tools illustration"
-                className="w-full rounded-2xl"
+                alt="Team collaboration at ReadyCompliant"
+                className="w-full rounded-2xl shadow-xl shadow-slate-200/50 object-cover aspect-[4/3]"
               />
             </div>
           </div>
@@ -74,10 +74,10 @@ export default function Home() {
       </section>
 
       {/* ===== THE PROBLEM WE SOLVE ===== */}
-      <section className="bg-[#F8FAFC] py-20 md:py-28">
+      <section className="bg-[#F8F4ED] py-20 md:py-28">
         <div className="container">
           <SectionReveal className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mt-3 mb-5">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#006B3F] mt-3 mb-5">
               The Problem We Solve
             </h2>
             <p className="text-slate-600 text-lg leading-relaxed">
@@ -90,30 +90,30 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                icon: <Shield className="text-[#2563EB]" size={28} />,
+                icon: <Shield className="text-[#D4A843]" size={28} />,
                 title: "Audit-Prepared Drafts",
                 description:
                   "RiteDoc rewrites raw progress notes into audit-prepared drafts. Your admin team reviews, then copies them back into your platform.",
               },
               {
-                icon: <Zap className="text-[#2563EB]" size={28} />,
+                icon: <Zap className="text-[#D4A843]" size={28} />,
                 title: "Hours Back Every Week",
                 description:
                   "Stop spending hours rewriting notes manually. Import a CSV, get polished drafts back in seconds.",
               },
               {
-                icon: <Lock className="text-[#2563EB]" size={28} />,
+                icon: <Lock className="text-[#D4A843]" size={28} />,
                 title: "Your Data Stays Put",
                 description:
                   "Everything runs on your device. No cloud uploads, no third-party access. Your participant data never leaves your computer.",
               },
             ].map((feature, i) => (
               <SectionReveal key={i} delay={i * 0.1}>
-                <div className="bg-white rounded-xl p-8 border border-slate-100 hover:border-[#2563EB]/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 h-full">
-                  <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center mb-5">
+                <div className="bg-white rounded-xl p-8 border border-slate-100 hover:border-[#006B3F]/20 hover:shadow-lg hover:shadow-green-500/5 transition-all duration-300 h-full">
+                  <div className="w-12 h-12 rounded-lg bg-[#F5F0E8] flex items-center justify-center mb-5">
                     {feature.icon}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-3">{feature.title}</h3>
+                  <h3 className="text-lg font-bold text-[#006B3F] mb-3">{feature.title}</h3>
                   <p className="text-slate-600 leading-relaxed">{feature.description}</p>
                 </div>
               </SectionReveal>
@@ -135,10 +135,10 @@ export default function Home() {
             </SectionReveal>
 
             <SectionReveal delay={0.15}>
-              <span className="text-[#2563EB] text-sm font-semibold uppercase tracking-widest">
+              <span className="text-[#006B3F] text-sm font-semibold uppercase tracking-widest">
                 Our First Product
               </span>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mt-3 mb-5">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#006B3F] mt-3 mb-5">
                 RiteDoc — Notes Done Right
               </h2>
               <p className="text-slate-600 text-lg leading-relaxed mb-6">
@@ -155,7 +155,7 @@ export default function Home() {
                   { icon: <Clipboard size={20} />, text: "Platform-aware clipboard — copy drafts straight back in" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="text-[#2563EB] mt-0.5 shrink-0">{item.icon}</div>
+                    <div className="text-[#D4A843] mt-0.5 shrink-0">{item.icon}</div>
                     <span className="text-slate-700">{item.text}</span>
                   </div>
                 ))}
@@ -164,7 +164,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/ritedoc"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#2563EB] text-white font-semibold rounded-full hover:bg-[#1d4ed8] transition-all shadow-lg shadow-blue-500/25"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#16A34A] text-white font-semibold rounded-full hover:bg-[#15803D] transition-all shadow-lg shadow-green-500/25"
                 >
                   Learn More
                   <ArrowRight size={18} />
@@ -184,10 +184,10 @@ export default function Home() {
       </section>
 
       {/* ===== WHAT'S NEXT ===== */}
-      <section className="bg-[#F8FAFC] py-20 md:py-28">
+      <section className="bg-[#F8F4ED] py-20 md:py-28">
         <div className="container">
           <SectionReveal className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mt-3 mb-5">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#006B3F] mt-3 mb-5">
               What's Next
             </h2>
             <p className="text-slate-600 text-lg leading-relaxed">
@@ -199,12 +199,12 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <SectionReveal>
               <div className="bg-white rounded-xl p-8 border border-slate-100 border-dashed h-full">
-                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center mb-5">
-                  <Package className="text-[#2563EB]" size={28} />
+                <div className="w-12 h-12 rounded-lg bg-[#F5F0E8] flex items-center justify-center mb-5">
+                  <Package className="text-[#D4A843]" size={28} />
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-lg font-bold text-slate-900">BIAB — Business in a Box</h3>
-                  <span className="text-xs font-semibold bg-blue-50 text-[#2563EB] px-2.5 py-1 rounded-full">
+                  <h3 className="text-lg font-bold text-[#006B3F]">BIAB — Business in a Box</h3>
+                  <span className="text-xs font-semibold bg-[#F5F0E8] text-[#006B3F] px-2.5 py-1 rounded-full">
                     Coming Soon
                   </span>
                 </div>
@@ -217,12 +217,12 @@ export default function Home() {
 
             <SectionReveal delay={0.1}>
               <div className="bg-white rounded-xl p-8 border border-slate-100 border-dashed h-full">
-                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center mb-5">
-                  <Rocket className="text-[#2563EB]" size={28} />
+                <div className="w-12 h-12 rounded-lg bg-[#F5F0E8] flex items-center justify-center mb-5">
+                  <Rocket className="text-[#D4A843]" size={28} />
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-lg font-bold text-slate-900">More Platform Integrations</h3>
-                  <span className="text-xs font-semibold bg-blue-50 text-[#2563EB] px-2.5 py-1 rounded-full">
+                  <h3 className="text-lg font-bold text-[#006B3F]">More Platform Integrations</h3>
+                  <span className="text-xs font-semibold bg-[#F5F0E8] text-[#006B3F] px-2.5 py-1 rounded-full">
                     Coming Soon
                   </span>
                 </div>
@@ -237,14 +237,14 @@ export default function Home() {
       </section>
 
       {/* ===== CTA SECTION ===== */}
-      <section className="bg-[#2563EB] py-20 md:py-24">
+      <section className="bg-white py-20 md:py-24 border-t border-slate-100">
         <div className="container text-center">
           <SectionReveal>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-5">
-              Join the RiteDoc Waitlist
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-5">
+              Join the <span className="text-[#2563EB]">Rite</span><span className="text-[#1E293B]">Doc</span> Waitlist
             </h2>
-            <p className="text-blue-100 text-lg max-w-xl mx-auto mb-8 leading-relaxed">
-              Be among the first to access RiteDoc at founders pricing —
+            <p className="text-slate-600 text-lg max-w-xl mx-auto mb-8 leading-relaxed">
+              Be among the first to access <span className="font-semibold text-[#2563EB]">Rite</span><span className="font-semibold text-[#1E293B]">Doc</span> at founders pricing —
               $97/month, locked in forever.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -252,14 +252,14 @@ export default function Home() {
                 href="/waitlist"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#2563EB] font-bold rounded-full hover:bg-blue-50 transition-all shadow-lg"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2563EB] text-white font-bold rounded-full hover:bg-[#1d4ed8] transition-all shadow-lg shadow-blue-500/25"
               >
                 Join the Waitlist
                 <ArrowRight size={18} />
               </a>
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent text-white font-semibold rounded-full border-2 border-white/30 hover:border-white/60 transition-all"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-slate-700 font-semibold rounded-full border-2 border-slate-200 hover:border-slate-400 transition-all"
               >
                 Get in Touch
               </Link>
