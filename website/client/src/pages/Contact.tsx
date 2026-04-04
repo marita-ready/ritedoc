@@ -8,7 +8,7 @@ import Layout from "@/components/Layout";
 import SectionReveal from "@/components/SectionReveal";
 import { MapPin, Mail, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 
-const BREVO_API_KEY = "REDACTED_BREVO_API_KEY";
+const BREVO_API_KEY = "BREVO_API_KEY_HERE"; // Replace with your actual API key
 // List ID 7 = "Website Contact Form" list (pre-created in Brevo)
 const CONTACT_LIST_ID = 7;
 
@@ -85,10 +85,10 @@ export default function Contact() {
       <section className="bg-white py-16 md:py-24">
         <div className="container">
           <div className="max-w-3xl animate-fade-in-up">
-            <span className="text-[#2563EB] text-sm font-semibold uppercase tracking-widest">
+            <span className="text-[#006B3F] text-sm font-semibold uppercase tracking-widest">
               Contact Us
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight mt-3 mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#006B3F] leading-[1.1] tracking-tight mt-3 mb-6">
               Let's Talk.
             </h1>
             <p className="text-xl text-slate-600 leading-relaxed">
@@ -99,7 +99,7 @@ export default function Contact() {
       </section>
 
       {/* ===== FORM + INFO ===== */}
-      <section className="bg-[#F8FAFC] py-20 md:py-28">
+      <section className="bg-[#F8F4ED] py-20 md:py-28">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16">
             {/* Form */}
@@ -110,7 +110,7 @@ export default function Contact() {
                     <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5">
                       <CheckCircle className="text-green-500" size={32} />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-3">Message Sent!</h3>
+                    <h3 className="text-2xl font-bold text-[#006B3F] mb-3">Message Sent!</h3>
                     <p className="text-slate-600 mb-6">
                       Thanks for reaching out. We'll get back to you as soon as possible.
                     </p>
@@ -177,7 +177,7 @@ export default function Contact() {
                     <button
                       type="submit"
                       disabled={formState === "loading"}
-                      className="inline-flex items-center justify-center gap-2 w-full px-7 py-3.5 bg-[#2563EB] text-white font-semibold rounded-full hover:bg-[#1d4ed8] transition-all shadow-lg shadow-blue-500/25 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-2 w-full px-7 py-3.5 bg-[#16A34A] text-white font-semibold rounded-full hover:bg-[#15803D] transition-all shadow-lg shadow-green-500/25 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {formState === "loading" ? (
                         <>
@@ -200,7 +200,7 @@ export default function Contact() {
             <SectionReveal className="lg:col-span-2" delay={0.15}>
               <div className="space-y-8">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">Get in Touch</h3>
+                  <h3 className="text-xl font-bold text-[#006B3F] mb-4">Get in Touch</h3>
                   <p className="text-slate-600 leading-relaxed">
                     Whether you have a question about RiteDoc, want to discuss a partnership,
                     or just want to say hello — we're here for you.
@@ -209,11 +209,11 @@ export default function Contact() {
 
                 <div className="space-y-5">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                      <Mail className="text-[#2563EB]" size={20} />
+                    <div className="w-10 h-10 rounded-lg bg-[#F5F0E8] flex items-center justify-center shrink-0">
+                      <Mail className="text-[#D4A843]" size={20} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-slate-900 text-sm mb-1">Email</h4>
+                      <h4 className="font-semibold text-[#006B3F] text-sm mb-1">Email</h4>
                       <a
                         href="mailto:hello@readycompliant.com"
                         className="text-[#2563EB] hover:underline"
@@ -224,11 +224,11 @@ export default function Contact() {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                      <MapPin className="text-[#2563EB]" size={20} />
+                    <div className="w-10 h-10 rounded-lg bg-[#F5F0E8] flex items-center justify-center shrink-0">
+                      <MapPin className="text-[#D4A843]" size={20} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-slate-900 text-sm mb-1">Location</h4>
+                      <h4 className="font-semibold text-[#006B3F] text-sm mb-1">Location</h4>
                       <p className="text-slate-600">
                         Mornington, Victoria
                         <br />
@@ -238,8 +238,8 @@ export default function Contact() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-xl p-6">
-                  <h4 className="font-bold text-slate-900 mb-2">Looking for RiteDoc?</h4>
+                <div className="bg-[#F5F0E8] rounded-xl p-6">
+                  <h4 className="font-bold text-[#006B3F] mb-2">Looking for RiteDoc?</h4>
                   <p className="text-slate-600 text-sm leading-relaxed mb-4">
                     Join the waitlist to be among the first to access RiteDoc at our special
                     founders pricing.

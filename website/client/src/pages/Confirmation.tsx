@@ -1,41 +1,56 @@
-import { CheckCircle } from "lucide-react";
-import { useEffect } from "react";
-import { useLocation } from "wouter";
+/**
+ * Confirmation page — shown after free waitlist signup via Brevo
+ */
+
+import { Link } from "wouter";
+import Layout from "@/components/Layout";
+import { CheckCircle, ArrowRight, Lock } from "lucide-react";
+
+const STRIPE_LINK = "https://buy.stripe.com/cNibJ13wKdVc3AS9BqdIA00";
 
 export default function Confirmation() {
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    // If user navigates directly to /confirmation without going through form, redirect to waitlist
-    const fromWaitlist = sessionStorage.getItem("fromWaitlist");
-    if (!fromWaitlist) {
-      setLocation("/waitlist");
-    }
-    sessionStorage.removeItem("fromWaitlist");
-  }, [setLocation]);
-
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-6 flex justify-center">
-          <CheckCircle className="w-16 h-16 text-blue-600" />
+    <Layout>
+      <section className="min-h-[70vh] flex items-center justify-center py-24 bg-white">
+        <div className="max-w-xl mx-auto px-6 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+              <CheckCircle size={36} className="text-green-500" />
+            </div>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-[#006B3F] mb-3">
+            You're on the list!
+          </h1>
+          <p className="text-slate-600 text-lg mb-8">
+            Thanks for joining the RiteDoc waitlist. We'll be in touch as soon as we're ready to launch — and we'll remind you about Founders pricing before it closes.
+          </p>
+
+          {/* Upsell to Founders */}
+          <div className="bg-[#F8F4ED] rounded-2xl p-6 mb-8 text-left">
+            <p className="text-sm font-semibold text-[#006B3F] uppercase tracking-widest mb-2">Still interested in Founders pricing?</p>
+            <p className="text-slate-700 text-sm mb-4">
+              Lock in <strong>$97/month forever</strong> — only 17 seats available. You can still secure your spot now before they're gone.
+            </p>
+            <a
+              href={STRIPE_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-3 bg-[#16A34A] text-white font-bold rounded-full text-sm hover:bg-[#15803D] transition-all shadow-md shadow-green-500/20"
+            >
+              <Lock size={14} />
+              Lock in $97/month Founders Price
+              <ArrowRight size={14} />
+            </a>
+          </div>
+
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-slate-500 text-sm hover:text-slate-700 transition-colors"
+          >
+            ← Back to ReadyCompliant
+          </Link>
         </div>
-
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          You're on the waiting list.
-        </h1>
-
-        <p className="text-gray-600 mb-8">
-          An email will be sent to you shortly with what happens next. Exciting.
-        </p>
-
-        <button
-          onClick={() => setLocation("/")}
-          className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Return to Home
-        </button>
-      </div>
-    </div>
+      </section>
+    </Layout>
   );
 }

@@ -10,6 +10,7 @@ import SectionReveal from "@/components/SectionReveal";
 import {
   ArrowRight,
   Shield,
+  ShieldCheck,
   WifiOff,
   Layers,
   AlertTriangle,
@@ -376,6 +377,10 @@ export default function RiteDoc() {
                     Claim Founders Spot
                     <ArrowRight size={16} />
                   </a>
+                  <p className="flex items-start justify-center gap-1.5 mt-3 text-blue-200 text-xs max-w-xs mx-auto text-center">
+                    <ShieldCheck size={13} className="shrink-0 mt-0.5" />
+                    Try RiteDoc risk-free. From the day you receive access, you have 30 days to try it. If you’re not completely satisfied, we’ll refund you in full — no questions asked.
+                  </p>
                 </div>
               </div>
             </SectionReveal>

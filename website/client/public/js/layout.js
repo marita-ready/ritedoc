@@ -21,7 +21,7 @@ function renderNavbar() {
           <a href="/ritedoc.html">RiteDoc</a>
           <a href="/contact.html">Contact</a>
         </nav>
-        <a href="https://ritedoclp-dqtvlarf.manus.space" target="_blank" rel="noopener noreferrer" class="btn btn-primary navbar-cta">Join Waitlist</a>
+        <a href="/waitlist" target="_blank" rel="noopener noreferrer" class="btn btn-primary navbar-cta">Join Waitlist</a>
         <button class="navbar-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
@@ -32,7 +32,7 @@ function renderNavbar() {
       <a href="/about.html">About</a>
       <a href="/ritedoc.html">RiteDoc</a>
       <a href="/contact.html">Contact</a>
-      <a href="https://ritedoclp-dqtvlarf.manus.space" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Join Waitlist</a>
+      <a href="/waitlist" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Join Waitlist</a>
     </div>
   `;
 }
@@ -68,7 +68,7 @@ function renderFooter() {
           <h4>Product</h4>
           <ul>
             <li><a href="https://marita-ready.github.io/ritedoc/" target="_blank" rel="noopener noreferrer">RiteDoc Demo</a></li>
-            <li><a href="https://ritedoclp-dqtvlarf.manus.space" target="_blank" rel="noopener noreferrer">Join Waitlist</a></li>
+            <li><a href="/waitlist" target="_blank" rel="noopener noreferrer">Join Waitlist</a></li>
             <li><a href="/privacy.html">Privacy Policy</a></li>
             <li><a href="/terms.html">Terms of Service</a></li>
           </ul>

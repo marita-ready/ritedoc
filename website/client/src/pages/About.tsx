@@ -21,12 +21,12 @@ export default function About() {
       <section className="bg-white py-16 md:py-24">
         <div className="container">
           <div className="max-w-3xl animate-fade-in-up">
-            <span className="text-[#2563EB] text-sm font-semibold uppercase tracking-widest">
+            <span className="text-[#006B3F] text-sm font-semibold uppercase tracking-widest">
               The Founder
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight mt-3 mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#006B3F] leading-[1.1] tracking-tight mt-3 mb-6">
               I Built This Because<br />
-              <span className="text-[#2563EB]">We Need It.</span>
+              <span className="text-[#006B3F]">We Need It.</span>
             </h1>
             <div className="text-xl text-slate-600 leading-relaxed space-y-4">
               <p>
@@ -47,7 +47,7 @@ export default function About() {
       </section>
 
       {/* ===== FOUNDER STORY ===== */}
-      <section className="bg-[#F8FAFC] py-20 md:py-28">
+      <section className="bg-[#F8F4ED] py-20 md:py-28">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-start">
             {/* Photo column */}
@@ -67,10 +67,10 @@ export default function About() {
 
             {/* Story column */}
             <SectionReveal className="lg:col-span-3" delay={0.1}>
-              <span className="text-[#2563EB] text-sm font-semibold uppercase tracking-widest">
+              <span className="text-[#006B3F] text-sm font-semibold uppercase tracking-widest">
                 My Story
               </span>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mt-3 mb-6">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#006B3F] mt-3 mb-6">
                 What RiteDoc Does
               </h2>
 
@@ -86,7 +86,7 @@ export default function About() {
                   tech company. It's me — someone who understands the sector because I'm in it
                   every day.
                 </p>
-                <blockquote className="border-l-4 border-[#2563EB] pl-5 py-1 my-4">
+                <blockquote className="border-l-4 border-[#006B3F] pl-5 py-1 my-4">
                   <p className="text-slate-700 italic text-lg leading-relaxed">
                     "RiteDoc and the upcoming BIAB package are built from real experience in the
                     NDIS sector — practical tools for people who do the work, not just talk about it."
@@ -98,7 +98,7 @@ export default function About() {
               <div className="mt-8">
                 <Link
                   href="/ritedoc"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#2563EB] text-white font-semibold rounded-full hover:bg-[#1d4ed8] transition-all shadow-lg shadow-blue-500/25"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#16A34A] text-white font-semibold rounded-full hover:bg-[#15803D] transition-all shadow-lg shadow-green-500/25"
                 >
                   See What I Built
                   <ArrowRight size={18} />
@@ -113,10 +113,10 @@ export default function About() {
       <section className="bg-white py-20 md:py-28">
         <div className="container">
           <SectionReveal className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-[#2563EB] text-sm font-semibold uppercase tracking-widest">
+            <span className="text-[#006B3F] text-sm font-semibold uppercase tracking-widest">
               What I Believe
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mt-3 mb-5">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#006B3F] mt-3 mb-5">
               What Drives This Work
             </h2>
           </SectionReveal>
@@ -124,10 +124,10 @@ export default function About() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             <SectionReveal delay={0}>
               <div className="text-center p-8">
-                <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-5">
-                  <Heart className="text-[#2563EB]" size={28} />
+                <div className="w-14 h-14 rounded-xl bg-[#F5F0E8] flex items-center justify-center mx-auto mb-5">
+                  <Heart className="text-[#D4A843]" size={28} />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-3">People First</h3>
+                <h3 className="text-lg font-bold text-[#006B3F] mb-3">People First</h3>
                 <p className="text-slate-600 leading-relaxed">
                   Everything I build starts with the people who use it. I design for real NDIS admin teams, not theoretical users.
                 </p>
@@ -135,10 +135,10 @@ export default function About() {
             </SectionReveal>
             <SectionReveal delay={0.1}>
               <div className="text-center p-8">
-                <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-5">
-                  <Target className="text-[#2563EB]" size={28} />
+                <div className="w-14 h-14 rounded-xl bg-[#F5F0E8] flex items-center justify-center mx-auto mb-5">
+                  <Target className="text-[#D4A843]" size={28} />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-3">Practical Solutions</h3>
+                <h3 className="text-lg font-bold text-[#006B3F] mb-3">Practical Solutions</h3>
                 <p className="text-slate-600 leading-relaxed">
                   Every feature solves a real problem.
                 </p>
@@ -175,26 +175,26 @@ export default function About() {
       </section>
 
       {/* ===== CTA ===== */}
-      <section className="bg-[#2563EB] py-16 md:py-20">
+      <section className="bg-white py-16 md:py-20 border-t border-slate-100">
         <div className="container text-center">
           <SectionReveal>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-5">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-5">
               Want to Learn More?
             </h2>
-            <p className="text-blue-100 text-lg max-w-xl mx-auto mb-8">
-              Check out RiteDoc or get in touch — I'd love to hear from you.
+            <p className="text-slate-600 text-lg max-w-xl mx-auto mb-8">
+              Check out <span className="font-semibold text-[#2563EB]">Rite</span><span className="font-semibold text-[#1E293B]">Doc</span> or get in touch — I'd love to hear from you.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/ritedoc"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#2563EB] font-bold rounded-full hover:bg-blue-50 transition-all shadow-lg"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#16A34A] text-white font-bold rounded-full hover:bg-[#15803D] transition-all shadow-lg shadow-green-500/25"
               >
                 Explore RiteDoc
                 <ArrowRight size={18} />
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent text-white font-semibold rounded-full border-2 border-white/30 hover:border-white/60 transition-all"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-slate-700 font-semibold rounded-full border-2 border-slate-200 hover:border-slate-400 transition-all"
               >
                 Get in Touch
               </Link>
