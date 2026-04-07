@@ -20,27 +20,22 @@ const NAV_ITEMS = [
     end: true,
   },
   {
-    to: "/new-note",
-    label: "New Note",
+    to: "/rewrite",
+    label: "Rewrite Note",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path
-          d="M10 4V16M4 10H16"
+          d="M3 17L6.5 16L15.5 7C16.05 6.45 16.05 5.55 15.5 5L15 4.5C14.45 3.95 13.55 3.95 13 4.5L4 13.5L3 17Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 5.5L14.5 8"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
         />
-      </svg>
-    ),
-  },
-  {
-    to: "/goals",
-    label: "Goals",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="10" cy="10" r="4" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="10" cy="10" r="1.25" fill="currentColor" />
       </svg>
     ),
   },

@@ -8,8 +8,7 @@ import OnboardingCartridges from "./pages/onboarding/CartridgeSelect";
 
 import MainLayout from "./components/MainLayout";
 import Home from "./pages/main/Home";
-import NewNote from "./pages/main/NewNote";
-import Goals from "./pages/main/Goals";
+import RewriteNote from "./pages/main/NewNote";
 import Settings from "./pages/main/Settings";
 
 import "./App.css";
@@ -78,8 +77,7 @@ function App() {
           }
         >
           <Route index element={<Home />} />
-          <Route path="new-note" element={<NewNote />} />
-          <Route path="goals" element={<Goals />} />
+          <Route path="rewrite" element={<RewriteNote />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

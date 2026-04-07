@@ -32,11 +32,13 @@ impl Database {
     }
 
     /// Create all tables if they do not already exist.
+    /// Only configuration/preference tables — RiteDoc stores zero client data.
     fn run_migrations(&self) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
 
         conn.execute_batch(
             "
+            -- Cartridge definitions (app configuration — what service types are available)
             CREATE TABLE IF NOT EXISTS cartridges (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 name            TEXT NOT NULL,
@@ -47,25 +49,15 @@ impl Database {
                 created_at      TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
+            -- App preferences (user name, org, onboarding status — NOT client data)
             CREATE TABLE IF NOT EXISTS settings (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 key             TEXT NOT NULL UNIQUE,
                 value           TEXT NOT NULL DEFAULT ''
             );
 
-            CREATE TABLE IF NOT EXISTS goals (
-                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                participant_name    TEXT NOT NULL DEFAULT '',
-                goal_text           TEXT NOT NULL DEFAULT '',
-                status              TEXT NOT NULL DEFAULT 'active',
-                notes               TEXT NOT NULL DEFAULT '',
-                created_at          TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-
-            -- Indexes for common queries
+            -- Indexes
             CREATE INDEX IF NOT EXISTS idx_cartridges_is_active ON cartridges(is_active);
-            CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status);
             CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
             ",
         )?;

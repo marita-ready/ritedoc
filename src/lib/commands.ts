@@ -21,14 +21,11 @@ export interface Cartridge {
   created_at: string;
 }
 
-export interface Goal {
-  id: number;
-  participant_name: string;
-  goal_text: string;
-  status: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
+export interface RewriteResult {
+  final_text: string;
+  compliance_analysis: string;
+  draft_text: string;
+  review_notes: string;
 }
 
 // ─────────────────────────────────────────────
@@ -75,39 +72,15 @@ export async function setSetting(
 }
 
 // ─────────────────────────────────────────────
-//  Goals
+//  Rewrite pipeline
 // ─────────────────────────────────────────────
 
-export async function createGoal(
-  participantName: string,
-  goalText: string,
-  status?: string,
-  notes?: string
-): Promise<Goal> {
-  return invoke<Goal>("create_goal", {
-    participantName,
-    goalText,
-    status: status ?? null,
-    notes: notes ?? null,
-  });
-}
-
-export async function getGoals(): Promise<Goal[]> {
-  return invoke<Goal[]>("get_goals");
-}
-
-export async function updateGoal(
-  id: number,
-  participantName?: string,
-  goalText?: string,
-  status?: string,
-  notes?: string
-): Promise<Goal> {
-  return invoke<Goal>("update_goal", {
-    id,
-    participantName: participantName ?? null,
-    goalText: goalText ?? null,
-    status: status ?? null,
-    notes: notes ?? null,
+export async function rewriteNote(
+  rawText: string,
+  cartridgeId: number
+): Promise<RewriteResult> {
+  return invoke<RewriteResult>("rewrite_note", {
+    rawText,
+    cartridgeId,
   });
 }

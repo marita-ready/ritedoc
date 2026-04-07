@@ -26,19 +26,8 @@ pub struct Setting {
     pub value: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Goal {
-    pub id: i64,
-    pub participant_name: String,
-    pub goal_text: String,
-    pub status: String,
-    pub notes: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
 // ─────────────────────────────────────────────
-//  Cartridges CRUD
+//  Cartridges
 // ─────────────────────────────────────────────
 
 #[tauri::command]
@@ -148,7 +137,7 @@ pub fn get_active_cartridges(db: State<'_, Database>) -> Result<Vec<Cartridge>, 
 }
 
 // ─────────────────────────────────────────────
-//  Settings CRUD
+//  Settings (app preferences only — NOT client data)
 // ─────────────────────────────────────────────
 
 #[tauri::command]
@@ -179,142 +168,4 @@ pub fn set_setting(db: State<'_, Database>, key: String, value: String) -> Resul
     .map_err(|e| e.to_string())?;
 
     Ok(true)
-}
-
-// ─────────────────────────────────────────────
-//  Goals CRUD
-// ─────────────────────────────────────────────
-
-#[tauri::command]
-pub fn create_goal(
-    db: State<'_, Database>,
-    participant_name: String,
-    goal_text: String,
-    status: Option<String>,
-    notes: Option<String>,
-) -> Result<Goal, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
-
-    let goal_status = status.unwrap_or_else(|| "active".to_string());
-    let goal_notes = notes.unwrap_or_default();
-
-    conn.execute(
-        "INSERT INTO goals (participant_name, goal_text, status, notes) VALUES (?1, ?2, ?3, ?4)",
-        rusqlite::params![participant_name, goal_text, goal_status, goal_notes],
-    )
-    .map_err(|e| e.to_string())?;
-
-    let id = conn.last_insert_rowid();
-
-    let goal = conn
-        .query_row(
-            "SELECT id, participant_name, goal_text, status, notes, created_at, updated_at FROM goals WHERE id = ?1",
-            rusqlite::params![id],
-            |row| {
-                Ok(Goal {
-                    id: row.get(0)?,
-                    participant_name: row.get(1)?,
-                    goal_text: row.get(2)?,
-                    status: row.get(3)?,
-                    notes: row.get(4)?,
-                    created_at: row.get(5)?,
-                    updated_at: row.get(6)?,
-                })
-            },
-        )
-        .map_err(|e| e.to_string())?;
-
-    Ok(goal)
-}
-
-#[tauri::command]
-pub fn get_goals(db: State<'_, Database>) -> Result<Vec<Goal>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, participant_name, goal_text, status, notes, created_at, updated_at FROM goals ORDER BY created_at DESC",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let goals = stmt
-        .query_map([], |row| {
-            Ok(Goal {
-                id: row.get(0)?,
-                participant_name: row.get(1)?,
-                goal_text: row.get(2)?,
-                status: row.get(3)?,
-                notes: row.get(4)?,
-                created_at: row.get(5)?,
-                updated_at: row.get(6)?,
-            })
-        })
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-
-    Ok(goals)
-}
-
-#[tauri::command]
-pub fn update_goal(
-    db: State<'_, Database>,
-    id: i64,
-    participant_name: Option<String>,
-    goal_text: Option<String>,
-    status: Option<String>,
-    notes: Option<String>,
-) -> Result<Goal, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
-
-    // Fetch existing goal
-    let existing = conn
-        .query_row(
-            "SELECT id, participant_name, goal_text, status, notes, created_at, updated_at FROM goals WHERE id = ?1",
-            rusqlite::params![id],
-            |row| {
-                Ok(Goal {
-                    id: row.get(0)?,
-                    participant_name: row.get(1)?,
-                    goal_text: row.get(2)?,
-                    status: row.get(3)?,
-                    notes: row.get(4)?,
-                    created_at: row.get(5)?,
-                    updated_at: row.get(6)?,
-                })
-            },
-        )
-        .map_err(|e| format!("Goal not found: {}", e))?;
-
-    let new_name = participant_name.unwrap_or(existing.participant_name);
-    let new_text = goal_text.unwrap_or(existing.goal_text);
-    let new_status = status.unwrap_or(existing.status);
-    let new_notes = notes.unwrap_or(existing.notes);
-
-    conn.execute(
-        "UPDATE goals SET participant_name = ?1, goal_text = ?2, status = ?3, notes = ?4, updated_at = datetime('now') WHERE id = ?5",
-        rusqlite::params![new_name, new_text, new_status, new_notes, id],
-    )
-    .map_err(|e| e.to_string())?;
-
-    // Return the updated goal
-    let goal = conn
-        .query_row(
-            "SELECT id, participant_name, goal_text, status, notes, created_at, updated_at FROM goals WHERE id = ?1",
-            rusqlite::params![id],
-            |row| {
-                Ok(Goal {
-                    id: row.get(0)?,
-                    participant_name: row.get(1)?,
-                    goal_text: row.get(2)?,
-                    status: row.get(3)?,
-                    notes: row.get(4)?,
-                    created_at: row.get(5)?,
-                    updated_at: row.get(6)?,
-                })
-            },
-        )
-        .map_err(|e| e.to_string())?;
-
-    Ok(goal)
 }

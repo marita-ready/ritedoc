@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getGoals, getSetting } from "../../lib/commands";
+import { getSetting, getActiveCartridges } from "../../lib/commands";
 
 export default function Home() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
-  const [totalGoals, setTotalGoals] = useState(0);
-  const [activeGoals, setActiveGoals] = useState(0);
-  const [completedGoals, setCompletedGoals] = useState(0);
+  const [cartridgeCount, setCartridgeCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,14 +14,12 @@ export default function Home() {
 
   async function loadDashboard() {
     try {
-      const [goals, name] = await Promise.all([
-        getGoals(),
+      const [name, cartridges] = await Promise.all([
         getSetting("user_name"),
+        getActiveCartridges(),
       ]);
-      setTotalGoals(goals.length);
-      setActiveGoals(goals.filter((g) => g.status === "active").length);
-      setCompletedGoals(goals.filter((g) => g.status === "completed").length);
       setUserName(name ?? "");
+      setCartridgeCount(cartridges.length);
     } catch (err) {
       console.error("Failed to load dashboard:", err);
     } finally {
@@ -45,15 +41,15 @@ export default function Home() {
         <h1>
           {userName ? `Welcome back, ${userName}` : "Welcome back"}
         </h1>
-        <p>Ready to write some notes?</p>
+        <p>Ready to rewrite some notes?</p>
       </div>
 
-      {/* Quick action — primary CTA */}
+      {/* Primary CTA */}
       <div
         style={{
           background: "var(--blue-600)",
           borderRadius: "var(--radius-lg)",
-          padding: "1.5rem",
+          padding: "2rem 1.5rem",
           marginBottom: "1.5rem",
           display: "flex",
           alignItems: "center",
@@ -66,20 +62,22 @@ export default function Home() {
             style={{
               color: "var(--white)",
               fontWeight: 600,
-              fontSize: "1rem",
-              margin: "0 0 0.25rem",
+              fontSize: "1.125rem",
+              margin: "0 0 0.375rem",
             }}
           >
-            Write a Note
+            Rewrite a Note
           </p>
           <p
             style={{
               color: "rgba(255,255,255,0.75)",
               fontSize: "0.875rem",
               margin: 0,
+              maxWidth: 420,
             }}
           >
-            Paste your raw observations and get a professional rewrite instantly.
+            Paste your raw observations, select a service cartridge, and get an
+            audit-ready rewrite in seconds.
           </p>
         </div>
         <button
@@ -90,49 +88,86 @@ export default function Home() {
             fontWeight: 600,
             flexShrink: 0,
           }}
-          onClick={() => navigate("/new-note")}
+          onClick={() => navigate("/rewrite")}
         >
-          Open Note Tool
+          Open Rewrite Tool
         </button>
       </div>
 
-      {/* Goal stats */}
+      {/* Info cards */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: "1rem",
           marginBottom: "1.5rem",
         }}
       >
-        <StatCard
-          label="Total Goals"
-          value={totalGoals}
-          color="var(--slate-600)"
-          bg="var(--slate-100)"
-        />
-        <StatCard
-          label="Active Goals"
-          value={activeGoals}
-          color="#059669"
-          bg="#ecfdf5"
-        />
-        <StatCard
-          label="Completed"
-          value={completedGoals}
-          color="var(--blue-600)"
-          bg="var(--blue-50)"
-        />
+        <div className="card card-padded">
+          <p
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              color: "var(--slate-400)",
+              margin: "0 0 0.5rem",
+            }}
+          >
+            Active Cartridges
+          </p>
+          <p
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              color: "var(--blue-600)",
+              margin: "0 0 0.25rem",
+            }}
+          >
+            {cartridgeCount}
+          </p>
+          <p
+            style={{
+              fontSize: "0.8125rem",
+              color: "var(--slate-500)",
+              margin: 0,
+            }}
+          >
+            Service types configured for rewriting
+          </p>
+        </div>
+
+        <div className="card card-padded">
+          <p
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              color: "var(--slate-400)",
+              margin: "0 0 0.5rem",
+            }}
+          >
+            How It Works
+          </p>
+          <ol
+            style={{
+              fontSize: "0.8125rem",
+              color: "var(--slate-600)",
+              margin: 0,
+              paddingLeft: "1.25rem",
+              lineHeight: 1.7,
+            }}
+          >
+            <li>Paste your raw progress notes</li>
+            <li>Select the NDIS service cartridge</li>
+            <li>Click Rewrite and copy the result</li>
+          </ol>
+        </div>
       </div>
 
-      {/* Secondary actions */}
+      {/* Secondary action */}
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate("/goals")}
-        >
-          View Goals
-        </button>
         <button
           className="btn btn-secondary"
           onClick={() => navigate("/settings")}
@@ -140,46 +175,6 @@ export default function Home() {
           Settings
         </button>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  color,
-  bg,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  bg: string;
-}) {
-  return (
-    <div
-      className="card card-padded"
-      style={{ display: "flex", alignItems: "center", gap: "1rem" }}
-    >
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: "var(--radius-md)",
-          background: bg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "1.25rem",
-          fontWeight: 700,
-          color,
-          flexShrink: 0,
-        }}
-      >
-        {value}
-      </div>
-      <span style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>
-        {label}
-      </span>
     </div>
   );
 }

@@ -46,7 +46,7 @@ export default function Welcome() {
               },
               {
                 icon: "🎯",
-                text: "Track participant goals and progress",
+                text: "Service-specific cartridges for NDIS compliance",
               },
             ].map((item, i) => (
               <div

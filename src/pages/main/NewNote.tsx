@@ -1,13 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { getCartridges, getSetting, type Cartridge } from "../../lib/commands";
+import {
+  getCartridges,
+  getSetting,
+  rewriteNote,
+  type Cartridge,
+  type RewriteResult,
+} from "../../lib/commands";
 
-export default function NewNote() {
+export default function RewriteNotePage() {
   const [cartridges, setCartridges] = useState<Cartridge[]>([]);
   const [selectedCartridge, setSelectedCartridge] = useState<number | "">("");
   const [rawText, setRawText] = useState("");
-  const [rewrittenText, setRewrittenText] = useState("");
-  const [showOutput, setShowOutput] = useState(false);
+  const [result, setResult] = useState<RewriteResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -17,7 +25,6 @@ export default function NewNote() {
   async function loadCartridges() {
     try {
       const all = await getCartridges();
-      // Filter to only the user's active selection
       let activeIds: number[] | null = null;
       try {
         const raw = await getSetting("active_cartridge_ids");
@@ -40,28 +47,54 @@ export default function NewNote() {
     }
   }
 
-  function handleRewrite() {
-    // Output area becomes visible; rewriting engine will populate it later.
-    setRewrittenText("");
-    setShowOutput(true);
+  async function handleRewrite() {
+    if (!rawText.trim() || selectedCartridge === "") return;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
     setCopied(false);
-    // Scroll to output
-    setTimeout(() => {
-      outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
+    setShowDetails(false);
+
+    try {
+      const pipelineResult = await rewriteNote(
+        rawText.trim(),
+        selectedCartridge as number
+      );
+      setResult(pipelineResult);
+
+      // Scroll to output
+      setTimeout(() => {
+        outputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 50);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+          ? err
+          : "An unexpected error occurred. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleClear() {
     setRawText("");
-    setRewrittenText("");
-    setShowOutput(false);
+    setResult(null);
+    setError(null);
     setCopied(false);
+    setShowDetails(false);
   }
 
   async function handleCopy() {
-    if (!rewrittenText) return;
+    if (!result?.final_text) return;
     try {
-      await navigator.clipboard.writeText(rewrittenText);
+      await navigator.clipboard.writeText(result.final_text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -72,10 +105,10 @@ export default function NewNote() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>New Note</h1>
+        <h1>Rewrite Note</h1>
         <p>
-          Select a cartridge, type your raw observations, and click Rewrite to
-          generate a professional output.
+          Select a service cartridge, paste your raw observations, and click
+          Rewrite to generate an audit-ready progress note.
         </p>
       </div>
 
@@ -91,6 +124,7 @@ export default function NewNote() {
               e.target.value === "" ? "" : Number(e.target.value)
             )
           }
+          disabled={loading}
         >
           <option value="">No cartridge selected</option>
           {cartridges.map((c) => (
@@ -109,14 +143,8 @@ export default function NewNote() {
           style={{ minHeight: 200 }}
           placeholder="Type or paste your raw observations here..."
           value={rawText}
-          onChange={(e) => {
-            setRawText(e.target.value);
-            // Reset output if user edits the input after a rewrite
-            if (showOutput) {
-              setShowOutput(false);
-              setRewrittenText("");
-            }
-          }}
+          onChange={(e) => setRawText(e.target.value)}
+          disabled={loading}
         />
       </div>
 
@@ -124,94 +152,181 @@ export default function NewNote() {
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem" }}>
         <button
           className="btn btn-primary"
-          disabled={!rawText.trim()}
+          disabled={!rawText.trim() || selectedCartridge === "" || loading}
           onClick={handleRewrite}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M2 14L5.5 13L13.5 5C14.05 4.45 14.05 3.55 13.5 3L13 2.5C12.45 1.95 11.55 1.95 11 2.5L3 10.5L2 14Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Rewrite
+          {loading ? (
+            <>
+              <span className="spinner-inline" />
+              Rewriting...
+            </>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M2 14L5.5 13L13.5 5C14.05 4.45 14.05 3.55 13.5 3L13 2.5C12.45 1.95 11.55 1.95 11 2.5L3 10.5L2 14Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Rewrite
+            </>
+          )}
         </button>
-        {(rawText || showOutput) && (
+        {(rawText || result || error) && !loading && (
           <button className="btn btn-secondary" onClick={handleClear}>
             Clear
           </button>
         )}
       </div>
 
-      {/* Output area — visible after Rewrite is clicked */}
-      {showOutput && (
-        <div ref={outputRef} className="card card-padded">
-          <div
+      {/* Loading state */}
+      {loading && (
+        <div
+          className="card card-padded"
+          style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}
+        >
+          <div className="loading-spinner" style={{ margin: "0 auto 1rem" }} />
+          <p
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "0.75rem",
+              fontWeight: 600,
+              color: "var(--slate-700)",
+              margin: "0 0 0.375rem",
             }}
           >
-            <span
+            Rewriting your note...
+          </p>
+          <p
+            style={{
+              fontSize: "0.8125rem",
+              color: "var(--slate-400)",
+              margin: 0,
+            }}
+          >
+            Running 3-stage compliance pipeline. This may take a moment.
+          </p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <div
+          className="card card-padded"
+          style={{
+            borderColor: "#fca5a5",
+            background: "#fef2f2",
+          }}
+        >
+          <p
+            style={{
+              fontWeight: 600,
+              color: "#991b1b",
+              margin: "0 0 0.5rem",
+              fontSize: "0.9375rem",
+            }}
+          >
+            Rewrite failed
+          </p>
+          <p
+            style={{
+              fontSize: "0.8125rem",
+              color: "#7f1d1d",
+              margin: 0,
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.6,
+            }}
+          >
+            {error}
+          </p>
+        </div>
+      )}
+
+      {/* Output area */}
+      {result && !loading && (
+        <div ref={outputRef}>
+          {/* Final output card */}
+          <div className="card card-padded" style={{ marginBottom: "1rem" }}>
+            <div
               style={{
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "var(--slate-500)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "0.75rem",
               }}
             >
-              Rewritten Output
-            </span>
-
-            {rewrittenText && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={handleCopy}
+              <span
+                style={{
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  color: "var(--slate-500)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
               >
-                {copied ? (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path
-                        d="M3 7L5.5 9.5L11 4"
-                        stroke="var(--success)"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <rect
-                        x="4"
-                        y="4"
-                        width="8"
-                        height="8"
-                        rx="1.5"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <path
-                        d="M2 10V3C2 2.45 2.45 2 3 2H10"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    Copy
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+                Audit-Ready Output
+              </span>
 
-          {rewrittenText ? (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowDetails(!showDetails)}
+                >
+                  {showDetails ? "Hide Details" : "Show Details"}
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                      >
+                        <path
+                          d="M3 7L5.5 9.5L11 4"
+                          stroke="var(--success)"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                      >
+                        <rect
+                          x="4"
+                          y="4"
+                          width="8"
+                          height="8"
+                          rx="1.5"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                        />
+                        <path
+                          d="M2 10V3C2 2.45 2.45 2 3 2H10"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             <div
               style={{
                 background: "var(--slate-50)",
@@ -223,24 +338,73 @@ export default function NewNote() {
                 whiteSpace: "pre-wrap",
               }}
             >
-              {rewrittenText}
+              {result.final_text}
             </div>
-          ) : (
+          </div>
+
+          {/* Pipeline details (collapsible) */}
+          {showDetails && (
             <div
               style={{
-                background: "var(--slate-50)",
-                borderRadius: "var(--radius-md)",
-                padding: "2rem 1.5rem",
-                textAlign: "center",
-                color: "var(--slate-400)",
-                fontSize: "0.875rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
               }}
             >
-              Rewritten output will appear here.
+              <DetailCard
+                title="Stage 1 — Compliance Analysis"
+                content={result.compliance_analysis}
+              />
+              <DetailCard
+                title="Stage 2 — Initial Draft"
+                content={result.draft_text}
+              />
+              <DetailCard
+                title="Stage 3 — Review Notes"
+                content={result.review_notes}
+              />
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function DetailCard({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  return (
+    <div className="card card-padded">
+      <p
+        style={{
+          fontSize: "0.75rem",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          color: "var(--slate-400)",
+          margin: "0 0 0.5rem",
+        }}
+      >
+        {title}
+      </p>
+      <div
+        style={{
+          background: "var(--slate-50)",
+          borderRadius: "var(--radius-md)",
+          padding: "0.75rem",
+          fontSize: "0.8125rem",
+          lineHeight: 1.6,
+          color: "var(--slate-600)",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {content}
+      </div>
     </div>
   );
 }
