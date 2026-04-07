@@ -1,0 +1,249 @@
+/* ═══════════════════════════════════════════
+   Onboarding shared styles
+   ═══════════════════════════════════════════ */
+
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(160deg, var(--blue-50) 0%, var(--white) 50%, var(--blue-50) 100%);
+}
+
+.onboarding-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 2.5rem;
+  max-width: 520px;
+  width: 100%;
+}
+
+.onboarding-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-logo h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  margin: 0;
+}
+
+.onboarding-card h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--slate-800);
+  margin: 0 0 0.5rem;
+  text-align: center;
+}
+
+.onboarding-card .subtitle {
+  color: var(--slate-500);
+  font-size: 0.9rem;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0 0 2rem;
+}
+
+.onboarding-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--slate-200);
+  transition: background 0.2s ease;
+}
+
+.step-dot.active {
+  background: var(--blue-600);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.step-dot.done {
+  background: var(--blue-300);
+}
+
+.onboarding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.onboarding-form .field {
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Role selector */
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--white);
+}
+
+.role-option:hover {
+  border-color: var(--blue-300);
+  background: var(--blue-50);
+}
+
+.role-option.selected {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+}
+
+.role-option .radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--slate-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+
+.role-option.selected .radio {
+  border-color: var(--blue-600);
+}
+
+.role-option.selected .radio::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue-600);
+}
+
+.role-option .role-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--slate-700);
+}
+
+.role-option .role-desc {
+  font-size: 0.75rem;
+  color: var(--slate-400);
+  margin-top: 0.125rem;
+}
+
+/* Cartridge toggles */
+.cartridge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.cartridge-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--white);
+}
+
+.cartridge-item:hover {
+  border-color: var(--blue-300);
+}
+
+.cartridge-item.active {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+}
+
+.cartridge-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--slate-200);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.cartridge-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--white);
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.cartridge-item.active .cartridge-toggle {
+  background: var(--blue-600);
+}
+
+.cartridge-item.active .cartridge-toggle::after {
+  transform: translateX(16px);
+}
+
+.cartridge-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cartridge-info .name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--slate-700);
+}
+
+.cartridge-info .desc {
+  font-size: 0.75rem;
+  color: var(--slate-400);
+  margin-top: 0.125rem;
+}
+
+.empty-cartridges {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--slate-400);
+  font-size: 0.875rem;
+}
