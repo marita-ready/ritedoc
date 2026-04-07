@@ -34,26 +34,6 @@ const NAV_ITEMS = [
     ),
   },
   {
-    to: "/my-notes",
-    label: "My Notes",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path
-          d="M5 4H15C15.55 4 16 4.45 16 5V15C16 15.55 15.55 16 15 16H5C4.45 16 4 15.55 4 15V5C4 4.45 4.45 4 5 4Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M7 8H13M7 11H13M7 14H10"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
-  {
     to: "/goals",
     label: "Goals",
     icon: (

@@ -1,20 +1,14 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  getCartridges,
-  getSetting,
-  createNote,
-  type Cartridge,
-} from "../../lib/commands";
+import { useEffect, useRef, useState } from "react";
+import { getCartridges, getSetting, type Cartridge } from "../../lib/commands";
 
 export default function NewNote() {
-  const navigate = useNavigate();
   const [cartridges, setCartridges] = useState<Cartridge[]>([]);
   const [selectedCartridge, setSelectedCartridge] = useState<number | "">("");
   const [rawText, setRawText] = useState("");
   const [rewrittenText, setRewrittenText] = useState("");
-  const [showPipeline, setShowPipeline] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [showOutput, setShowOutput] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const outputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadCartridges();
@@ -23,7 +17,7 @@ export default function NewNote() {
   async function loadCartridges() {
     try {
       const all = await getCartridges();
-      // Filter to only active ones based on setting
+      // Filter to only the user's active selection
       let activeIds: number[] | null = null;
       try {
         const raw = await getSetting("active_cartridge_ids");
@@ -47,23 +41,31 @@ export default function NewNote() {
   }
 
   function handleRewrite() {
-    setShowPipeline(true);
+    // Output area becomes visible; rewriting engine will populate it later.
     setRewrittenText("");
-    // Placeholder — AI pipeline not connected yet
+    setShowOutput(true);
+    setCopied(false);
+    // Scroll to output
+    setTimeout(() => {
+      outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
-  async function handleSave() {
-    if (!rawText.trim()) return;
-    setSaving(true);
+  function handleClear() {
+    setRawText("");
+    setRewrittenText("");
+    setShowOutput(false);
+    setCopied(false);
+  }
+
+  async function handleCopy() {
+    if (!rewrittenText) return;
     try {
-      const cartId =
-        selectedCartridge !== "" ? Number(selectedCartridge) : undefined;
-      await createNote(rawText.trim(), rewrittenText || undefined, cartId);
-      navigate("/my-notes");
-    } catch (err) {
-      console.error("Failed to save note:", err);
-    } finally {
-      setSaving(false);
+      await navigator.clipboard.writeText(rewrittenText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard not available in all contexts */
     }
   }
 
@@ -71,7 +73,10 @@ export default function NewNote() {
     <div className="page">
       <div className="page-header">
         <h1>New Note</h1>
-        <p>Write your raw observations and optionally rewrite them.</p>
+        <p>
+          Select a cartridge, type your raw observations, and click Rewrite to
+          generate a professional output.
+        </p>
       </div>
 
       {/* Cartridge selector */}
@@ -101,10 +106,17 @@ export default function NewNote() {
         <label className="label">Raw Notes</label>
         <textarea
           className="textarea"
-          style={{ minHeight: 180 }}
-          placeholder="Type your raw observations here... e.g. 'Took John to the shops today. He was really happy and picked out his own groceries. Needed help with the self-checkout.'"
+          style={{ minHeight: 200 }}
+          placeholder="Type or paste your raw observations here..."
           value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
+          onChange={(e) => {
+            setRawText(e.target.value);
+            // Reset output if user edits the input after a rewrite
+            if (showOutput) {
+              setShowOutput(false);
+              setRewrittenText("");
+            }
+          }}
         />
       </div>
 
@@ -125,51 +137,78 @@ export default function NewNote() {
           </svg>
           Rewrite
         </button>
-        <button
-          className="btn btn-secondary"
-          disabled={!rawText.trim() || saving}
-          onClick={handleSave}
-        >
-          {saving ? "Saving..." : "Save Note"}
-        </button>
+        {(rawText || showOutput) && (
+          <button className="btn btn-secondary" onClick={handleClear}>
+            Clear
+          </button>
+        )}
       </div>
 
-      {/* Rewritten output / pipeline placeholder */}
-      {showPipeline && (
-        <div className="card card-padded">
+      {/* Output area — visible after Rewrite is clicked */}
+      {showOutput && (
+        <div ref={outputRef} className="card card-padded">
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
+              justifyContent: "space-between",
               marginBottom: "0.75rem",
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <circle
-                cx="9"
-                cy="9"
-                r="7"
-                stroke="var(--blue-600)"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M9 6V9.5L11.5 11"
-                stroke="var(--blue-600)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
             <span
               style={{
-                fontSize: "0.875rem",
+                fontSize: "0.8125rem",
                 fontWeight: 600,
-                color: "var(--slate-700)",
+                color: "var(--slate-500)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
               }}
             >
               Rewritten Output
             </span>
+
+            {rewrittenText && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleCopy}
+              >
+                {copied ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path
+                        d="M3 7L5.5 9.5L11 4"
+                        stroke="var(--success)"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <rect
+                        x="4"
+                        y="4"
+                        width="8"
+                        height="8"
+                        rx="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
+                      <path
+                        d="M2 10V3C2 2.45 2.45 2 3 2H10"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {rewrittenText ? (
@@ -189,32 +228,15 @@ export default function NewNote() {
           ) : (
             <div
               style={{
-                background: "var(--blue-50)",
+                background: "var(--slate-50)",
                 borderRadius: "var(--radius-md)",
-                padding: "1.5rem",
+                padding: "2rem 1.5rem",
                 textAlign: "center",
+                color: "var(--slate-400)",
+                fontSize: "0.875rem",
               }}
             >
-              <p
-                style={{
-                  fontSize: "0.875rem",
-                  color: "var(--blue-700)",
-                  fontWeight: 500,
-                  margin: "0 0 0.25rem",
-                }}
-              >
-                AI pipeline coming soon
-              </p>
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "var(--slate-500)",
-                  margin: 0,
-                }}
-              >
-                The rewrite engine will transform your raw notes into
-                professional NDIS-compliant documentation.
-              </p>
+              Rewritten output will appear here.
             </div>
           )}
         </div>

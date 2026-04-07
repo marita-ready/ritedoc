@@ -11,15 +11,6 @@ import { invoke } from "@tauri-apps/api/core";
 //  Types
 // ─────────────────────────────────────────────
 
-export interface Note {
-  id: number;
-  raw_text: string;
-  rewritten_text: string;
-  cartridge_id: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Cartridge {
   id: number;
   name: string;
@@ -38,48 +29,6 @@ export interface Goal {
   notes: string;
   created_at: string;
   updated_at: string;
-}
-
-// ─────────────────────────────────────────────
-//  Notes
-// ─────────────────────────────────────────────
-
-export async function createNote(
-  rawText: string,
-  rewrittenText?: string,
-  cartridgeId?: number
-): Promise<Note> {
-  return invoke<Note>("create_note", {
-    rawText,
-    rewrittenText: rewrittenText ?? null,
-    cartridgeId: cartridgeId ?? null,
-  });
-}
-
-export async function getNotes(): Promise<Note[]> {
-  return invoke<Note[]>("get_notes");
-}
-
-export async function getNoteById(id: number): Promise<Note> {
-  return invoke<Note>("get_note_by_id", { id });
-}
-
-export async function updateNote(
-  id: number,
-  rawText?: string,
-  rewrittenText?: string,
-  cartridgeId?: number
-): Promise<Note> {
-  return invoke<Note>("update_note", {
-    id,
-    rawText: rawText ?? null,
-    rewrittenText: rewrittenText ?? null,
-    cartridgeId: cartridgeId ?? null,
-  });
-}
-
-export async function deleteNote(id: number): Promise<boolean> {
-  return invoke<boolean>("delete_note", { id });
 }
 
 // ─────────────────────────────────────────────

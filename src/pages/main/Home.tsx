@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotes, getGoals, getSetting, type Note } from "../../lib/commands";
+import { getGoals, getSetting } from "../../lib/commands";
 
 export default function Home() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
-  const [totalNotes, setTotalNotes] = useState(0);
   const [totalGoals, setTotalGoals] = useState(0);
   const [activeGoals, setActiveGoals] = useState(0);
-  const [recentNotes, setRecentNotes] = useState<Note[]>([]);
+  const [completedGoals, setCompletedGoals] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,15 +16,13 @@ export default function Home() {
 
   async function loadDashboard() {
     try {
-      const [notes, goals, name] = await Promise.all([
-        getNotes(),
+      const [goals, name] = await Promise.all([
         getGoals(),
         getSetting("user_name"),
       ]);
-      setTotalNotes(notes.length);
-      setRecentNotes(notes.slice(0, 5));
       setTotalGoals(goals.length);
       setActiveGoals(goals.filter((g) => g.status === "active").length);
+      setCompletedGoals(goals.filter((g) => g.status === "completed").length);
       setUserName(name ?? "");
     } catch (err) {
       console.error("Failed to load dashboard:", err);
@@ -37,7 +34,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="page">
-        <p className="text-muted">Loading dashboard...</p>
+        <p className="text-muted">Loading...</p>
       </div>
     );
   }
@@ -48,10 +45,58 @@ export default function Home() {
         <h1>
           {userName ? `Welcome back, ${userName}` : "Welcome back"}
         </h1>
-        <p>Here's an overview of your RiteDoc activity.</p>
+        <p>Ready to write some notes?</p>
       </div>
 
-      {/* Stat cards */}
+      {/* Quick action — primary CTA */}
+      <div
+        style={{
+          background: "var(--blue-600)",
+          borderRadius: "var(--radius-lg)",
+          padding: "1.5rem",
+          marginBottom: "1.5rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              color: "var(--white)",
+              fontWeight: 600,
+              fontSize: "1rem",
+              margin: "0 0 0.25rem",
+            }}
+          >
+            Write a Note
+          </p>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.75)",
+              fontSize: "0.875rem",
+              margin: 0,
+            }}
+          >
+            Paste your raw observations and get a professional rewrite instantly.
+          </p>
+        </div>
+        <button
+          className="btn"
+          style={{
+            background: "var(--white)",
+            color: "var(--blue-700)",
+            fontWeight: 600,
+            flexShrink: 0,
+          }}
+          onClick={() => navigate("/new-note")}
+        >
+          Open Note Tool
+        </button>
+      </div>
+
+      {/* Goal stats */}
       <div
         style={{
           display: "grid",
@@ -61,10 +106,10 @@ export default function Home() {
         }}
       >
         <StatCard
-          label="Total Notes"
-          value={totalNotes}
-          color="var(--blue-600)"
-          bg="var(--blue-50)"
+          label="Total Goals"
+          value={totalGoals}
+          color="var(--slate-600)"
+          bg="var(--slate-100)"
         />
         <StatCard
           label="Active Goals"
@@ -73,112 +118,27 @@ export default function Home() {
           bg="#ecfdf5"
         />
         <StatCard
-          label="Total Goals"
-          value={totalGoals}
-          color="var(--slate-600)"
-          bg="var(--slate-100)"
+          label="Completed"
+          value={completedGoals}
+          color="var(--blue-600)"
+          bg="var(--blue-50)"
         />
       </div>
 
-      {/* Quick actions */}
-      <div
-        style={{
-          display: "flex",
-          gap: "0.75rem",
-          marginBottom: "2rem",
-        }}
-      >
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate("/new-note")}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M8 3V13M3 8H13"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-          New Note
-        </button>
+      {/* Secondary actions */}
+      <div style={{ display: "flex", gap: "0.75rem" }}>
         <button
           className="btn btn-secondary"
           onClick={() => navigate("/goals")}
         >
           View Goals
         </button>
-      </div>
-
-      {/* Recent notes */}
-      <div className="card card-padded">
-        <h3
-          style={{
-            fontSize: "0.9375rem",
-            fontWeight: 600,
-            color: "var(--slate-800)",
-            margin: "0 0 1rem",
-          }}
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate("/settings")}
         >
-          Recent Notes
-        </h3>
-
-        {recentNotes.length === 0 ? (
-          <p
-            className="text-muted text-sm"
-            style={{ textAlign: "center", padding: "1.5rem 0" }}
-          >
-            No notes yet. Create your first note to get started.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {recentNotes.map((note) => (
-              <div
-                key={note.id}
-                onClick={() => navigate(`/my-notes/${note.id}`)}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "0.75rem 1rem",
-                  background: "var(--slate-50)",
-                  borderRadius: "var(--radius-md)",
-                  cursor: "pointer",
-                  transition: "background 0.12s ease",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "var(--blue-50)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "var(--slate-50)")
-                }
-              >
-                <span
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--slate-700)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: "70%",
-                  }}
-                >
-                  {note.raw_text.slice(0, 80) || "Empty note"}
-                  {note.raw_text.length > 80 ? "..." : ""}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "var(--slate-400)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {formatDate(note.created_at)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+          Settings
+        </button>
       </div>
     </div>
   );
@@ -222,16 +182,4 @@ function StatCard({
       </span>
     </div>
   );
-}
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso + "Z");
-    return d.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
 }

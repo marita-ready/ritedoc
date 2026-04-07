@@ -43,12 +43,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // Notes
-            commands::create_note,
-            commands::get_notes,
-            commands::get_note_by_id,
-            commands::update_note,
-            commands::delete_note,
             // Cartridges
             commands::create_cartridge,
             commands::get_cartridges,

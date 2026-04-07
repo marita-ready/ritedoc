@@ -9,8 +9,6 @@ import OnboardingCartridges from "./pages/onboarding/CartridgeSelect";
 import MainLayout from "./components/MainLayout";
 import Home from "./pages/main/Home";
 import NewNote from "./pages/main/NewNote";
-import MyNotes from "./pages/main/MyNotes";
-import NoteDetail from "./pages/main/NoteDetail";
 import Goals from "./pages/main/Goals";
 import Settings from "./pages/main/Settings";
 
@@ -81,8 +79,6 @@ function App() {
         >
           <Route index element={<Home />} />
           <Route path="new-note" element={<NewNote />} />
-          <Route path="my-notes" element={<MyNotes />} />
-          <Route path="my-notes/:id" element={<NoteDetail />} />
           <Route path="goals" element={<Goals />} />
           <Route path="settings" element={<Settings />} />
         </Route>

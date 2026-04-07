@@ -42,7 +42,7 @@ export default function Welcome() {
               },
               {
                 icon: "🔄",
-                text: "AI rewrites them into professional format",
+                text: "Instantly rewrite them into professional format",
               },
               {
                 icon: "🎯",

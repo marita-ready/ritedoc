@@ -37,16 +37,6 @@ impl Database {
 
         conn.execute_batch(
             "
-            CREATE TABLE IF NOT EXISTS notes (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                raw_text        TEXT NOT NULL DEFAULT '',
-                rewritten_text  TEXT NOT NULL DEFAULT '',
-                cartridge_id    INTEGER,
-                created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
-                FOREIGN KEY (cartridge_id) REFERENCES cartridges(id) ON DELETE SET NULL
-            );
-
             CREATE TABLE IF NOT EXISTS cartridges (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 name            TEXT NOT NULL,
@@ -73,9 +63,7 @@ impl Database {
                 updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
-            -- Index for common queries
-            CREATE INDEX IF NOT EXISTS idx_notes_cartridge_id ON notes(cartridge_id);
-            CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);
+            -- Indexes for common queries
             CREATE INDEX IF NOT EXISTS idx_cartridges_is_active ON cartridges(is_active);
             CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status);
             CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
