@@ -1,0 +1,164 @@
+/**
+ * TypeScript bindings for RiteDoc Tauri commands.
+ *
+ * Each function wraps a `@tauri-apps/api` invoke call so the React
+ * frontend can call the Rust backend in a type-safe way.
+ */
+
+import { invoke } from "@tauri-apps/api/core";
+
+// ─────────────────────────────────────────────
+//  Types
+// ─────────────────────────────────────────────
+
+export interface Note {
+  id: number;
+  raw_text: string;
+  rewritten_text: string;
+  cartridge_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Cartridge {
+  id: number;
+  name: string;
+  service_type: string;
+  description: string;
+  config_json: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Goal {
+  id: number;
+  participant_name: string;
+  goal_text: string;
+  status: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─────────────────────────────────────────────
+//  Notes
+// ─────────────────────────────────────────────
+
+export async function createNote(
+  rawText: string,
+  rewrittenText?: string,
+  cartridgeId?: number
+): Promise<Note> {
+  return invoke<Note>("create_note", {
+    rawText,
+    rewrittenText: rewrittenText ?? null,
+    cartridgeId: cartridgeId ?? null,
+  });
+}
+
+export async function getNotes(): Promise<Note[]> {
+  return invoke<Note[]>("get_notes");
+}
+
+export async function getNoteById(id: number): Promise<Note> {
+  return invoke<Note>("get_note_by_id", { id });
+}
+
+export async function updateNote(
+  id: number,
+  rawText?: string,
+  rewrittenText?: string,
+  cartridgeId?: number
+): Promise<Note> {
+  return invoke<Note>("update_note", {
+    id,
+    rawText: rawText ?? null,
+    rewrittenText: rewrittenText ?? null,
+    cartridgeId: cartridgeId ?? null,
+  });
+}
+
+export async function deleteNote(id: number): Promise<boolean> {
+  return invoke<boolean>("delete_note", { id });
+}
+
+// ─────────────────────────────────────────────
+//  Cartridges
+// ─────────────────────────────────────────────
+
+export async function createCartridge(
+  name: string,
+  serviceType?: string,
+  description?: string,
+  configJson?: string,
+  isActive?: boolean
+): Promise<Cartridge> {
+  return invoke<Cartridge>("create_cartridge", {
+    name,
+    serviceType: serviceType ?? null,
+    description: description ?? null,
+    configJson: configJson ?? null,
+    isActive: isActive ?? null,
+  });
+}
+
+export async function getCartridges(): Promise<Cartridge[]> {
+  return invoke<Cartridge[]>("get_cartridges");
+}
+
+export async function getActiveCartridges(): Promise<Cartridge[]> {
+  return invoke<Cartridge[]>("get_active_cartridges");
+}
+
+// ─────────────────────────────────────────────
+//  Settings
+// ─────────────────────────────────────────────
+
+export async function getSetting(key: string): Promise<string | null> {
+  return invoke<string | null>("get_setting", { key });
+}
+
+export async function setSetting(
+  key: string,
+  value: string
+): Promise<boolean> {
+  return invoke<boolean>("set_setting", { key, value });
+}
+
+// ─────────────────────────────────────────────
+//  Goals
+// ─────────────────────────────────────────────
+
+export async function createGoal(
+  participantName: string,
+  goalText: string,
+  status?: string,
+  notes?: string
+): Promise<Goal> {
+  return invoke<Goal>("create_goal", {
+    participantName,
+    goalText,
+    status: status ?? null,
+    notes: notes ?? null,
+  });
+}
+
+export async function getGoals(): Promise<Goal[]> {
+  return invoke<Goal[]>("get_goals");
+}
+
+export async function updateGoal(
+  id: number,
+  participantName?: string,
+  goalText?: string,
+  status?: string,
+  notes?: string
+): Promise<Goal> {
+  return invoke<Goal>("update_goal", {
+    id,
+    participantName: participantName ?? null,
+    goalText: goalText ?? null,
+    status: status ?? null,
+    notes: notes ?? null,
+  });
+}
