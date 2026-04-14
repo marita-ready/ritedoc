@@ -11,6 +11,7 @@ import Home from "./pages/main/Home";
 import RewriteNote from "./pages/main/NewNote";
 import Settings from "./pages/main/Settings";
 
+import Logo from "./components/Logo";
 import "./App.css";
 
 function App() {
@@ -36,8 +37,12 @@ function App() {
   if (loading) {
     return (
       <div className="loading-screen">
+        <div className="loading-logo">
+          <Logo size={32} />
+          <span>RiteDoc</span>
+        </div>
         <div className="loading-spinner" />
-        <p>Loading RiteDoc...</p>
+        <p>Starting up...</p>
       </div>
     );
   }

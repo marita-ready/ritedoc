@@ -29,8 +29,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="page">
-        <p className="text-muted">Loading...</p>
+      <div className="page" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="loading-spinner" />
       </div>
     );
   }
@@ -38,59 +38,39 @@ export default function Home() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>
-          {userName ? `Welcome back, ${userName}` : "Welcome back"}
-        </h1>
-        <p>Ready to rewrite some notes?</p>
+        <h1>{userName ? `Welcome back, ${userName.split(" ")[0]}` : "Welcome back"}</h1>
+        <p>Select a cartridge, paste your notes, and get an audit-ready rewrite.</p>
       </div>
 
-      {/* Primary CTA */}
+      {/* Primary CTA banner */}
       <div
         style={{
-          background: "var(--blue-600)",
-          borderRadius: "var(--radius-lg)",
-          padding: "2rem 1.5rem",
-          marginBottom: "1.5rem",
+          background: "linear-gradient(135deg, var(--blue-700) 0%, var(--blue-600) 100%)",
+          borderRadius: "var(--radius-xl)",
+          padding: "1.75rem 2rem",
+          marginBottom: "1.25rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "1rem",
+          gap: "1.5rem",
+          boxShadow: "0 4px 16px rgba(37, 99, 235, 0.25)",
         }}
       >
         <div>
-          <p
-            style={{
-              color: "var(--white)",
-              fontWeight: 600,
-              fontSize: "1.125rem",
-              margin: "0 0 0.375rem",
-            }}
-          >
-            Rewrite a Note
+          <p style={{ color: "var(--white)", fontWeight: 700, fontSize: "1.125rem", margin: "0 0 0.375rem", letterSpacing: "-0.01em" }}>
+            Rewrite a Progress Note
           </p>
-          <p
-            style={{
-              color: "rgba(255,255,255,0.75)",
-              fontSize: "0.875rem",
-              margin: 0,
-              maxWidth: 420,
-            }}
-          >
-            Paste your raw observations, select a service cartridge, and get an
-            audit-ready rewrite in seconds.
+          <p style={{ color: "rgba(255,255,255,0.78)", fontSize: "0.875rem", margin: 0, maxWidth: 400, lineHeight: 1.5 }}>
+            Paste your raw observations, select a service cartridge, and get a
+            compliance-ready rewrite in seconds.
           </p>
         </div>
         <button
-          className="btn"
-          style={{
-            background: "var(--white)",
-            color: "var(--blue-700)",
-            fontWeight: 600,
-            flexShrink: 0,
-          }}
+          className="btn btn-lg"
+          style={{ background: "var(--white)", color: "var(--blue-700)", fontWeight: 600, flexShrink: 0, boxShadow: "var(--shadow-sm)" }}
           onClick={() => navigate("/rewrite")}
         >
-          Open Rewrite Tool
+          Open Rewrite Tool →
         </button>
       </div>
 
@@ -100,79 +80,49 @@ export default function Home() {
           display: "grid",
           gridTemplateColumns: "repeat(2, 1fr)",
           gap: "1rem",
-          marginBottom: "1.5rem",
+          marginBottom: "1.25rem",
         }}
       >
+        {/* Active cartridges stat */}
         <div className="card card-padded">
-          <p
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-              color: "var(--slate-400)",
-              margin: "0 0 0.5rem",
-            }}
-          >
+          <p style={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--slate-400)", margin: "0 0 0.625rem" }}>
             Active Cartridges
           </p>
-          <p
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: 700,
-              color: "var(--blue-600)",
-              margin: "0 0 0.25rem",
-            }}
-          >
+          <p style={{ fontSize: "2rem", fontWeight: 700, color: "var(--blue-600)", margin: "0 0 0.25rem", lineHeight: 1 }}>
             {cartridgeCount}
           </p>
-          <p
-            style={{
-              fontSize: "0.8125rem",
-              color: "var(--slate-500)",
-              margin: 0,
-            }}
-          >
-            Service types configured for rewriting
+          <p style={{ fontSize: "0.8125rem", color: "var(--slate-500)", margin: 0 }}>
+            {cartridgeCount === 1 ? "service type" : "service types"} ready for rewriting
           </p>
+          {cartridgeCount === 0 && (
+            <button
+              className="btn btn-sm btn-secondary"
+              style={{ marginTop: "0.75rem" }}
+              onClick={() => navigate("/settings")}
+            >
+              Enable cartridges in Settings
+            </button>
+          )}
         </div>
 
+        {/* How it works */}
         <div className="card card-padded">
-          <p
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-              color: "var(--slate-400)",
-              margin: "0 0 0.5rem",
-            }}
-          >
+          <p style={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--slate-400)", margin: "0 0 0.625rem" }}>
             How It Works
           </p>
-          <ol
-            style={{
-              fontSize: "0.8125rem",
-              color: "var(--slate-600)",
-              margin: 0,
-              paddingLeft: "1.25rem",
-              lineHeight: 1.7,
-            }}
-          >
+          <ol style={{ fontSize: "0.875rem", color: "var(--slate-600)", margin: 0, paddingLeft: "1.25rem", lineHeight: 1.75 }}>
             <li>Paste your raw progress notes</li>
             <li>Select the NDIS service cartridge</li>
-            <li>Click Rewrite and copy the result</li>
+            <li>Choose Quick or Deep rewrite mode</li>
+            <li>Copy the compliance-ready output</li>
           </ol>
         </div>
       </div>
 
-      {/* Secondary action */}
-      <div style={{ display: "flex", gap: "0.75rem" }}>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate("/settings")}
-        >
-          Settings
+      {/* Quick links */}
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate("/settings")}>
+          Manage Cartridges
         </button>
       </div>
     </div>

@@ -85,7 +85,7 @@ export default function MainLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <span className="version-tag">v0.1.0</span>
+          <span className="version-tag">v1.0.0</span>
         </div>
       </aside>
 

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════
-   Onboarding shared styles
+   RiteDoc — Onboarding Styles
    ═══════════════════════════════════════════ */
 
 .onboarding {
@@ -9,80 +9,113 @@
   justify-content: center;
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(160deg, var(--blue-50) 0%, var(--white) 50%, var(--blue-50) 100%);
+  background: linear-gradient(
+    150deg,
+    var(--blue-50) 0%,
+    var(--white) 45%,
+    var(--blue-50) 100%
+  );
+  animation: onboarding-fade 0.3s ease both;
+}
+
+@keyframes onboarding-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .onboarding-card {
   background: var(--white);
   border: 1px solid var(--slate-200);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-lg);
-  padding: 2.5rem;
+  padding: 2.5rem 2.75rem;
   max-width: 520px;
   width: 100%;
+  animation: card-rise 0.3s ease both;
 }
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Logo row ─────────────────────────────── */
 
 .onboarding-logo {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.625rem;
 }
 
 .onboarding-logo h1 {
-  font-size: 1.75rem;
+  font-size: 1.625rem;
   font-weight: 700;
-  color: var(--blue-600);
+  color: var(--blue-700);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
-.onboarding-card h2 {
-  font-size: 1.375rem;
-  font-weight: 600;
-  color: var(--slate-800);
-  margin: 0 0 0.5rem;
-  text-align: center;
-}
-
-.onboarding-card .subtitle {
-  color: var(--slate-500);
-  font-size: 0.9rem;
-  text-align: center;
-  line-height: 1.6;
-  margin: 0 0 2rem;
-}
+/* ── Step dots ────────────────────────────── */
 
 .onboarding-steps {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
+  gap: 0.4375rem;
+  margin-bottom: 1.75rem;
 }
 
 .step-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  height: 7px;
+  border-radius: var(--radius-full);
   background: var(--slate-200);
-  transition: background 0.2s ease;
+  transition: background var(--transition-base),
+              width var(--transition-base);
+  width: 7px;
 }
 
 .step-dot.active {
   background: var(--blue-600);
-  width: 24px;
-  border-radius: 4px;
+  width: 22px;
 }
 
 .step-dot.done {
   background: var(--blue-300);
 }
 
+/* ── Headings ─────────────────────────────── */
+
+.onboarding-card h2 {
+  font-size: 1.3125rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  margin: 0 0 0.5rem;
+  text-align: center;
+  letter-spacing: -0.015em;
+}
+
+.onboarding-card .subtitle {
+  color: var(--slate-500);
+  font-size: 0.9rem;
+  text-align: center;
+  line-height: 1.65;
+  margin: 0 0 1.75rem;
+}
+
+/* ── Form ─────────────────────────────────── */
+
 .onboarding-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.125rem;
 }
 
 .onboarding-form .field {
@@ -90,14 +123,17 @@
   flex-direction: column;
 }
 
+/* ── Actions row ──────────────────────────── */
+
 .onboarding-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
 }
 
-/* Role selector */
+/* ── Role selector ────────────────────────── */
+
 .role-options {
   display: flex;
   flex-direction: column;
@@ -109,10 +145,11 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--slate-200);
+  border: 1.5px solid var(--slate-200);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast);
   background: var(--white);
 }
 
@@ -135,7 +172,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--transition-fast);
 }
 
 .role-option.selected .radio {
@@ -144,8 +181,8 @@
 
 .role-option.selected .radio::after {
   content: "";
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--blue-600);
 }
@@ -162,12 +199,13 @@
   margin-top: 0.125rem;
 }
 
-/* Cartridge toggles */
+/* ── Cartridge toggles ────────────────────── */
+
 .cartridge-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  max-height: 320px;
+  gap: 0.4375rem;
+  max-height: 300px;
   overflow-y: auto;
   padding-right: 0.25rem;
 }
@@ -176,16 +214,18 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--slate-200);
+  padding: 0.6875rem 0.875rem;
+  border: 1.5px solid var(--slate-200);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast);
   background: var(--white);
 }
 
 .cartridge-item:hover {
   border-color: var(--blue-300);
+  background: var(--blue-50);
 }
 
 .cartridge-item.active {
@@ -194,13 +234,13 @@
 }
 
 .cartridge-toggle {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
+  width: 34px;
+  height: 19px;
+  border-radius: var(--radius-full);
   background: var(--slate-200);
   position: relative;
   flex-shrink: 0;
-  transition: background 0.2s ease;
+  transition: background var(--transition-base);
 }
 
 .cartridge-toggle::after {
@@ -208,11 +248,11 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   background: var(--white);
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-base);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
@@ -221,7 +261,7 @@
 }
 
 .cartridge-item.active .cartridge-toggle::after {
-  transform: translateX(16px);
+  transform: translateX(15px);
 }
 
 .cartridge-info {
@@ -239,6 +279,9 @@
   font-size: 0.75rem;
   color: var(--slate-400);
   margin-top: 0.125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .empty-cartridges {

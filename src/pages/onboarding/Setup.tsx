@@ -120,7 +120,11 @@ export default function Setup() {
             disabled={!canContinue || saving}
             onClick={handleContinue}
           >
-            {saving ? "Saving..." : "Continue"}
+            {saving ? (
+              <><span className="spinner-inline" />Saving...</>
+            ) : (
+              "Continue"
+            )}
           </button>
         </div>
       </div>
