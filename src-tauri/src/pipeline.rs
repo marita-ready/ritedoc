@@ -1,15 +1,15 @@
-//! 3-Agent Rewriting Pipeline
+//! 3-Agent Rewriting Pipeline + Quick Mode
 //!
-//! Processes raw NDIS progress notes through three sequential agents,
-//! each calling a local Ollama LLM instance:
+//! Two processing modes:
 //!
-//!   Agent 1 — Compliance Checker : analyses gaps & non-compliance
-//!   Agent 2 — Rewriter           : produces an audit-ready draft
-//!   Agent 3 — Quality Reviewer   : final polish & verification
+//!   Quick Mode  — single Ollama call with a combined prompt (fast)
+//!   Deep Mode   — full 3-agent pipeline (thorough, audit-grade)
 //!
+//! Both modes use the selected cartridge's full config_json in their prompts.
 //! The pipeline is entirely stateless — nothing is persisted.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 // ─────────────────────────────────────────────
 //  Public types
@@ -18,14 +18,114 @@ use serde::{Deserialize, Serialize};
 /// The full result returned to the frontend after the pipeline completes.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PipelineResult {
-    /// Final audit-ready text (output of Agent 3)
+    /// Final audit-ready text
     pub final_text: String,
-    /// Structured compliance analysis (output of Agent 1)
+    /// Mode used: "quick" or "deep"
+    pub mode: String,
+    /// Structured compliance analysis (Deep mode only; empty for Quick)
     pub compliance_analysis: String,
-    /// Intermediate rewritten draft (output of Agent 2)
+    /// Intermediate rewritten draft (Deep mode only; empty for Quick)
     pub draft_text: String,
-    /// Quality review notes (output of Agent 3's review commentary)
+    /// Quality review notes (Deep mode only; empty for Quick)
     pub review_notes: String,
+}
+
+/// Parsed cartridge configuration extracted from config_json.
+/// Fields are optional so partial configs degrade gracefully.
+#[derive(Debug, Default)]
+pub struct CartridgeConfig {
+    pub service_type: String,
+    pub compliance_rules: Vec<String>,
+    pub required_fields: Vec<String>,
+    pub format_template: String,
+    pub tone_guidelines: Vec<String>,
+    pub prohibited_terms: Vec<String>,
+    pub example_output: String,
+}
+
+impl CartridgeConfig {
+    /// Parse a cartridge's config_json string into a CartridgeConfig.
+    pub fn from_json(json: &str) -> Self {
+        let v: Value = serde_json::from_str(json).unwrap_or(Value::Null);
+        if v.is_null() {
+            return Self::default();
+        }
+
+        let str_vec = |key: &str| -> Vec<String> {
+            v[key]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+
+        CartridgeConfig {
+            service_type: v["service_type"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            compliance_rules: str_vec("compliance_rules"),
+            required_fields: str_vec("required_fields"),
+            format_template: v["format_template"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            tone_guidelines: str_vec("tone_guidelines"),
+            prohibited_terms: str_vec("prohibited_terms"),
+            example_output: v["example_output"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+        }
+    }
+
+    /// Format compliance rules as a numbered list for prompt injection.
+    fn rules_list(&self) -> String {
+        if self.compliance_rules.is_empty() {
+            return "No specific compliance rules provided.".to_string();
+        }
+        self.compliance_rules
+            .iter()
+            .enumerate()
+            .map(|(i, r)| format!("{}. {}", i + 1, r))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    /// Format required fields as a bulleted list.
+    fn fields_list(&self) -> String {
+        if self.required_fields.is_empty() {
+            return "No specific required fields provided.".to_string();
+        }
+        self.required_fields
+            .iter()
+            .map(|f| format!("- {}", f))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    /// Format tone guidelines as a bulleted list.
+    fn tone_list(&self) -> String {
+        if self.tone_guidelines.is_empty() {
+            return "Use professional, person-centred language.".to_string();
+        }
+        self.tone_guidelines
+            .iter()
+            .map(|t| format!("- {}", t))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    /// Format prohibited terms as a comma-separated list.
+    fn prohibited_list(&self) -> String {
+        if self.prohibited_terms.is_empty() {
+            return "None specified.".to_string();
+        }
+        self.prohibited_terms.join(", ")
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -46,48 +146,106 @@ struct OllamaResponse {
 }
 
 // ─────────────────────────────────────────────
-//  Pipeline execution
+//  Quick Mode — single-pass rewrite
+// ─────────────────────────────────────────────
+
+/// Single-pass rewrite using a combined prompt. Faster than Deep mode.
+pub async fn quick_rewrite(
+    raw_text: &str,
+    config: &CartridgeConfig,
+    model: &str,
+    ollama_url: &str,
+) -> Result<PipelineResult, String> {
+    let system = format!(
+        r#"You are an expert NDIS progress note rewriter specialising in {service_type} supports.
+
+Your task is to rewrite raw progress notes into professional, audit-ready documentation that meets NDIS Practice Standards and Quality Indicator requirements.
+
+COMPLIANCE RULES FOR THIS SERVICE TYPE:
+{rules}
+
+REQUIRED FIELDS (must be present in the output):
+{fields}
+
+OUTPUT FORMAT:
+{template}
+
+TONE AND LANGUAGE GUIDELINES:
+{tone}
+
+PROHIBITED TERMS (do not use these):
+{prohibited}
+
+EXAMPLE OF A CORRECTLY FORMATTED NOTE:
+{example}
+
+INSTRUCTIONS:
+- Rewrite the note to meet all compliance rules above
+- Ensure all required fields are addressed
+- Follow the output format exactly
+- Apply the tone guidelines throughout
+- Do not use any prohibited terms
+- Preserve ALL factual content from the original — do not add fabricated details
+- Output ONLY the rewritten note — no commentary, no explanations, no preamble"#,
+        service_type = config.service_type,
+        rules = config.rules_list(),
+        fields = config.fields_list(),
+        template = if config.format_template.is_empty() {
+            "Use a clear, structured format with appropriate headings.".to_string()
+        } else {
+            config.format_template.clone()
+        },
+        tone = config.tone_list(),
+        prohibited = config.prohibited_list(),
+        example = if config.example_output.is_empty() {
+            "No example provided.".to_string()
+        } else {
+            config.example_output.clone()
+        },
+    );
+
+    let prompt = format!(
+        "Please rewrite the following raw progress note into an audit-ready format:\n\n---\n{}\n---\n\nRewritten note:",
+        raw_text
+    );
+
+    let final_text = call_ollama(model, &system, &prompt, ollama_url).await?;
+
+    Ok(PipelineResult {
+        final_text,
+        mode: "quick".to_string(),
+        compliance_analysis: String::new(),
+        draft_text: String::new(),
+        review_notes: String::new(),
+    })
+}
+
+// ─────────────────────────────────────────────
+//  Deep Mode — full 3-agent pipeline
 // ─────────────────────────────────────────────
 
 /// Run the full 3-agent pipeline against the given raw note text.
-///
-/// * `raw_text`    – the user's raw progress note
-/// * `config_json` – the cartridge's compliance rules / format config
-/// * `model`       – Ollama model name (e.g. "llama3.2")
-/// * `ollama_url`  – base URL of the Ollama API (e.g. "http://localhost:11434")
 pub async fn run_pipeline(
     raw_text: &str,
-    config_json: &str,
+    config: &CartridgeConfig,
     model: &str,
     ollama_url: &str,
 ) -> Result<PipelineResult, String> {
     // ── Agent 1: Compliance Checker ─────────────────────────────
-    let compliance_analysis = agent_compliance_checker(
-        raw_text, config_json, model, ollama_url,
-    )
-    .await?;
+    let compliance_analysis =
+        agent_compliance_checker(raw_text, config, model, ollama_url).await?;
 
     // ── Agent 2: Rewriter ───────────────────────────────────────
-    let draft_text = agent_rewriter(
-        raw_text,
-        &compliance_analysis,
-        config_json,
-        model,
-        ollama_url,
-    )
-    .await?;
+    let draft_text =
+        agent_rewriter(raw_text, &compliance_analysis, config, model, ollama_url).await?;
 
     // ── Agent 3: Quality Reviewer ───────────────────────────────
-    let (final_text, review_notes) = agent_quality_reviewer(
-        &draft_text,
-        config_json,
-        model,
-        ollama_url,
-    )
-    .await?;
+    let (final_text, review_notes) =
+        agent_quality_reviewer(&draft_text, config, model, ollama_url).await?;
 
     Ok(PipelineResult {
         final_text,
+        mode: "deep".to_string(),
         compliance_analysis,
         draft_text,
         review_notes,
@@ -100,34 +258,48 @@ pub async fn run_pipeline(
 
 async fn agent_compliance_checker(
     raw_text: &str,
-    config_json: &str,
+    config: &CartridgeConfig,
     model: &str,
     ollama_url: &str,
 ) -> Result<String, String> {
     let system = format!(
-        r#"You are an NDIS compliance analysis agent. Your role is to review raw progress notes written by support workers and identify compliance issues.
+        r#"You are an NDIS compliance analysis agent specialising in {service_type} supports.
 
-You will be given:
-1. A raw progress note
-2. A cartridge configuration containing compliance rules and format requirements for a specific NDIS service type
+Your role is to review raw progress notes and identify compliance issues against the NDIS Practice Standards and Quality Indicators.
+
+COMPLIANCE RULES FOR THIS SERVICE TYPE:
+{rules}
+
+REQUIRED FIELDS (must be present in a compliant note):
+{fields}
+
+PROHIBITED TERMS (flag any of these if present):
+{prohibited}
 
 Your task:
-- Identify what information is missing that is required for NDIS audit compliance
-- Flag any language that is non-compliant (e.g. subjective, judgemental, or informal)
-- Note any structural issues (e.g. missing date references, unclear participant outcomes, missing goal linkage)
+- Identify what required information is missing from the note
+- Flag any language that is non-compliant, subjective, or prohibited
+- Note structural issues (missing sections, unclear outcomes, no goal linkage)
 - Identify what needs to be restructured for NDIS Practice Standards alignment
 
-Output a structured analysis with clear headings:
-- MISSING INFORMATION
-- NON-COMPLIANT LANGUAGE
-- STRUCTURAL ISSUES
-- RECOMMENDATIONS
+Output a structured analysis with EXACTLY these headings:
+MISSING INFORMATION:
+[List each missing required field or information gap]
 
-Be specific and actionable. Do not rewrite the note — only analyse it.
+NON-COMPLIANT LANGUAGE:
+[Quote specific phrases and explain why they are non-compliant]
 
-Cartridge Configuration:
-{}"#,
-        config_json
+STRUCTURAL ISSUES:
+[List structural problems]
+
+RECOMMENDATIONS:
+[Specific, actionable steps for the rewriter to address]
+
+Be specific and actionable. Do not rewrite the note — only analyse it."#,
+        service_type = config.service_type,
+        rules = config.rules_list(),
+        fields = config.fields_list(),
+        prohibited = config.prohibited_list(),
     );
 
     let prompt = format!(
@@ -145,33 +317,56 @@ Cartridge Configuration:
 async fn agent_rewriter(
     raw_text: &str,
     compliance_analysis: &str,
-    config_json: &str,
+    config: &CartridgeConfig,
     model: &str,
     ollama_url: &str,
 ) -> Result<String, String> {
     let system = format!(
-        r#"You are an NDIS progress note rewriting agent. Your role is to take raw progress notes and rewrite them into audit-ready, compliant documentation.
+        r#"You are an NDIS progress note rewriting agent specialising in {service_type} supports.
 
-You will be given:
-1. The original raw progress note
-2. A compliance analysis identifying issues found in the note
-3. A cartridge configuration with the compliance rules and format requirements
+Your role is to take raw progress notes and rewrite them into audit-ready, compliant documentation.
 
-Your task:
-- Rewrite the note into a professional, audit-ready format
-- Follow NDIS Practice Standards structure
-- Address all issues identified in the compliance analysis
-- Maintain ALL factual content from the original note — do not add fabricated details
-- Use person-centred, strengths-based language
-- Use objective, measurable observations where possible
-- Structure the note clearly with appropriate sections
-- Ensure the note would pass an NDIS audit
+COMPLIANCE RULES TO MEET:
+{rules}
 
-Output ONLY the rewritten note. Do not include commentary or explanations.
+REQUIRED FIELDS (all must be present in your output):
+{fields}
 
-Cartridge Configuration:
-{}"#,
-        config_json
+OUTPUT FORMAT (follow this structure exactly):
+{template}
+
+TONE AND LANGUAGE GUIDELINES:
+{tone}
+
+PROHIBITED TERMS (do not use these):
+{prohibited}
+
+EXAMPLE OF A CORRECTLY FORMATTED NOTE:
+{example}
+
+INSTRUCTIONS:
+- Rewrite the note to address ALL issues identified in the compliance analysis
+- Ensure every required field is present and complete
+- Follow the output format exactly
+- Maintain ALL factual content from the original — do not add fabricated details
+- Apply tone guidelines throughout
+- Do not use any prohibited terms
+- Output ONLY the rewritten note — no commentary, no preamble"#,
+        service_type = config.service_type,
+        rules = config.rules_list(),
+        fields = config.fields_list(),
+        template = if config.format_template.is_empty() {
+            "Use a clear, structured format with appropriate headings.".to_string()
+        } else {
+            config.format_template.clone()
+        },
+        tone = config.tone_list(),
+        prohibited = config.prohibited_list(),
+        example = if config.example_output.is_empty() {
+            "No example provided.".to_string()
+        } else {
+            config.example_output.clone()
+        },
     );
 
     let prompt = format!(
@@ -182,12 +377,12 @@ ORIGINAL RAW NOTE:
 {}
 ---
 
-COMPLIANCE ANALYSIS:
+COMPLIANCE ANALYSIS (issues to address):
 ---
 {}
 ---
 
-Produce the rewritten, audit-ready note now."#,
+Produce the rewritten, audit-ready note now:"#,
         raw_text, compliance_analysis
     );
 
@@ -201,22 +396,32 @@ Produce the rewritten, audit-ready note now."#,
 /// Returns (final_text, review_notes).
 async fn agent_quality_reviewer(
     draft_text: &str,
-    config_json: &str,
+    config: &CartridgeConfig,
     model: &str,
     ollama_url: &str,
 ) -> Result<(String, String), String> {
     let system = format!(
-        r#"You are an NDIS quality review agent. Your role is to perform a final quality check on a rewritten progress note and make any necessary adjustments.
+        r#"You are an NDIS quality review agent specialising in {service_type} supports.
 
-You will be given:
-1. A rewritten progress note (draft)
-2. A cartridge configuration with compliance rules and format requirements
+Your role is to perform a final quality check on a rewritten progress note and make any necessary adjustments.
+
+COMPLIANCE RULES TO VERIFY:
+{rules}
+
+REQUIRED FIELDS (verify all are present):
+{fields}
+
+TONE GUIDELINES (verify these are applied):
+{tone}
+
+PROHIBITED TERMS (check none are present):
+{prohibited}
 
 Your task:
-- Verify the note meets all compliance requirements in the cartridge configuration
-- Check for any remaining non-compliant language
-- Ensure person-centred, strengths-based language throughout
-- Verify the structure follows NDIS Practice Standards
+- Verify the note meets all compliance rules
+- Check all required fields are present and complete
+- Ensure no prohibited terms are used
+- Verify tone guidelines are applied throughout
 - Make minor adjustments if needed (grammar, clarity, compliance gaps)
 - Ensure the note reads naturally and professionally
 
@@ -226,11 +431,12 @@ REVIEW NOTES:
 [Your brief review commentary — what was checked, any changes made, overall assessment]
 
 FINAL NOTE:
-[The final, polished, audit-ready progress note]
-
-Cartridge Configuration:
-{}"#,
-        config_json
+[The final, polished, audit-ready progress note]"#,
+        service_type = config.service_type,
+        rules = config.rules_list(),
+        fields = config.fields_list(),
+        tone = config.tone_list(),
+        prohibited = config.prohibited_list(),
     );
 
     let prompt = format!(
@@ -239,8 +445,6 @@ Cartridge Configuration:
     );
 
     let response = call_ollama(model, &system, &prompt, ollama_url).await?;
-
-    // Parse the structured response into review_notes and final_text
     let (review_notes, final_text) = parse_reviewer_response(&response);
 
     Ok((final_text, review_notes))
@@ -249,26 +453,20 @@ Cartridge Configuration:
 /// Parse Agent 3's response into (review_notes, final_text).
 /// Falls back gracefully if the model doesn't follow the exact format.
 fn parse_reviewer_response(response: &str) -> (String, String) {
-    // Try to find the "FINAL NOTE:" marker
     let response_upper = response.to_uppercase();
 
     if let Some(final_pos) = response_upper.find("FINAL NOTE:") {
         let review_part = response[..final_pos].trim();
         let final_part = response[final_pos + "FINAL NOTE:".len()..].trim();
 
-        // Strip the "REVIEW NOTES:" prefix if present
-        let review_clean = if let Some(stripped) = review_part
-            .to_uppercase()
-            .find("REVIEW NOTES:")
-        {
-            review_part[stripped + "REVIEW NOTES:".len()..].trim().to_string()
+        let review_clean = if let Some(review_pos) = review_part.to_uppercase().find("REVIEW NOTES:") {
+            review_part[review_pos + "REVIEW NOTES:".len()..].trim().to_string()
         } else {
             review_part.to_string()
         };
 
         (review_clean, final_part.to_string())
     } else {
-        // Model didn't follow the format — treat entire response as the final text
         (
             "Review completed. Output provided as final note.".to_string(),
             response.trim().to_string(),
@@ -322,9 +520,10 @@ async fn call_ollama(
         ));
     }
 
-    let ollama_resp: OllamaResponse = response.json().await.map_err(|e| {
-        format!("Failed to parse Ollama response: {}", e)
-    })?;
+    let ollama_resp: OllamaResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
 
     Ok(ollama_resp.response.trim().to_string())
 }
@@ -351,5 +550,22 @@ mod tests {
         let (review, final_text) = parse_reviewer_response(response);
         assert_eq!(review, "Review completed. Output provided as final note.");
         assert!(final_text.contains("participant engaged"));
+    }
+
+    #[test]
+    fn test_cartridge_config_from_json() {
+        let json = r#"{"service_type":"Daily Living","compliance_rules":["Rule 1","Rule 2"],"required_fields":["Field A"],"format_template":"TEMPLATE","tone_guidelines":["Tone 1"],"prohibited_terms":["bad word"],"example_output":"Example"}"#;
+        let config = CartridgeConfig::from_json(json);
+        assert_eq!(config.service_type, "Daily Living");
+        assert_eq!(config.compliance_rules.len(), 2);
+        assert_eq!(config.required_fields.len(), 1);
+        assert_eq!(config.prohibited_terms[0], "bad word");
+    }
+
+    #[test]
+    fn test_cartridge_config_from_empty_json() {
+        let config = CartridgeConfig::from_json("{}");
+        assert!(config.service_type.is_empty());
+        assert!(config.compliance_rules.is_empty());
     }
 }

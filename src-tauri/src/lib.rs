@@ -1,12 +1,14 @@
+mod cartridges;
 mod commands;
 mod db;
 mod pipeline;
 
 use db::Database;
+use pipeline::CartridgeConfig;
 use tauri::Manager;
 
 // ─────────────────────────────────────────────
-//  Rewrite Note command (wraps the 3-agent pipeline)
+//  Rewrite Note command
 // ─────────────────────────────────────────────
 
 #[tauri::command]
@@ -14,8 +16,9 @@ async fn rewrite_note(
     db: tauri::State<'_, Database>,
     raw_text: String,
     cartridge_id: i64,
+    mode: Option<String>, // "quick" | "deep" — defaults to "deep"
 ) -> Result<pipeline::PipelineResult, String> {
-    // 1. Look up the cartridge to get its config_json
+    // 1. Look up the cartridge's config_json
     let config_json = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         conn.query_row(
@@ -26,7 +29,10 @@ async fn rewrite_note(
         .map_err(|e| format!("Cartridge not found: {}", e))?
     };
 
-    // 2. Read the model name from settings (default: "llama3.2")
+    // 2. Parse the cartridge config
+    let config = CartridgeConfig::from_json(&config_json);
+
+    // 3. Read model name from settings (default: "llama3.2")
     let model = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let result = conn.query_row(
@@ -40,7 +46,7 @@ async fn rewrite_note(
         }
     };
 
-    // 3. Read the Ollama URL from settings (default: localhost)
+    // 4. Read Ollama URL from settings (default: localhost)
     let ollama_url = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let result = conn.query_row(
@@ -54,8 +60,12 @@ async fn rewrite_note(
         }
     };
 
-    // 4. Run the 3-agent pipeline
-    pipeline::run_pipeline(&raw_text, &config_json, &model, &ollama_url).await
+    // 5. Run the selected mode
+    let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
+    match selected_mode.as_str() {
+        "quick" => pipeline::quick_rewrite(&raw_text, &config, &model, &ollama_url).await,
+        _ => pipeline::run_pipeline(&raw_text, &config, &model, &ollama_url).await,
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -89,6 +99,11 @@ pub fn run() {
             let database =
                 Database::new(&db_path).expect("Failed to initialise SQLite database");
 
+            // ── Seed default cartridges (no-op if already seeded) ─
+            if let Err(e) = cartridges::seed_default_cartridges(&database) {
+                log::warn!("Failed to seed cartridges: {}", e);
+            }
+
             app.manage(database);
 
             Ok(())
@@ -98,10 +113,11 @@ pub fn run() {
             commands::create_cartridge,
             commands::get_cartridges,
             commands::get_active_cartridges,
-            // Settings (app preferences)
+            commands::update_cartridge_active,
+            // Settings (app preferences only — NOT client data)
             commands::get_setting,
             commands::set_setting,
-            // Rewrite pipeline
+            // Rewrite pipeline (Quick or Deep mode)
             rewrite_note,
         ])
         .run(tauri::generate_context!())

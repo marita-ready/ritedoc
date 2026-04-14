@@ -136,6 +136,23 @@ pub fn get_active_cartridges(db: State<'_, Database>) -> Result<Vec<Cartridge>, 
     Ok(cartridges)
 }
 
+/// Toggle a cartridge's active/inactive state.
+#[tauri::command]
+pub fn update_cartridge_active(
+    db: State<'_, Database>,
+    id: i64,
+    is_active: bool,
+) -> Result<bool, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let active: i32 = if is_active { 1 } else { 0 };
+    conn.execute(
+        "UPDATE cartridges SET is_active = ?1 WHERE id = ?2",
+        rusqlite::params![active, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
 // ─────────────────────────────────────────────
 //  Settings (app preferences only — NOT client data)
 // ─────────────────────────────────────────────

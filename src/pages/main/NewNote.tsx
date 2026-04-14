@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  getCartridges,
-  getSetting,
+  getActiveCartridges,
   rewriteNote,
   type Cartridge,
+  type RewriteMode,
   type RewriteResult,
 } from "../../lib/commands";
 
@@ -11,6 +11,7 @@ export default function RewriteNotePage() {
   const [cartridges, setCartridges] = useState<Cartridge[]>([]);
   const [selectedCartridge, setSelectedCartridge] = useState<number | "">("");
   const [rawText, setRawText] = useState("");
+  const [mode, setMode] = useState<RewriteMode>("deep");
   const [result, setResult] = useState<RewriteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,23 +25,10 @@ export default function RewriteNotePage() {
 
   async function loadCartridges() {
     try {
-      const all = await getCartridges();
-      let activeIds: number[] | null = null;
-      try {
-        const raw = await getSetting("active_cartridge_ids");
-        if (raw) activeIds = JSON.parse(raw);
-      } catch {
-        /* ignore */
-      }
-
-      const filtered =
-        activeIds !== null
-          ? all.filter((c) => activeIds!.includes(c.id))
-          : all.filter((c) => c.is_active);
-
-      setCartridges(filtered);
-      if (filtered.length > 0) {
-        setSelectedCartridge(filtered[0].id);
+      const active = await getActiveCartridges();
+      setCartridges(active);
+      if (active.length > 0) {
+        setSelectedCartridge(active[0].id);
       }
     } catch (err) {
       console.error("Failed to load cartridges:", err);
@@ -59,11 +47,11 @@ export default function RewriteNotePage() {
     try {
       const pipelineResult = await rewriteNote(
         rawText.trim(),
-        selectedCartridge as number
+        selectedCartridge as number,
+        mode
       );
       setResult(pipelineResult);
 
-      // Scroll to output
       setTimeout(() => {
         outputRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -102,6 +90,8 @@ export default function RewriteNotePage() {
     }
   }
 
+  const isDeep = mode === "deep";
+
   return (
     <div className="page">
       <div className="page-header">
@@ -112,27 +102,86 @@ export default function RewriteNotePage() {
         </p>
       </div>
 
-      {/* Cartridge selector */}
-      <div style={{ marginBottom: "1.25rem" }}>
-        <label className="label">Service Cartridge</label>
-        <select
-          className="select"
-          style={{ maxWidth: 360 }}
-          value={selectedCartridge}
-          onChange={(e) =>
-            setSelectedCartridge(
-              e.target.value === "" ? "" : Number(e.target.value)
-            )
-          }
-          disabled={loading}
-        >
-          <option value="">No cartridge selected</option>
-          {cartridges.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      {/* Cartridge selector + Mode toggle row */}
+      <div
+        style={{
+          display: "flex",
+          gap: "1.25rem",
+          alignItems: "flex-end",
+          marginBottom: "1.25rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: "1 1 260px", maxWidth: 360 }}>
+          <label className="label">Service Cartridge</label>
+          <select
+            className="select"
+            value={selectedCartridge}
+            onChange={(e) =>
+              setSelectedCartridge(
+                e.target.value === "" ? "" : Number(e.target.value)
+              )
+            }
+            disabled={loading}
+          >
+            <option value="">No cartridge selected</option>
+            {cartridges.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Mode toggle */}
+        <div>
+          <label className="label">Processing Mode</label>
+          <div
+            style={{
+              display: "flex",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--slate-200)",
+              overflow: "hidden",
+              width: "fit-content",
+            }}
+          >
+            <ModeButton
+              label="Quick"
+              description="Single-pass rewrite"
+              active={!isDeep}
+              disabled={loading}
+              onClick={() => setMode("quick")}
+            />
+            <ModeButton
+              label="Deep"
+              description="3-stage pipeline"
+              active={isDeep}
+              disabled={loading}
+              onClick={() => setMode("deep")}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mode description */}
+      <div
+        style={{
+          fontSize: "0.8125rem",
+          color: "var(--slate-400)",
+          marginBottom: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.375rem",
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M6.5 5.5V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="6.5" cy="4" r="0.6" fill="currentColor" />
+        </svg>
+        {isDeep
+          ? "Deep mode runs a 3-stage compliance pipeline: analysis → rewrite → quality review. More thorough, takes longer."
+          : "Quick mode runs a single-pass rewrite. Faster, best for straightforward notes."}
       </div>
 
       {/* Raw text input */}
@@ -158,7 +207,7 @@ export default function RewriteNotePage() {
           {loading ? (
             <>
               <span className="spinner-inline" />
-              Rewriting...
+              {isDeep ? "Running pipeline..." : "Rewriting..."}
             </>
           ) : (
             <>
@@ -195,7 +244,7 @@ export default function RewriteNotePage() {
               margin: "0 0 0.375rem",
             }}
           >
-            Rewriting your note...
+            {isDeep ? "Running 3-stage compliance pipeline..." : "Rewriting your note..."}
           </p>
           <p
             style={{
@@ -204,7 +253,9 @@ export default function RewriteNotePage() {
               margin: 0,
             }}
           >
-            Running 3-stage compliance pipeline. This may take a moment.
+            {isDeep
+              ? "Stage 1: Compliance analysis → Stage 2: Rewrite → Stage 3: Quality review. This may take a moment."
+              : "Applying cartridge compliance rules. This may take a moment."}
           </p>
         </div>
       )}
@@ -253,39 +304,53 @@ export default function RewriteNotePage() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 marginBottom: "0.75rem",
+                gap: "0.5rem",
+                flexWrap: "wrap",
               }}
             >
-              <span
-                style={{
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  color: "var(--slate-500)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Audit-Ready Output
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                <span
+                  style={{
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    color: "var(--slate-500)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Audit-Ready Output
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.6875rem",
+                    fontWeight: 500,
+                    padding: "0.125rem 0.5rem",
+                    borderRadius: "var(--radius-full)",
+                    background: result.mode === "quick" ? "var(--slate-100)" : "var(--blue-50)",
+                    color: result.mode === "quick" ? "var(--slate-500)" : "var(--blue-600)",
+                    border: `1px solid ${result.mode === "quick" ? "var(--slate-200)" : "var(--blue-200)"}`,
+                  }}
+                >
+                  {result.mode === "quick" ? "Quick" : "Deep"} mode
+                </span>
+              </div>
 
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowDetails(!showDetails)}
-                >
-                  {showDetails ? "Hide Details" : "Show Details"}
-                </button>
+                {result.mode === "deep" && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowDetails(!showDetails)}
+                  >
+                    {showDetails ? "Hide Details" : "Show Pipeline Details"}
+                  </button>
+                )}
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={handleCopy}
                 >
                   {copied ? (
                     <>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                      >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                         <path
                           d="M3 7L5.5 9.5L11 4"
                           stroke="var(--success)"
@@ -298,12 +363,7 @@ export default function RewriteNotePage() {
                     </>
                   ) : (
                     <>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                      >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                         <rect
                           x="4"
                           y="4"
@@ -342,8 +402,8 @@ export default function RewriteNotePage() {
             </div>
           </div>
 
-          {/* Pipeline details (collapsible) */}
-          {showDetails && (
+          {/* Pipeline details (Deep mode only, collapsible) */}
+          {result.mode === "deep" && showDetails && (
             <div
               style={{
                 display: "flex",
@@ -371,13 +431,49 @@ export default function RewriteNotePage() {
   );
 }
 
-function DetailCard({
-  title,
-  content,
+// ─────────────────────────────────────────────
+//  Sub-components
+// ─────────────────────────────────────────────
+
+function ModeButton({
+  label,
+  description,
+  active,
+  disabled,
+  onClick,
 }: {
-  title: string;
-  content: string;
+  label: string;
+  description: string;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
 }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: "0.5rem 1rem",
+        border: "none",
+        background: active ? "var(--blue-600)" : "var(--white)",
+        color: active ? "var(--white)" : "var(--slate-600)",
+        cursor: disabled ? "not-allowed" : "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "0.125rem",
+        transition: "background 0.15s ease, color 0.15s ease",
+        minWidth: 90,
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: "0.6875rem", opacity: 0.75 }}>{description}</span>
+    </button>
+  );
+}
+
+function DetailCard({ title, content }: { title: string; content: string }) {
   return (
     <div className="card card-padded">
       <p

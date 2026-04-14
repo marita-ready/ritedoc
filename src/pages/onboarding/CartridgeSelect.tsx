@@ -2,57 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getCartridges,
-  createCartridge,
+  updateCartridgeActive,
   setSetting,
   type Cartridge,
 } from "../../lib/commands";
 import Logo from "../../components/Logo";
 import "../../styles/onboarding.css";
-
-/** Default NDIS service type cartridges seeded on first run. */
-const DEFAULT_CARTRIDGES = [
-  {
-    name: "Daily Activities",
-    service_type: "daily_activities",
-    description:
-      "Assistance with daily personal activities and community participation",
-  },
-  {
-    name: "Community Participation",
-    service_type: "community_participation",
-    description: "Support for social and community engagement activities",
-  },
-  {
-    name: "Therapeutic Supports",
-    service_type: "therapeutic_supports",
-    description: "Allied health and therapeutic intervention notes",
-  },
-  {
-    name: "Capacity Building",
-    service_type: "capacity_building",
-    description: "Skill development and independence-building activities",
-  },
-  {
-    name: "Supported Independent Living",
-    service_type: "sil",
-    description: "SIL shift notes and daily living support documentation",
-  },
-  {
-    name: "Plan Management",
-    service_type: "plan_management",
-    description: "Plan management and coordination of supports",
-  },
-  {
-    name: "Behaviour Support",
-    service_type: "behaviour_support",
-    description: "Behaviour support plans and incident documentation",
-  },
-  {
-    name: "Transport",
-    service_type: "transport",
-    description: "Transport assistance and travel training notes",
-  },
-];
 
 interface Props {
   onComplete: () => void;
@@ -67,27 +22,14 @@ export default function CartridgeSelect({ onComplete }: Props) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    seedAndLoad();
+    loadCartridges();
   }, []);
 
-  async function seedAndLoad() {
+  async function loadCartridges() {
     try {
-      let existing = await getCartridges();
-
-      // Seed defaults if the table is empty
-      if (existing.length === 0) {
-        for (const c of DEFAULT_CARTRIDGES) {
-          await createCartridge(
-            c.name,
-            c.service_type,
-            c.description,
-            "{}",
-            true
-          );
-        }
-        existing = await getCartridges();
-      }
-
+      // Cartridges are seeded by the Rust backend on first launch.
+      // By the time onboarding reaches this screen, they are already in the DB.
+      const existing = await getCartridges();
       setCartridges(existing.map((c) => ({ ...c, selected: c.is_active })));
     } catch (err) {
       console.error("Failed to load cartridges:", err);
@@ -105,13 +47,10 @@ export default function CartridgeSelect({ onComplete }: Props) {
   async function handleFinish() {
     setSaving(true);
     try {
-      // We don't have an update_cartridge command yet, so we'll store the
-      // active cartridge IDs as a setting for now. The backend can be
-      // extended later.
-      const activeIds = cartridges
-        .filter((c) => c.selected)
-        .map((c) => c.id);
-      await setSetting("active_cartridge_ids", JSON.stringify(activeIds));
+      // Persist each cartridge's active state directly to the cartridges table
+      await Promise.all(
+        cartridges.map((c) => updateCartridgeActive(c.id, c.selected))
+      );
       await setSetting("onboarding_complete", "true");
       onComplete();
     } catch (err) {
@@ -139,16 +78,16 @@ export default function CartridgeSelect({ onComplete }: Props) {
 
         <h2>Select Your Cartridges</h2>
         <p className="subtitle">
-          Choose the NDIS service types you work with. These cartridges
-          determine how your notes are formatted. You can change these later in
-          Settings.
+          Choose the NDIS service types you work with. Each cartridge contains
+          the compliance rules and format requirements for that service type.
+          You can change these later in Settings.
         </p>
 
         {loading ? (
           <div className="empty-cartridges">Loading cartridges...</div>
         ) : cartridges.length === 0 ? (
           <div className="empty-cartridges">
-            No cartridges available. You can add them later in Settings.
+            No cartridges found. Please restart the app.
           </div>
         ) : (
           <div className="cartridge-list">
@@ -188,7 +127,7 @@ export default function CartridgeSelect({ onComplete }: Props) {
           </button>
           <button
             className="btn btn-primary"
-            disabled={saving}
+            disabled={saving || selectedCount === 0}
             onClick={handleFinish}
           >
             {saving ? "Saving..." : "Finish Setup"}
