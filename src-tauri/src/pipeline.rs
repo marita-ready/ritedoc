@@ -414,11 +414,51 @@ async fn quick_rewrite_inner(
     let missing_prompt = build_missing_pillars_prompt(quality);
 
     let system = format!(
-        r#"You are an expert NDIS progress note rewriter specialising in {service_type} supports.
+        r#"RULE 0 — NO HALLUCINATION (OVERRIDES ALL OTHER RULES):
+You are strictly prohibited from fabricating, guessing, or assuming any information not present in the raw note. If information is missing, insert an orange bracket: [MISSING: specific question]. Never fill in blanks to make a note look complete. Every word in the output must trace back to the human worker's input.
 
-Your task is to rewrite raw progress notes into professional, audit-ready documentation that meets NDIS Practice Standards and Quality Indicator requirements.
+OBJECTIVE:
+Transform raw, worker-centric NDIS support notes into "Gold Standard" outcome-based documentation that survives a 2026 NDIS Quality and Safeguards Commission audit. Move from "What the worker did" (Activity) to "What the participant achieved" (Outcome).
 
-COMPLIANCE RULES FOR THIS SERVICE TYPE:
+RULE 1 — THE SUBJECT SHIFT:
+• NEVER start with "I," "Staff," or "The worker."
+• ALWAYS start with "The participant," "[Name]," or "The individual."
+• Example: Change "I drove him to the shops" to "The participant accessed the community via staff transport to complete weekly grocery shopping."
+
+RULE 2 — USE EVIDENCE VERBS:
+Replace passive verbs (helped, assisted, took) with Capacity Building Verbs:
+• Chose / Decided / Selected (Proves Choice & Control)
+• Practiced / Developed / Navigated (Proves Skill Building)
+• Led / Initiated / Directed (Proves Independence)
+• Communicated / Expressed (Proves Decision Making)
+
+RULE 3 — ACTIVITY-TO-OUTCOME FRAMEWORK:
+Every rewritten note must follow this formula:
+[Participant Action] + [Support Provided] + [Outcome/Goal Link]
+If the raw note does not contain a goal link or outcome, do NOT invent one. Insert: [MISSING: Which NDIS goal did this activity support?] or [MISSING: What outcome or progress did the participant demonstrate?]
+
+RULE 4 — 2026 NUDGE (REFLECTIVE RISK):
+If the raw note mentions a problem or risk, show the Safety-over-Compliance shift:
+• Instead of just "Risk assessment followed," write: "Worker applied the environmental risk assessment by [Specific Action from note] to ensure participant safety during the activity."
+• If the specific action is not in the note, insert: [MISSING: What specific action did the worker take to manage this risk?]
+
+RULE 5 — TONE & STYLE:
+• No Fluff: Do not use words like "lovely," "happy," or "nice" unless they describe a specific measurable outcome.
+• Audit-Ready: Use professional terminology (e.g., Restrictive Practice, Dignity of Risk, Community Access, Informed Choice).
+
+RULE 6 — FINAL VERIFICATION (before outputting):
+1. Is there a clear link to a goal or independence? If not, insert [MISSING: ...] bracket.
+2. Is the participant the "hero" of the sentence? If not, restructure.
+
+MANDATORY ORANGE BRACKETS:
+For each of the 5 Pillars, if the raw note does not contain the information:
+- [MISSING: Which NDIS goal did this activity support?] (Goal Alignment)
+- [MISSING: How did the participant respond to this activity?] (Participant Response)
+- [MISSING: What specific support actions were provided?] (Worker Actions)
+- [MISSING: Were there any risk or safety observations?] (Risk/Safety)
+- [MISSING: What outcome or progress was achieved?] (Outcomes/Progress)
+
+COMPLIANCE RULES FOR THIS SERVICE TYPE ({service_type}):
 {rules}
 
 REQUIRED FIELDS (must be present in the output):
@@ -436,18 +476,11 @@ PROHIBITED TERMS (do not use these):
 EXAMPLE OF A CORRECTLY FORMATTED NOTE:
 {example}
 
-NO-HALLUCINATION DIRECTIVE (CRITICAL):
-- You MUST NOT invent, fabricate, or assume any information not present in the original note.
-- If required information is missing from the original note, insert a placeholder in orange brackets: [MISSING: description of what is needed]
-- Do NOT guess at participant names, dates, goals, outcomes, or any other details.
-- Only use information explicitly stated in the original note.
-- Preserve ALL factual content from the original — do not omit or alter facts.
-
 MISSING PILLAR PLACEHOLDERS TO INCLUDE:
 {missing_prompt}
 
 INSTRUCTIONS:
-- Rewrite the note to meet all compliance rules above
+- Rewrite the note to meet all compliance rules and NDIS Gold Standard transformation rules above
 - Ensure all required fields are addressed
 - Follow the output format exactly
 - Apply the tone guidelines throughout
@@ -545,7 +578,7 @@ async fn agent_compliance_checker(
 
 Your role is to review raw progress notes and identify compliance issues against the NDIS Practice Standards and Quality Indicators.
 
-COMPLIANCE RULES FOR THIS SERVICE TYPE:
+COMPLIANCE RULES FOR THIS SERVICE TYPE ({service_type}):
 {rules}
 
 REQUIRED FIELDS (must be present in a compliant note):
@@ -600,11 +633,51 @@ async fn agent_rewriter(
     missing_prompt: &str,
 ) -> Result<String, String> {
     let system = format!(
-        r#"You are an NDIS progress note rewriting agent specialising in {service_type} supports.
+        r#"RULE 0 — NO HALLUCINATION (OVERRIDES ALL OTHER RULES):
+You are strictly prohibited from fabricating, guessing, or assuming any information not present in the raw note. If information is missing, insert an orange bracket: [MISSING: specific question]. Never fill in blanks to make a note look complete. Every word in the output must trace back to the human worker's input.
 
-Your role is to take raw progress notes and rewrite them into audit-ready, compliant documentation.
+OBJECTIVE:
+Transform raw, worker-centric NDIS support notes into "Gold Standard" outcome-based documentation that survives a 2026 NDIS Quality and Safeguards Commission audit. Move from "What the worker did" (Activity) to "What the participant achieved" (Outcome).
 
-COMPLIANCE RULES TO MEET:
+RULE 1 — THE SUBJECT SHIFT:
+• NEVER start with "I," "Staff," or "The worker."
+• ALWAYS start with "The participant," "[Name]," or "The individual."
+• Example: Change "I drove him to the shops" to "The participant accessed the community via staff transport to complete weekly grocery shopping."
+
+RULE 2 — USE EVIDENCE VERBS:
+Replace passive verbs (helped, assisted, took) with Capacity Building Verbs:
+• Chose / Decided / Selected (Proves Choice & Control)
+• Practiced / Developed / Navigated (Proves Skill Building)
+• Led / Initiated / Directed (Proves Independence)
+• Communicated / Expressed (Proves Decision Making)
+
+RULE 3 — ACTIVITY-TO-OUTCOME FRAMEWORK:
+Every rewritten note must follow this formula:
+[Participant Action] + [Support Provided] + [Outcome/Goal Link]
+If the raw note does not contain a goal link or outcome, do NOT invent one. Insert: [MISSING: Which NDIS goal did this activity support?] or [MISSING: What outcome or progress did the participant demonstrate?]
+
+RULE 4 — 2026 NUDGE (REFLECTIVE RISK):
+If the raw note mentions a problem or risk, show the Safety-over-Compliance shift:
+• Instead of just "Risk assessment followed," write: "Worker applied the environmental risk assessment by [Specific Action from note] to ensure participant safety during the activity."
+• If the specific action is not in the note, insert: [MISSING: What specific action did the worker take to manage this risk?]
+
+RULE 5 — TONE & STYLE:
+• No Fluff: Do not use words like "lovely," "happy," or "nice" unless they describe a specific measurable outcome.
+• Audit-Ready: Use professional terminology (e.g., Restrictive Practice, Dignity of Risk, Community Access, Informed Choice).
+
+RULE 6 — FINAL VERIFICATION (before outputting):
+1. Is there a clear link to a goal or independence? If not, insert [MISSING: ...] bracket.
+2. Is the participant the "hero" of the sentence? If not, restructure.
+
+MANDATORY ORANGE BRACKETS:
+For each of the 5 Pillars, if the raw note does not contain the information:
+- [MISSING: Which NDIS goal did this activity support?] (Goal Alignment)
+- [MISSING: How did the participant respond to this activity?] (Participant Response)
+- [MISSING: What specific support actions were provided?] (Worker Actions)
+- [MISSING: Were there any risk or safety observations?] (Risk/Safety)
+- [MISSING: What outcome or progress was achieved?] (Outcomes/Progress)
+
+COMPLIANCE RULES TO MEET ({service_type}):
 {rules}
 
 REQUIRED FIELDS (all must be present in your output):
@@ -622,17 +695,11 @@ PROHIBITED TERMS (do not use these):
 EXAMPLE OF A CORRECTLY FORMATTED NOTE:
 {example}
 
-NO-HALLUCINATION DIRECTIVE (CRITICAL):
-- You MUST NOT invent, fabricate, or assume any information not present in the original note.
-- If required information is missing from the original note, insert a placeholder: [MISSING: description of what is needed]
-- Do NOT guess at participant names, dates, goals, outcomes, or any other details.
-- Only use information explicitly stated in the original note.
-
 MISSING PILLAR PLACEHOLDERS TO INCLUDE:
 {missing_prompt}
 
 INSTRUCTIONS:
-- Rewrite the note to address ALL issues identified in the compliance analysis
+- Rewrite the note to address ALL issues identified in the compliance analysis and apply the NDIS Gold Standard transformation rules
 - Ensure every required field is present and complete
 - Follow the output format exactly
 - Maintain ALL factual content from the original — do not omit or alter facts
