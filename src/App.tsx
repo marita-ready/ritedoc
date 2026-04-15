@@ -9,6 +9,7 @@ import OnboardingCartridges from "./pages/onboarding/CartridgeSelect";
 import MainLayout from "./components/MainLayout";
 import Home from "./pages/main/Home";
 import RewriteNote from "./pages/main/NewNote";
+import BatchProcess from "./pages/main/BatchProcess";
 import Settings from "./pages/main/Settings";
 
 import Logo from "./components/Logo";
@@ -83,6 +84,7 @@ function App() {
         >
           <Route index element={<Home />} />
           <Route path="rewrite" element={<RewriteNote />} />
+          <Route path="batch" element={<BatchProcess />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 
