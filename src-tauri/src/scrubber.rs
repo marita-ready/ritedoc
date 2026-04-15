@@ -21,34 +21,36 @@ use std::sync::OnceLock;
 /// Matches Australian and international phone numbers in common formats:
 ///
 /// Examples matched:
-///   0412 345 678   (mobile, spaced)
-///   0412345678     (mobile, no spaces)
-///   (03) 9123 4567 (landline with area code in parens)
-///   03 9123 4567   (landline, spaced)
-///   +61 412 345 678 (international mobile)
-///   +61-3-9123-4567 (international landline, dashes)
-///   1800 123 456   (toll-free)
+///   0412 345 678      (mobile, spaced 4+3+3)
+///   0412345678        (mobile, compact)
+///   0412-345-678      (mobile, dashed)
+///   (03) 9123 4567    (landline with area code in parens)
+///   03 9123 4567      (landline, spaced)
+///   +61 412 345 678   (international mobile)
+///   +61-3-9123-4567   (international landline, dashes)
+///   1800 123 456      (toll-free)
 ///
-/// Regex:
-///   (\+?61[-.\s]?)?(\(0?\d\)|0\d)[-.\s]?\d{3,4}[-.\s]?\d{3,4}
+/// Two branches:
+///   Branch A: 10-digit mobile  — 04XX[sep]XXX[sep]XXX
+///   Branch B: landline / other — (0X)[sep]XXXX[sep]XXXX or 0X[sep]XXXX[sep]XXXX
 fn phone_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(
             r"(?x)
             (?:
-                \+?61          # optional international prefix +61
-                [\-.\s]?
-            )?
-            (?:
-                \(0?\d\)       # area code in parens: (03) or (3)
-                |
-                0\d            # leading zero: 04, 03, 02, etc.
+                # Branch A: 10-digit mobile 04XX[sep]XXX[sep]XXX
+                (?:\+?61[\-\.\s]?)?  # optional +61 prefix
+                0[45]\d{2}           # 04XX or 05XX
+                [\-\.\s]?\d{3}       # sep + 3 digits
+                [\-\.\s]?\d{3}       # sep + 3 digits
+            |
+                # Branch B: landline / 1800 / other
+                (?:\+?61[\-\.\s]?)?
+                (?:\(0?\d\)|0[23789]|1[38]00)
+                [\-\.\s]?\d{3,4}
+                [\-\.\s]?\d{3,4}
             )
-            [\-.\s]?
-            \d{3,4}
-            [\-.\s]?
-            \d{3,4}
             ",
         )
         .expect("phone regex is valid")
@@ -101,6 +103,27 @@ fn address_re() -> &'static Regex {
         .case_insensitive(false) // keep case-sensitive so we don't match prose
         .build()
         .expect("address regex is valid")
+    })
+}
+
+/// Matches Australian postcodes: 4-digit numbers starting with 2–8.
+///
+/// Pattern: \b[2-8]\d{3}\b
+///
+/// Examples matched:
+///   3931   (Mornington, VIC)
+///   2000   (Sydney, NSW)
+///   4000   (Brisbane, QLD)
+///   6000   (Perth, WA)
+///
+/// NOT matched:
+///   1234   (starts with 1 — not a valid Australian postcode)
+///   9999   (starts with 9 — not a valid Australian postcode)
+///   12345  (5 digits — US zip code)
+fn postcode_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"\b[2-8]\d{3}\b").expect("postcode regex is valid")
     })
 }
 
@@ -159,13 +182,12 @@ fn name_re() -> &'static Regex {
 /// Scrub PII from `text` and return the sanitised string.
 ///
 /// Replacements applied in order:
-///   1. Phone numbers  → `[PHONE]`
-///   2. Street addresses → `[ADDRESS]`  (before names, to avoid partial overlap)
-///   3. Names          → `[NAME]`
-///
-/// The order matters: addresses are replaced before names so that a street
-/// name like "12 John Smith Road" becomes "[ADDRESS]" rather than
-/// "12 [NAME] Road".
+///   1. Phone numbers    → `[PHONE]`
+///   2. Street addresses → `[ADDRESS]`  (before postcodes/names, to avoid partial overlap)
+///   3. Postcodes        → `[POSTCODE]` (after addresses so postcodes within a full address
+///                                       are already consumed by [ADDRESS]; standalone
+///                                       postcodes are caught here)
+///   4. Names            → `[NAME]`
 pub fn scrub_pii(text: &str) -> String {
     // Step 1 — phones
     let after_phones = phone_re().replace_all(text, "[PHONE]");
@@ -173,8 +195,11 @@ pub fn scrub_pii(text: &str) -> String {
     // Step 2 — addresses (run on phone-scrubbed text)
     let after_addresses = address_re().replace_all(&after_phones, "[ADDRESS]");
 
-    // Step 3 — names (run last)
-    let after_names = name_re().replace_all(&after_addresses, "[NAME]");
+    // Step 3 — standalone postcodes (run after addresses)
+    let after_postcodes = postcode_re().replace_all(&after_addresses, "[POSTCODE]");
+
+    // Step 4 — names (run last)
+    let after_names = name_re().replace_all(&after_postcodes, "[NAME]");
 
     after_names.into_owned()
 }
@@ -244,6 +269,26 @@ mod tests {
         // Single capitalised words at sentence start should not be replaced
         let result = scrub_pii("Support was provided. Assistance was given.");
         assert!(!result.contains("[NAME]"), "got: {result}");
+    }
+
+    #[test]
+    fn test_postcode_standalone() {
+        let result = scrub_pii("She lives in Mornington 3931.");
+        assert!(result.contains("[POSTCODE]"), "got: {result}");
+        assert!(!result.contains("3931"), "got: {result}");
+    }
+
+    #[test]
+    fn test_postcode_various() {
+        let result = scrub_pii("Sydney 2000, Brisbane 4000, Perth 6000.");
+        assert_eq!(result.matches("[POSTCODE]").count(), 3, "got: {result}");
+    }
+
+    #[test]
+    fn test_postcode_not_matched_invalid_prefix() {
+        // 1xxx and 9xxx are not valid Australian postcodes
+        let result = scrub_pii("Code 1234 or 9999 should not match.");
+        assert!(!result.contains("[POSTCODE]"), "got: {result}");
     }
 
     #[test]
