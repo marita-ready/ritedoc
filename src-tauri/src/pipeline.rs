@@ -15,6 +15,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::scrubber::scrub_pii;
+
 // ─────────────────────────────────────────────
 //  Public types
 // ─────────────────────────────────────────────
@@ -172,6 +174,10 @@ pub async fn quick_rewrite(
     config: &CartridgeConfig,
     server_url: &str,
 ) -> Result<PipelineResult, String> {
+    // Scrub PII before sending to the inference server
+    let scrubbed = scrub_pii(raw_text);
+    log::info!("[quick_rewrite] PII scrubbed. Sending to Nanoclaw: {}", &scrubbed);
+
     let system = format!(
         r#"You are an expert NDIS progress note rewriter specialising in {service_type} supports.
 
@@ -222,7 +228,7 @@ INSTRUCTIONS:
 
     let user_prompt = format!(
         "Please rewrite the following raw progress note into an audit-ready format:\n\n---\n{}\n---\n\nRewritten note:",
-        raw_text
+        scrubbed
     );
 
     let final_text = call_llama(server_url, &system, &user_prompt).await?;
@@ -246,13 +252,17 @@ pub async fn run_pipeline(
     config: &CartridgeConfig,
     server_url: &str,
 ) -> Result<PipelineResult, String> {
+    // Scrub PII before sending to the inference server
+    let scrubbed = scrub_pii(raw_text);
+    log::info!("[run_pipeline] PII scrubbed. Sending to Nanoclaw: {}", &scrubbed);
+
     // ── Agent 1: Compliance Checker ─────────────────────────────
     let compliance_analysis =
-        agent_compliance_checker(raw_text, config, server_url).await?;
+        agent_compliance_checker(&scrubbed, config, server_url).await?;
 
     // ── Agent 2: Rewriter ───────────────────────────────────────
     let draft_text =
-        agent_rewriter(raw_text, &compliance_analysis, config, server_url).await?;
+        agent_rewriter(&scrubbed, &compliance_analysis, config, server_url).await?;
 
     // ── Agent 3: Quality Reviewer ───────────────────────────────
     let (final_text, review_notes) =

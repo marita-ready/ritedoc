@@ -2,6 +2,7 @@ mod cartridges;
 mod commands;
 mod db;
 mod pipeline;
+mod scrubber;
 
 use db::Database;
 use pipeline::CartridgeConfig;
