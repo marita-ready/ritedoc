@@ -11,6 +11,7 @@ import Home from "./pages/main/Home";
 import RewriteNote from "./pages/main/NewNote";
 import BatchProcess from "./pages/main/BatchProcess";
 import Settings from "./pages/main/Settings";
+import Activation from "./pages/main/Activation";
 
 import Logo from "./components/Logo";
 import "./App.css";
@@ -86,6 +87,7 @@ function App() {
           <Route path="rewrite" element={<RewriteNote />} />
           <Route path="batch" element={<BatchProcess />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="activation" element={<Activation />} />
         </Route>
 
         {/* Fallback */}

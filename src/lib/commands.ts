@@ -194,6 +194,35 @@ export interface HardwareProfile {
 }
 
 // ─────────────────────────────────────────────
+//  Regulation Sync types
+// ─────────────────────────────────────────────
+
+export interface SyncStatus {
+  current_version: string;
+  update_available: boolean;
+  latest_version: string;
+  last_synced: string;
+  last_checked: string;
+  last_check_ok: boolean;
+  message: string;
+}
+
+export interface SyncCheckResult {
+  update_available: boolean;
+  current_version: string;
+  latest_version: string;
+  message: string;
+}
+
+export interface SyncApplyResult {
+  success: boolean;
+  version: string;
+  updated_date: string;
+  message: string;
+  files_updated: string[];
+}
+
+// ─────────────────────────────────────────────
 //  Cartridges
 // ─────────────────────────────────────────────
 
@@ -308,4 +337,20 @@ export async function deactivateLicence(): Promise<void> {
 
 export async function getHardwareProfile(): Promise<HardwareProfile> {
   return invoke<HardwareProfile>("get_hardware_profile");
+}
+
+// ─────────────────────────────────────────────
+//  Regulation Sync (offline-first, 5 security layers)
+// ─────────────────────────────────────────────
+
+export async function getSyncStatus(): Promise<SyncStatus> {
+  return invoke<SyncStatus>("get_sync_status");
+}
+
+export async function checkRegulationSync(): Promise<SyncCheckResult> {
+  return invoke<SyncCheckResult>("check_regulation_sync");
+}
+
+export async function applyRegulationSync(): Promise<SyncApplyResult> {
+  return invoke<SyncApplyResult>("apply_regulation_sync");
 }

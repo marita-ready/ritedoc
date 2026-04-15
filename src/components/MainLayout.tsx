@@ -101,6 +101,30 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    to: "/activation",
+    label: "Activation",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect
+          x="3"
+          y="8"
+          width="14"
+          height="9"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M7 8V6C7 4.34 8.34 3 10 3C11.66 3 13 4.34 13 6V8"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <circle cx="10" cy="12.5" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+  },
 ];
 
 export default function MainLayout() {

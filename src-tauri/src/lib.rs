@@ -6,6 +6,7 @@ mod db;
 mod form_generator;
 mod pipeline;
 mod quality_scan;
+mod regulation_sync;
 mod safety_scan;
 mod scrubber;
 
@@ -167,6 +168,85 @@ fn get_hardware_profile() -> activation::HardwareProfile {
 }
 
 // ─────────────────────────────────────────────
+//  Regulation Sync commands
+//  Offline-first cartridge update system.
+//  Silent check every 90 days. 5 security layers.
+//  If offline, app works normally with current cartridges.
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+fn get_sync_status(
+    app_handle: tauri::AppHandle,
+) -> Result<regulation_sync::SyncStatus, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    Ok(regulation_sync::get_sync_status(&app_data_dir))
+}
+
+#[tauri::command]
+async fn check_regulation_sync(
+    app_handle: tauri::AppHandle,
+) -> Result<regulation_sync::SyncCheckResult, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+
+    // Get licence key and hardware fingerprint from activation
+    let activation = activation::check_local_activation(&app_data_dir);
+    let (licence_key, fingerprint) = match activation {
+        Some(state) if state.is_activated => (
+            state.key_code,
+            state.hardware_fingerprint,
+        ),
+        _ => {
+            return Ok(regulation_sync::SyncCheckResult {
+                update_available: false,
+                current_version: regulation_sync::get_sync_status(&app_data_dir).current_version,
+                latest_version: String::new(),
+                message: "Licence not activated — regulation sync requires an active licence.".to_string(),
+            });
+        }
+    };
+
+    Ok(regulation_sync::check_for_updates(&app_data_dir, &licence_key, &fingerprint).await)
+}
+
+#[tauri::command]
+async fn apply_regulation_sync(
+    app_handle: tauri::AppHandle,
+) -> Result<regulation_sync::SyncApplyResult, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+
+    let cartridge_dir = app_data_dir.join("cartridges");
+
+    // Get licence key and hardware fingerprint from activation
+    let activation = activation::check_local_activation(&app_data_dir);
+    let (licence_key, fingerprint) = match activation {
+        Some(state) if state.is_activated => (
+            state.key_code,
+            state.hardware_fingerprint,
+        ),
+        _ => {
+            return Ok(regulation_sync::SyncApplyResult {
+                success: false,
+                version: String::new(),
+                updated_date: String::new(),
+                message: "Licence not activated — regulation sync requires an active licence.".to_string(),
+                files_updated: vec![],
+            });
+        }
+    };
+
+    Ok(regulation_sync::apply_update(&app_data_dir, &cartridge_dir, &licence_key, &fingerprint).await)
+}
+
+// ─────────────────────────────────────────────
 //  App entry point
 // ─────────────────────────────────────────────
 
@@ -227,6 +307,10 @@ pub fn run() {
             deactivate_licence,
             // Hardware profile (local detection)
             get_hardware_profile,
+            // Regulation sync (offline-first, 5 security layers)
+            get_sync_status,
+            check_regulation_sync,
+            apply_regulation_sync,
         ])
         .run(tauri::generate_context!())
         .expect("error while running RiteDoc");
