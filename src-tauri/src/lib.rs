@@ -1,5 +1,7 @@
+mod activation;
 mod cartridges;
 mod commands;
+mod csv_parser;
 mod db;
 mod pipeline;
 mod quality_scan;
@@ -98,9 +100,69 @@ async fn rewrite_batch(
 
     // 4. Process batch — non-blocking, each note independent
     let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
-    let results = pipeline::process_batch(notes, &config, &server_url, &selected_mode, &app_handle).await;
+    let results =
+        pipeline::process_batch(notes, &config, &server_url, &selected_mode, &app_handle).await;
 
     Ok(results)
+}
+
+// ─────────────────────────────────────────────
+//  CSV Import command
+//  Parses a CSV file from the local filesystem,
+//  auto-detects the platform, and returns parsed notes.
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+fn import_csv(file_path: String) -> Result<csv_parser::CsvParseResult, String> {
+    csv_parser::parse_csv_file(&file_path)
+}
+
+// ─────────────────────────────────────────────
+//  Activation commands — 100% offline
+//  No Supabase. No network calls. No phone-home.
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+fn activate_licence(
+    app_handle: tauri::AppHandle,
+    key_code: String,
+) -> Result<activation::ActivationResult, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    Ok(activation::activate_offline(&key_code, &app_data_dir))
+}
+
+#[tauri::command]
+fn check_activation(
+    app_handle: tauri::AppHandle,
+) -> Result<Option<activation::ActivationState>, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    Ok(activation::check_local_activation(&app_data_dir))
+}
+
+#[tauri::command]
+fn deactivate_licence(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    activation::deactivate(&app_data_dir)
+}
+
+// ─────────────────────────────────────────────
+//  Hardware Profile command
+//  Returns CPU, RAM, machine ID, fingerprint,
+//  and recommended processing mode (turbo/standard).
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+fn get_hardware_profile() -> activation::HardwareProfile {
+    activation::detect_hardware()
 }
 
 // ─────────────────────────────────────────────
@@ -156,6 +218,14 @@ pub fn run() {
             rewrite_note,
             // Batch rewrite pipeline (multiple notes — non-blocking)
             rewrite_batch,
+            // CSV import (offline — reads local file)
+            import_csv,
+            // Activation (100% offline — no Supabase, no network)
+            activate_licence,
+            check_activation,
+            deactivate_licence,
+            // Hardware profile (local detection)
+            get_hardware_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running RiteDoc");
