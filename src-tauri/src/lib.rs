@@ -2,6 +2,8 @@ mod cartridges;
 mod commands;
 mod db;
 mod pipeline;
+mod quality_scan;
+mod safety_scan;
 mod scrubber;
 
 use db::Database;
@@ -9,7 +11,7 @@ use pipeline::CartridgeConfig;
 use tauri::Manager;
 
 // ─────────────────────────────────────────────
-//  Rewrite Note command
+//  Rewrite Note command (single note)
 // ─────────────────────────────────────────────
 
 #[tauri::command]
@@ -47,12 +49,58 @@ async fn rewrite_note(
         }
     };
 
-    // 4. Run the selected mode
+    // 4. Run the selected mode through the full 4-step pipeline
     let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
-    match selected_mode.as_str() {
-        "quick" => pipeline::quick_rewrite(&raw_text, &config, &server_url).await,
-        _ => pipeline::run_pipeline(&raw_text, &config, &server_url).await,
-    }
+    pipeline::process_note(&raw_text, &config, &server_url, &selected_mode).await
+}
+
+// ─────────────────────────────────────────────
+//  Batch Rewrite command
+//  Processes each note independently — non-blocking.
+//  Emits "batch-progress" Tauri events after each note.
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+async fn rewrite_batch(
+    db: tauri::State<'_, Database>,
+    app_handle: tauri::AppHandle,
+    notes: Vec<pipeline::BatchNoteInput>,
+    cartridge_id: i64,
+    mode: Option<String>,
+) -> Result<Vec<pipeline::BatchNoteResult>, String> {
+    // 1. Look up the cartridge's config_json
+    let config_json = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        conn.query_row(
+            "SELECT config_json FROM cartridges WHERE id = ?1",
+            rusqlite::params![cartridge_id],
+            |row| row.get::<_, String>(0),
+        )
+        .map_err(|e| format!("Cartridge not found: {}", e))?
+    };
+
+    // 2. Parse the cartridge config
+    let config = CartridgeConfig::from_json(&config_json);
+
+    // 3. Read Nanoclaw server URL from settings
+    let server_url = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let result = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'llama_server_url'",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        match result {
+            Ok(val) if !val.is_empty() => val,
+            _ => "http://localhost:8080".to_string(),
+        }
+    };
+
+    // 4. Process batch — non-blocking, each note independent
+    let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
+    let results = pipeline::process_batch(notes, &config, &server_url, &selected_mode, &app_handle).await;
+
+    Ok(results)
 }
 
 // ─────────────────────────────────────────────
@@ -104,8 +152,10 @@ pub fn run() {
             // Settings (app preferences only — NOT client data)
             commands::get_setting,
             commands::set_setting,
-            // Rewrite pipeline (Quick or Deep mode)
+            // Rewrite pipeline (single note — Quick or Deep mode)
             rewrite_note,
+            // Batch rewrite pipeline (multiple notes — non-blocking)
+            rewrite_batch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running RiteDoc");
