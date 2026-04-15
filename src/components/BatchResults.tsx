@@ -181,6 +181,9 @@ export default function BatchResults({
               missingPillars={
                 (note.missing_pillars as { pillar: string; prompt_question: string }[]) || []
               }
+              incidentPackage={
+                note.incident_package as import("../lib/commands").IncidentPackage | undefined
+              }
               onMarkReviewed={handleMarkReviewed}
               isReviewed={reviewedIds.has(note.id)}
             />

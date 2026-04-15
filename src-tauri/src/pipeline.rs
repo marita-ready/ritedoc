@@ -1,16 +1,13 @@
-//! 3-Filter + Rewrite Pipeline
+//! 5-Filter + Rewrite Pipeline
 //!
-//! Every note — regardless of traffic light colour — goes through all 4 steps:
+//! Every note — regardless of traffic light colour — goes through all steps:
 //!
 //!   Step 1: PII Scrub        — strips names, phones, addresses, postcodes
 //!   Step 2: Safety Scan      — checks 1,432 red flag keywords (14 categories)
 //!   Step 3: Quality Scan     — checks 5 NDIS compliance pillars
 //!   Step 4: Nanoclaw Rewrite — rewrites via Dockerized llama.cpp (Quick or Deep mode)
-//!
-//! Traffic light determination (Step 5):
-//!   is_red = true          → RED  (locked — regardless of pillar status)
-//!   is_red = false + gaps  → ORANGE
-//!   is_red = false + all 5 → GREEN
+//!   Step 5: Traffic Light    — RED / ORANGE / GREEN determination
+//!   Step 6: Incident Forms   — (RED notes only) Procedural Alignment Check + form pre-fill
 //!
 //! RED is a status flag only — it does NOT halt the pipeline.
 //! Batch processing is fully non-blocking: each note is independent.
@@ -89,6 +86,10 @@ pub struct PipelineResult {
     pub draft_text: String,
     /// Quality review notes (Deep mode only; empty for Quick)
     pub review_notes: String,
+    /// Incident package — only present for RED notes (Filter 5 output).
+    /// Contains pre-filled forms, procedural alignment check, and notifications.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub incident_package: Option<crate::form_generator::IncidentPackage>,
 }
 
 /// A single note in a batch processing request.
@@ -98,6 +99,18 @@ pub struct BatchNoteInput {
     pub id: String,
     /// The raw note text
     pub raw_text: String,
+    /// Participant name (from CSV metadata, for incident form auto-fill)
+    #[serde(default)]
+    pub participant_name: Option<String>,
+    /// Support worker name (from CSV metadata, for incident form auto-fill)
+    #[serde(default)]
+    pub support_worker: Option<String>,
+    /// Date (from CSV metadata, for incident form auto-fill)
+    #[serde(default)]
+    pub date: Option<String>,
+    /// Time (from CSV metadata, for incident form auto-fill)
+    #[serde(default)]
+    pub time: Option<String>,
 }
 
 /// The result for a single note in a batch.
@@ -199,13 +212,15 @@ impl CartridgeConfig {
 //  RED is a locked status flag — it does NOT skip quality scan or rewrite.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Process a single note through all 4 pipeline steps.
+/// Process a single note through all pipeline steps.
 ///
 /// Steps:
 ///   1. PII Scrub
 ///   2. Safety Scan  (sets is_red flag — does NOT halt pipeline)
 ///   3. Quality Scan (runs for ALL notes, including red ones)
 ///   4. Nanoclaw Rewrite (runs for ALL notes; missing pillars become [MISSING: ...] brackets)
+///   5. Traffic Light Determination
+///   6. Incident Form Generation (RED notes only — Filter 5)
 ///
 /// Traffic light:
 ///   is_red = true          → RED  (locked)
@@ -216,6 +231,7 @@ pub async fn process_note(
     config: &CartridgeConfig,
     server_url: &str,
     mode: &str, // "quick" or "deep"
+    note_context: Option<&crate::form_generator::NoteContext>,
 ) -> Result<PipelineResult, String> {
     // ── Step 1: PII Scrub ────────────────────────────────────────────────────
     let scrubbed = scrub_pii(raw_text);
@@ -258,6 +274,34 @@ pub async fn process_note(
 
     log::info!("[pipeline] Traffic light: {}", traffic_light.as_str());
 
+    // ── Step 6: Incident Form Generation (RED notes only) ───────────────────
+    // Filter 5: Procedural Alignment Check + form pre-fill.
+    // Only runs for RED notes. Uses incident_sops.json (compiled into binary)
+    // and required_forms from red_flags_v2.json.
+    let incident_package = if traffic_light == TrafficLight::Red {
+        let ctx = note_context.cloned().unwrap_or_else(|| {
+            crate::form_generator::NoteContext {
+                raw_text: raw_text.to_string(),
+                ..Default::default()
+            }
+        });
+        let pkg = crate::form_generator::generate_incident_package(
+            &safety.matched_categories,
+            &ctx,
+        );
+        if let Some(ref p) = pkg {
+            log::info!(
+                "[pipeline] Incident package generated: {}/{} steps documented, {} forms",
+                p.procedural_alignment.steps_documented,
+                p.procedural_alignment.steps_total,
+                p.incident_forms.len()
+            );
+        }
+        pkg
+    } else {
+        None
+    };
+
     Ok(PipelineResult {
         final_text: rewrite_result.0,
         mode: mode.to_string(),
@@ -269,6 +313,7 @@ pub async fn process_note(
         compliance_analysis: rewrite_result.1,
         draft_text: rewrite_result.2,
         review_notes: rewrite_result.3,
+        incident_package,
     })
 }
 
@@ -296,8 +341,17 @@ pub async fn process_batch(
     for (index, note) in notes.into_iter().enumerate() {
         let current = index + 1;
 
+        // Build note context for incident form auto-fill (Step 6).
+        let note_ctx = crate::form_generator::NoteContext {
+            participant_name: note.participant_name.clone().unwrap_or_default(),
+            support_worker: note.support_worker.clone().unwrap_or_default(),
+            date: note.date.clone().unwrap_or_default(),
+            time: note.time.clone().unwrap_or_default(),
+            raw_text: note.raw_text.clone(),
+        };
+
         // Process this note — errors are captured per-note, not propagated.
-        let result = match process_note(&note.raw_text, config, server_url, mode).await {
+        let result = match process_note(&note.raw_text, config, server_url, mode, Some(&note_ctx)).await {
             Ok(r) => r,
             Err(e) => {
                 // On error, return a RED result with the error message as final_text.
@@ -314,6 +368,7 @@ pub async fn process_batch(
                     compliance_analysis: String::new(),
                     draft_text: String::new(),
                     review_notes: String::new(),
+                    incident_package: None,
                 }
             }
         };
@@ -808,7 +863,7 @@ pub async fn quick_rewrite(
     config: &CartridgeConfig,
     server_url: &str,
 ) -> Result<PipelineResult, String> {
-    process_note(raw_text, config, server_url, "quick").await
+    process_note(raw_text, config, server_url, "quick", None).await
 }
 
 /// Single-note Deep mode rewrite.
@@ -818,7 +873,7 @@ pub async fn run_pipeline(
     config: &CartridgeConfig,
     server_url: &str,
 ) -> Result<PipelineResult, String> {
-    process_note(raw_text, config, server_url, "deep").await
+    process_note(raw_text, config, server_url, "deep", None).await
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

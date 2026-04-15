@@ -3,6 +3,7 @@ mod cartridges;
 mod commands;
 mod csv_parser;
 mod db;
+mod form_generator;
 mod pipeline;
 mod quality_scan;
 mod safety_scan;
@@ -51,9 +52,9 @@ async fn rewrite_note(
         }
     };
 
-    // 4. Run the selected mode through the full 4-step pipeline
+    // 4. Run the selected mode through the full pipeline
     let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
-    pipeline::process_note(&raw_text, &config, &server_url, &selected_mode).await
+    pipeline::process_note(&raw_text, &config, &server_url, &selected_mode, None).await
 }
 
 // ─────────────────────────────────────────────

@@ -72,6 +72,55 @@ export interface RewriteResult {
   compliance_analysis: string;
   draft_text: string;
   review_notes: string;
+  /** Incident package — only present for RED notes (Filter 5 output). */
+  incident_package?: IncidentPackage;
+}
+
+// ─────────────────────────────────────────────
+//  Incident package types (Filter 5)
+// ─────────────────────────────────────────────
+
+export interface IncidentPackage {
+  header: string;
+  procedural_alignment: ProceduralAlignment;
+  incident_forms: PreFilledForm[];
+  legislative_references: string[];
+  reporting_timeframe: string;
+  required_notifications: NotificationGroup[];
+  disclaimer: string;
+}
+
+export interface ProceduralAlignment {
+  steps_total: number;
+  steps_documented: number;
+  steps: StepResult[];
+}
+
+export interface StepResult {
+  category_name: string;
+  step_number: number;
+  action: string;
+  documented: boolean;
+  evidence_found: string[];
+  gap_text: string;
+}
+
+export interface PreFilledForm {
+  form_name: string;
+  authority: string;
+  fields: PreFilledField[];
+}
+
+export interface PreFilledField {
+  label: string;
+  value: string;
+  required: boolean;
+  auto_filled: boolean;
+}
+
+export interface NotificationGroup {
+  group_type: string;
+  recipients: string[];
 }
 
 export type RewriteMode = "quick" | "deep";
@@ -83,6 +132,10 @@ export type RewriteMode = "quick" | "deep";
 export interface BatchNoteInput {
   id: string;
   raw_text: string;
+  participant_name?: string;
+  support_worker?: string;
+  date?: string;
+  time?: string;
 }
 
 export interface BatchNoteResult {

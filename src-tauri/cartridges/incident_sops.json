@@ -1,0 +1,1260 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Unauthorised Restrictive Practice",
+      "legislative_source": "NDIS (Restrictive Practices and Behaviour Support) Rules 2018; NDIS (Incident Management and Reportable Incidents) Rules 2018",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Ensure immediate safety of the participant and others",
+          "evidence_keywords": [
+            "made safe",
+            "checked for injuries",
+            "separated",
+            "removed from danger",
+            "calmed down",
+            "de-escalated"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Cease the unauthorised restrictive practice as soon as it is safe to do so",
+          "evidence_keywords": [
+            "stopped",
+            "released",
+            "let go",
+            "unlocked",
+            "removed restraint",
+            "ceased practice"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "told coordinator",
+            "rang on-call",
+            "reported to team leader"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Document the incident in the internal Incident Register",
+          "evidence_keywords": [
+            "filled out incident report",
+            "logged in system",
+            "wrote incident form",
+            "completed IR",
+            "documented in register"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Notify the NDIS Commission via the My Reportable Incidents portal within 5 business days (or 24 hours if serious harm occurred)",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident form",
+            "notified commission",
+            "submitted to NDIS",
+            "5 day form",
+            "24 hour notification"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Consult with a specialist behaviour support practitioner to review or develop a Behaviour Support Plan",
+          "evidence_keywords": [
+            "contacted BSP",
+            "referred to practitioner",
+            "requested behaviour assessment",
+            "BSP review",
+            "behaviour specialist"
+          ]
+        }
+      ],
+      "reporting_timeframe": "5 business days (24 hours if serious harm)",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Authorised Program Officer (APO)"
+      ],
+      "external_notifications": [
+        "NDIS Commission",
+        "Behaviour Support Practitioner",
+        "Family/Guardian"
+      ],
+      "required_documentation": [
+        "Incident Report",
+        "Notice of a Reportable Incident Form",
+        "Behaviour Support Plan (BSP)"
+      ],
+      "victorian_specific": {
+        "applies": true,
+        "additional_steps": [
+          {
+            "action": "Notify the Victorian Senior Practitioner via the Restrictive Intervention Data System (RIDS) within 1 business day for emergency use",
+            "detail": "Emergency use of a restrictive practice must be reported to the Senior Practitioner via RIDS within 1 business day."
+          },
+          {
+            "action": "Authorised Program Officer (APO) must review the use of the restrictive practice",
+            "detail": "The APO must review the incident to ensure it was the least restrictive option and refer for reassessment."
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "Medication Error / Missed Medication",
+      "legislative_source": "NDIS Practice Standards - Core Module 4 (Provision of Supports Environment); NDIS (Incident Management and Reportable Incidents) Rules 2018",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Acknowledge the error and stay calm",
+          "evidence_keywords": [
+            "realised mistake",
+            "noticed error",
+            "found missed dose",
+            "identified wrong med"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Check the participant's vital signs and monitor for adverse reactions",
+          "evidence_keywords": [
+            "checked vitals",
+            "monitored",
+            "observed for side effects",
+            "checked breathing",
+            "took temperature",
+            "asked how they feel"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Contact a medical professional (doctor, pharmacist, or 000 if emergency) for advice",
+          "evidence_keywords": [
+            "called doctor",
+            "rang GP",
+            "spoke to pharmacist",
+            "called 000",
+            "called ambulance",
+            "sought medical advice",
+            "called healthdirect"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Follow the medical advice provided",
+          "evidence_keywords": [
+            "followed doctor's orders",
+            "did what pharmacist said",
+            "administered as advised",
+            "took to hospital"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "told coordinator",
+            "rang on-call"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Document the error on the Medication Administration Record (MAR) chart and complete an internal incident report",
+          "evidence_keywords": [
+            "updated MAR",
+            "signed chart",
+            "wrote on medication sheet",
+            "filled out incident report",
+            "logged error"
+          ]
+        },
+        {
+          "step_number": 7,
+          "action": "If the error caused serious harm, notify the NDIS Commission within 24 hours",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "24 hour notification",
+            "notified commission"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting immediately; NDIS Commission within 24 hours if serious harm",
+      "internal_notifications": [
+        "Supervisor/Manager"
+      ],
+      "external_notifications": [
+        "Medical Professional (GP/Pharmacist/000)",
+        "Family/Guardian",
+        "NDIS Commission (if harm)"
+      ],
+      "required_documentation": [
+        "Incident Report",
+        "Medication Administration Record (MAR)",
+        "Medical Notes"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 3,
+      "name": "Injury / Fall / Medical Emergency",
+      "legislative_source": "NDIS (Incident Management and Reportable Incidents) Rules 2018; Work Health and Safety Act 2011",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Provide immediate first aid or call 000 for emergency medical assistance",
+          "evidence_keywords": [
+            "first aid",
+            "CPR",
+            "called 000",
+            "called ambulance",
+            "applied bandage",
+            "stopped bleeding",
+            "paramedics"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Ensure the environment is safe to prevent further injury",
+          "evidence_keywords": [
+            "cleared area",
+            "removed hazard",
+            "made safe",
+            "cleaned up spill",
+            "blocked off area"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "told coordinator",
+            "rang on-call"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Notify family, guardian, or emergency contact",
+          "evidence_keywords": [
+            "called mum",
+            "notified family",
+            "rang next of kin",
+            "contacted guardian"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Document the incident in the internal Incident Register",
+          "evidence_keywords": [
+            "filled out incident report",
+            "logged in system",
+            "wrote incident form",
+            "completed IR"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "If it is a serious injury, notify the NDIS Commission within 24 hours",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "24 hour notification",
+            "notified commission"
+          ]
+        },
+        {
+          "step_number": 7,
+          "action": "If it meets the definition of a notifiable incident under WHS Act, notify the state WHS regulator immediately and preserve the site",
+          "evidence_keywords": [
+            "notified WorkSafe",
+            "called SafeWork",
+            "preserved site",
+            "WHS notification"
+          ]
+        }
+      ],
+      "reporting_timeframe": "24 hours for NDIS Commission (if serious); Immediately for WHS regulator (if notifiable)",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "WHS Officer"
+      ],
+      "external_notifications": [
+        "Emergency Services (000)",
+        "Family/Guardian",
+        "NDIS Commission",
+        "State WHS Regulator"
+      ],
+      "required_documentation": [
+        "Incident Report",
+        "First Aid Record",
+        "Notice of a Reportable Incident Form",
+        "WHS Notification Form"
+      ],
+      "victorian_specific": {
+        "applies": true,
+        "additional_steps": [
+          {
+            "action": "Notify WorkSafe Victoria immediately if it is a notifiable incident",
+            "detail": "Under the OHS Act 2004 (Vic), WorkSafe must be notified immediately of incidents resulting in death or serious injury."
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "name": "Abuse / Neglect / Exploitation Indicators",
+      "legislative_source": "NDIS (Incident Management and Reportable Incidents) Rules 2018; NDIS Code of Conduct",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Ensure the immediate safety of the participant and separate them from the alleged perpetrator",
+          "evidence_keywords": [
+            "made safe",
+            "separated",
+            "removed from situation",
+            "took to safe place",
+            "protected"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Provide immediate medical or psychological support if required",
+          "evidence_keywords": [
+            "first aid",
+            "called doctor",
+            "comforted",
+            "offered support",
+            "called counselor"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Contact Police (000) if a crime is suspected or there is immediate danger",
+          "evidence_keywords": [
+            "called police",
+            "rang 000",
+            "reported to police",
+            "police attended"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "told coordinator",
+            "rang on-call"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Preserve any evidence related to the alleged abuse or neglect",
+          "evidence_keywords": [
+            "kept evidence",
+            "didn't wash clothes",
+            "took photos",
+            "secured area",
+            "saved messages"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Notify the NDIS Commission via the My Reportable Incidents portal within 24 hours",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "24 hour notification",
+            "notified commission"
+          ]
+        },
+        {
+          "step_number": 7,
+          "action": "Provide the participant with information about access to independent advocates",
+          "evidence_keywords": [
+            "offered advocate",
+            "gave advocacy info",
+            "contacted advocate",
+            "explained rights"
+          ]
+        }
+      ],
+      "reporting_timeframe": "24 hours",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Management Team"
+      ],
+      "external_notifications": [
+        "Police (if crime)",
+        "NDIS Commission",
+        "Family/Guardian (unless implicated)",
+        "Independent Advocate"
+      ],
+      "required_documentation": [
+        "Incident Report",
+        "Notice of a Reportable Incident Form",
+        "Police Report Number"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 5,
+      "name": "Missing Consent / Capacity Concerns",
+      "legislative_source": "NDIS Practice Standards - Core Module 1 (Rights and Responsibilities); NDIS Code of Conduct",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Pause the support or intervention if consent is unclear or withdrawn",
+          "evidence_keywords": [
+            "stopped",
+            "paused",
+            "waited",
+            "did not proceed",
+            "held off"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Explain the support/intervention using the participant's preferred language and mode of communication",
+          "evidence_keywords": [
+            "explained",
+            "used easy read",
+            "used pictures",
+            "talked through it",
+            "used communication device"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Allow the participant sufficient time to consider their options and seek advice",
+          "evidence_keywords": [
+            "gave time",
+            "let them think",
+            "came back later",
+            "didn't rush"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "If capacity is still a concern, involve the participant's nominated decision-maker, guardian, or advocate",
+          "evidence_keywords": [
+            "called guardian",
+            "spoke to nominee",
+            "contacted advocate",
+            "involved family"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Document the consent process, the participant's response, and any decisions made in the progress notes",
+          "evidence_keywords": [
+            "documented consent",
+            "wrote in notes",
+            "recorded decision",
+            "noted refusal"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Notify supervisor if the lack of consent prevents essential care or poses a risk",
+          "evidence_keywords": [
+            "notified supervisor",
+            "called manager",
+            "reported refusal of care"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting via progress notes; escalate immediately if risk of harm",
+      "internal_notifications": [
+        "Supervisor/Manager"
+      ],
+      "external_notifications": [
+        "Guardian/Nominee",
+        "Advocate"
+      ],
+      "required_documentation": [
+        "Progress Notes",
+        "Consent Form (if applicable)"
+      ],
+      "victorian_specific": {
+        "applies": true,
+        "additional_steps": [
+          {
+            "action": "Consult the Office of the Public Advocate (OPA) if a guardian needs to be appointed",
+            "detail": "If the participant lacks capacity for a significant decision and has no guardian, an application to VCAT may be required."
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "name": "Property Damage / Financial Irregularity",
+      "legislative_source": "NDIS Practice Standards - Core Module 4 (Participant Money and Property); Australian Consumer Law",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Ensure the immediate safety of the participant and others if property damage involves a hazard",
+          "evidence_keywords": [
+            "made safe",
+            "cleaned up glass",
+            "removed hazard",
+            "secured area"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Document the damage or financial discrepancy immediately with clear details (and photos if applicable)",
+          "evidence_keywords": [
+            "took photos",
+            "counted money",
+            "checked receipts",
+            "noted damage",
+            "recorded missing funds"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "reported missing money",
+            "told coordinator"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Complete an internal incident report detailing the property damage or financial irregularity",
+          "evidence_keywords": [
+            "filled out incident report",
+            "logged in system",
+            "wrote incident form"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "If theft or fraud is suspected, contact the Police",
+          "evidence_keywords": [
+            "called police",
+            "reported theft",
+            "police report"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "If the incident involves financial abuse or exploitation by a worker, notify the NDIS Commission within 24 hours",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "24 hour notification",
+            "reported financial abuse"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting immediately; 24 hours for NDIS Commission if financial abuse",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Finance Team"
+      ],
+      "external_notifications": [
+        "Police (if theft/fraud)",
+        "NDIS Commission (if abuse)",
+        "Family/Guardian"
+      ],
+      "required_documentation": [
+        "Incident Report",
+        "Financial Records/Receipts",
+        "Photographs of Damage"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 7,
+      "name": "Behavioural Incident Requiring Reporting",
+      "legislative_source": "NDIS (Restrictive Practices and Behaviour Support) Rules 2018; NDIS Practice Standards",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Implement proactive and reactive strategies as outlined in the participant's Behaviour Support Plan (BSP)",
+          "evidence_keywords": [
+            "followed BSP",
+            "used proactive strategies",
+            "implemented reactive strategies",
+            "de-escalated",
+            "redirected"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Ensure the safety of the participant, staff, and others in the environment",
+          "evidence_keywords": [
+            "made safe",
+            "moved others away",
+            "cleared area",
+            "maintained safe distance"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "If the behaviour results in serious injury or involves an unauthorised restrictive practice, notify supervisor immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "reported injury",
+            "reported restraint"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Document the behaviour, triggers, and strategies used in the progress notes and/or behaviour tracking sheet",
+          "evidence_keywords": [
+            "recorded ABC data",
+            "filled out behaviour chart",
+            "wrote in progress notes",
+            "documented triggers"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Complete an internal incident report if the behaviour caused harm, property damage, or required emergency intervention",
+          "evidence_keywords": [
+            "filled out incident report",
+            "logged in system",
+            "completed IR"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Notify the NDIS Commission if the incident meets the criteria for a reportable incident (e.g., serious injury, unauthorised RP)",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "notified commission"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting by end of shift; NDIS Commission within 24h/5 days if reportable criteria met",
+      "internal_notifications": [
+        "Supervisor/Manager"
+      ],
+      "external_notifications": [
+        "Behaviour Support Practitioner",
+        "NDIS Commission (if reportable)"
+      ],
+      "required_documentation": [
+        "Progress Notes",
+        "Behaviour Tracking Data (ABC chart)",
+        "Incident Report"
+      ],
+      "victorian_specific": {
+        "applies": true,
+        "additional_steps": [
+          {
+            "action": "Report to Victorian Senior Practitioner via RIDS if a regulated restrictive practice was used",
+            "detail": "Must be reported monthly, or within 1 business day if it was an emergency use."
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "name": "Worker Safety / WHS Concerns",
+      "legislative_source": "Work Health and Safety Act 2011; NDIS Practice Standards",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Remove yourself and others from immediate danger",
+          "evidence_keywords": [
+            "stepped back",
+            "left the room",
+            "evacuated",
+            "moved to safety"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Seek immediate first aid or medical attention if injured",
+          "evidence_keywords": [
+            "first aid",
+            "went to doctor",
+            "called ambulance",
+            "treated injury"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "reported to WHS officer"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Complete an internal incident/hazard report detailing the safety concern or injury",
+          "evidence_keywords": [
+            "filled out hazard report",
+            "completed WHS form",
+            "logged safety incident",
+            "wrote incident report"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "If it is a 'notifiable incident' (death, serious injury/illness, dangerous incident), the PCBU must notify the state WHS regulator immediately",
+          "evidence_keywords": [
+            "notified WorkSafe",
+            "called SafeWork",
+            "WHS notification"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Preserve the incident site until an inspector arrives or directs otherwise (for notifiable incidents)",
+          "evidence_keywords": [
+            "preserved site",
+            "didn't touch anything",
+            "cordoned off area"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting immediately; WHS regulator immediately for notifiable incidents",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "WHS Officer/Representative"
+      ],
+      "external_notifications": [
+        "State WHS Regulator (e.g., SafeWork/WorkSafe)"
+      ],
+      "required_documentation": [
+        "WHS Incident/Hazard Report",
+        "First Aid Record",
+        "Medical Certificate"
+      ],
+      "victorian_specific": {
+        "applies": true,
+        "additional_steps": [
+          {
+            "action": "Notify WorkSafe Victoria immediately for notifiable incidents",
+            "detail": "Under the OHS Act 2004 (Vic), employers must notify WorkSafe immediately after becoming aware of a notifiable incident."
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "name": "Environmental / WHS Hazards",
+      "legislative_source": "Work Health and Safety Act 2011; NDIS Practice Standards - Core Module 4 (Safe Environment)",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Identify and assess the environmental hazard",
+          "evidence_keywords": [
+            "noticed hazard",
+            "spotted risk",
+            "identified danger",
+            "found unsafe area"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Take immediate action to eliminate or minimise the risk (e.g., clean up spill, block access)",
+          "evidence_keywords": [
+            "cleaned up",
+            "blocked off",
+            "put up sign",
+            "removed trip hazard",
+            "fixed issue"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "If the hazard cannot be immediately resolved, isolate the area and warn others",
+          "evidence_keywords": [
+            "isolated area",
+            "warned staff",
+            "told participant",
+            "locked door"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Notify supervisor or manager about the hazard",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "reported hazard"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Complete an internal hazard report form",
+          "evidence_keywords": [
+            "filled out hazard report",
+            "logged in system",
+            "completed WHS form"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Follow up to ensure the hazard has been permanently resolved",
+          "evidence_keywords": [
+            "checked repair",
+            "confirmed fixed",
+            "maintenance completed"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting by end of shift or immediately if high risk",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Maintenance Team",
+        "WHS Officer"
+      ],
+      "external_notifications": [
+        "Landlord/Property Manager (if applicable)"
+      ],
+      "required_documentation": [
+        "Hazard Report Form",
+        "Maintenance Request"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 10,
+      "name": "Participant Rights Violations",
+      "legislative_source": "NDIS Practice Standards - Core Module 1 (Rights and Responsibilities); NDIS Code of Conduct",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Intervene immediately if you witness a violation of a participant's rights (e.g., loss of dignity, lack of privacy, denied choice)",
+          "evidence_keywords": [
+            "stepped in",
+            "stopped the action",
+            "spoke up",
+            "advocated for participant",
+            "ensured privacy"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Support the participant and acknowledge their feelings and rights",
+          "evidence_keywords": [
+            "apologised",
+            "comforted",
+            "validated feelings",
+            "reassured",
+            "listened"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Notify supervisor or manager immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified supervisor",
+            "reported breach",
+            "told coordinator"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Document the incident objectively in an internal incident report",
+          "evidence_keywords": [
+            "filled out incident report",
+            "logged in system",
+            "wrote incident form"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Provide the participant with information on how to make a complaint and access an independent advocate",
+          "evidence_keywords": [
+            "gave complaints brochure",
+            "offered advocate",
+            "explained rights",
+            "helped make complaint"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "If the violation constitutes abuse, neglect, or exploitation, notify the NDIS Commission within 24 hours",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "24 hour notification",
+            "reported abuse"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting immediately; 24 hours for NDIS Commission if it constitutes abuse/neglect",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Quality/Compliance Team"
+      ],
+      "external_notifications": [
+        "NDIS Commission (if reportable)",
+        "Independent Advocate"
+      ],
+      "required_documentation": [
+        "Incident Report",
+        "Complaints Form (if requested)"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 11,
+      "name": "Service Delivery Failures",
+      "legislative_source": "NDIS Practice Standards - Core Module 3 (Provision of Supports); NDIS Code of Conduct",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Identify the failure (e.g., missed shift, late arrival, incorrect support provided)",
+          "evidence_keywords": [
+            "missed shift",
+            "arrived late",
+            "couldn't attend",
+            "wrong support",
+            "service gap"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Take immediate action to ensure the participant's essential needs (e.g., medication, meals, personal care) are met",
+          "evidence_keywords": [
+            "arranged cover",
+            "stayed late",
+            "called replacement",
+            "ensured fed",
+            "gave meds"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Communicate with the participant (and family/guardian) about the failure and the steps being taken to resolve it",
+          "evidence_keywords": [
+            "apologised",
+            "explained delay",
+            "called family",
+            "informed participant"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Notify supervisor or rostering team immediately to arrange alternative support",
+          "evidence_keywords": [
+            "called rostering",
+            "notified supervisor",
+            "rang on-call",
+            "requested cover"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Document the service failure and the actions taken in the progress notes and internal incident system",
+          "evidence_keywords": [
+            "wrote in notes",
+            "filled out incident report",
+            "logged service failure"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "If the failure resulted in harm or neglect, notify the NDIS Commission within 24 hours",
+          "evidence_keywords": [
+            "NDIS portal",
+            "reportable incident",
+            "reported neglect"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting immediately; 24 hours for NDIS Commission if it constitutes neglect",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Rostering Team"
+      ],
+      "external_notifications": [
+        "Participant/Family",
+        "NDIS Commission (if harm/neglect occurred)"
+      ],
+      "required_documentation": [
+        "Progress Notes",
+        "Incident Report"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 12,
+      "name": "Cultural Safety Concerns",
+      "legislative_source": "NDIS Practice Standards - Core Module 1 (Individual Values and Beliefs); NDIS Code of Conduct",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Acknowledge the concern and apologise if a culturally unsafe practice occurred",
+          "evidence_keywords": [
+            "apologised",
+            "acknowledged mistake",
+            "listened to concern",
+            "respected feedback"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Adjust the support delivery immediately to respect the participant's culture, values, and beliefs",
+          "evidence_keywords": [
+            "changed approach",
+            "adjusted support",
+            "respected wishes",
+            "followed cultural protocol"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Discuss the participant's cultural needs and preferences with them to ensure future supports are culturally safe",
+          "evidence_keywords": [
+            "asked preferences",
+            "discussed needs",
+            "clarified cultural requirements"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Notify supervisor or manager to ensure the participant's support plan is updated with cultural requirements",
+          "evidence_keywords": [
+            "notified supervisor",
+            "requested plan update",
+            "reported cultural need"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Document the cultural safety concern and the participant's preferences in the progress notes",
+          "evidence_keywords": [
+            "wrote in notes",
+            "documented preference",
+            "updated profile"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Provide information on how to make a complaint if the participant wishes to do so",
+          "evidence_keywords": [
+            "offered complaints process",
+            "gave feedback form",
+            "explained how to complain",
+            "told them about NDIS Commission"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting by end of shift",
+      "internal_notifications": [
+        "Supervisor/Manager"
+      ],
+      "external_notifications": [
+        "None (unless escalated to a formal complaint)"
+      ],
+      "required_documentation": [
+        "Progress Notes",
+        "Updated Support Plan"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 13,
+      "name": "Pricing Fraud / Billing Irregularity",
+      "legislative_source": "NDIS Code of Conduct (Element 8); Australian Consumer Law; NDIS Pricing Arrangements and Price Limits",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Identify the billing irregularity (e.g., overcharging, charging for unprovided services, wrong price limit)",
+          "evidence_keywords": [
+            "noticed overcharge",
+            "spotted wrong code",
+            "identified billing error",
+            "found incorrect invoice"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Do not process or approve the incorrect charge; hold the invoice for review",
+          "evidence_keywords": [
+            "held invoice",
+            "didn't process",
+            "stopped payment",
+            "flagged for review"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "Notify supervisor, manager, or the finance/billing department immediately",
+          "evidence_keywords": [
+            "called manager",
+            "notified finance",
+            "reported to billing",
+            "emailed accounts"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Document the discrepancy clearly, keeping copies of relevant timesheets, invoices, and service agreements",
+          "evidence_keywords": [
+            "kept records",
+            "saved invoice",
+            "documented error",
+            "copied timesheet"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Communicate transparently with the participant or plan manager about the error and the steps to rectify it",
+          "evidence_keywords": [
+            "informed participant",
+            "emailed plan manager",
+            "explained error",
+            "apologised for billing mistake"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "If intentional fraud is suspected, management must report it to the NDIA Fraud Reporting and Investigations team",
+          "evidence_keywords": [
+            "reported to NDIA",
+            "fraud report",
+            "escalated to compliance"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Internal reporting immediately; NDIA reporting as soon as fraud is suspected",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Finance/Billing Department",
+        "Compliance Officer"
+      ],
+      "external_notifications": [
+        "Participant/Plan Manager",
+        "NDIA Fraud Division (if intentional)"
+      ],
+      "required_documentation": [
+        "Invoices",
+        "Timesheets",
+        "Service Agreement",
+        "Internal Incident/Discrepancy Report"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    },
+    {
+      "id": 14,
+      "name": "Unresolved Complaint / Grievance",
+      "legislative_source": "NDIS Practice Standards - Core Module 2B (Complaints Management); NDIS Code of Conduct",
+      "mandatory_steps": [
+        {
+          "step_number": 1,
+          "action": "Listen to the participant's complaint actively and without defensiveness",
+          "evidence_keywords": [
+            "listened",
+            "heard concern",
+            "acknowledged complaint",
+            "took feedback"
+          ]
+        },
+        {
+          "step_number": 2,
+          "action": "Attempt to resolve the issue immediately at the point of service if possible and appropriate",
+          "evidence_keywords": [
+            "fixed issue",
+            "resolved on spot",
+            "apologised",
+            "corrected mistake"
+          ]
+        },
+        {
+          "step_number": 3,
+          "action": "If unresolved, provide the participant with the organisation's formal complaints procedure and offer assistance to complete it",
+          "evidence_keywords": [
+            "gave complaints form",
+            "explained process",
+            "offered help to complain",
+            "provided brochure"
+          ]
+        },
+        {
+          "step_number": 4,
+          "action": "Inform the participant of their right to access an independent advocate and their right to complain directly to the NDIS Commission",
+          "evidence_keywords": [
+            "offered advocate",
+            "gave NDIS Commission number",
+            "explained external options"
+          ]
+        },
+        {
+          "step_number": 5,
+          "action": "Notify supervisor or the designated Complaints Officer about the grievance",
+          "evidence_keywords": [
+            "notified supervisor",
+            "reported to complaints officer",
+            "escalated complaint"
+          ]
+        },
+        {
+          "step_number": 6,
+          "action": "Document the complaint, the participant's desired outcome, and actions taken in the complaints register",
+          "evidence_keywords": [
+            "logged in complaints register",
+            "wrote complaint report",
+            "documented grievance"
+          ]
+        }
+      ],
+      "reporting_timeframe": "Acknowledge complaint promptly (usually within 24-48 hours internally)",
+      "internal_notifications": [
+        "Supervisor/Manager",
+        "Complaints Officer"
+      ],
+      "external_notifications": [
+        "Independent Advocate (if requested)"
+      ],
+      "required_documentation": [
+        "Complaints Form",
+        "Complaints Register Entry"
+      ],
+      "victorian_specific": {
+        "applies": false,
+        "additional_steps": []
+      }
+    }
+  ]
+}

@@ -13,6 +13,8 @@
  */
 
 import { useCallback, useState } from "react";
+import type { IncidentPackage as IncidentPackageType } from "../lib/commands";
+import IncidentPackageView from "./IncidentPackage";
 
 interface NoteCardProps {
   id: string;
@@ -24,6 +26,7 @@ interface NoteCardProps {
   redFlagKeywords: string[];
   redFlagCategories: { category: string; keywords: string[] }[];
   missingPillars: { pillar: string; prompt_question: string }[];
+  incidentPackage?: IncidentPackageType;
   onMarkReviewed?: (id: string) => void;
   isReviewed?: boolean;
 }
@@ -40,6 +43,7 @@ export default function NoteCard({
   redFlagKeywords,
   redFlagCategories,
   missingPillars,
+  incidentPackage,
   onMarkReviewed,
   isReviewed,
 }: NoteCardProps) {
@@ -262,6 +266,11 @@ export default function NoteCard({
                 : renderFinalText(finalText)}
             </div>
           </div>
+
+          {/* Incident Package (RED notes only — Filter 5 output) */}
+          {status === "red" && incidentPackage && (
+            <IncidentPackageView pkg={incidentPackage} />
+          )}
 
           {/* Raw note */}
           <div style={styles.section}>

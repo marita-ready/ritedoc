@@ -141,10 +141,14 @@ export default function BatchProcessPage() {
     }
 
     try {
-      // Build batch input
+      // Build batch input — include metadata for incident form auto-fill (Step 5)
       const batchInput: BatchNoteInput[] = csvResult.notes.map((n: RawNote) => ({
         id: n.id,
         raw_text: n.raw_text,
+        participant_name: n.participant_name || undefined,
+        support_worker: n.support_worker || undefined,
+        date: n.date || undefined,
+        time: n.time || undefined,
       }));
 
       const results: BatchNoteResult[] = await rewriteBatch(
@@ -165,6 +169,7 @@ export default function BatchProcessPage() {
         missing_pillars: r.result.missing_pillars,
         present_pillars: r.result.present_pillars,
         mode: r.result.mode,
+        incident_package: r.result.incident_package,
       }));
 
       setProcessedNotes(processed);
