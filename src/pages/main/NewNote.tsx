@@ -6,6 +6,15 @@ import {
   type RewriteMode,
   type RewriteResult,
 } from "../../lib/commands";
+import MissingDataWizard, {
+  type ProcessedNote,
+} from "../../components/MissingDataWizard";
+
+// ─────────────────────────────────────────────
+//  Regex to detect [MISSING: ...] brackets
+// ─────────────────────────────────────────────
+
+const MISSING_RE = /\[MISSING:\s*[^\]]+\]/;
 
 export default function RewriteNotePage() {
   const [cartridges, setCartridges] = useState<Cartridge[]>([]);
@@ -18,6 +27,12 @@ export default function RewriteNotePage() {
   const [copied, setCopied] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
+
+  // ── Wizard state ──
+  // When the pipeline returns an ORANGE note (has [MISSING: ...] brackets),
+  // we show the wizard before displaying results.
+  const [wizardNotes, setWizardNotes] = useState<ProcessedNote[] | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
     loadCartridges();
@@ -43,6 +58,8 @@ export default function RewriteNotePage() {
     setResult(null);
     setCopied(false);
     setShowDetails(false);
+    setShowWizard(false);
+    setWizardNotes(null);
 
     try {
       const pipelineResult = await rewriteNote(
@@ -50,14 +67,29 @@ export default function RewriteNotePage() {
         selectedCartridge as number,
         mode
       );
-      setResult(pipelineResult);
 
-      setTimeout(() => {
-        outputRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 50);
+      // Check if the result has [MISSING: ...] brackets → show wizard
+      if (MISSING_RE.test(pipelineResult.final_text)) {
+        const noteForWizard: ProcessedNote = {
+          id: "single-note",
+          final_text: pipelineResult.final_text,
+          traffic_light: pipelineResult.traffic_light,
+          red_flag_keywords: pipelineResult.red_flag_keywords,
+          // Store the full result so we can restore it after the wizard
+          _pipelineResult: pipelineResult,
+        };
+        setWizardNotes([noteForWizard]);
+        setShowWizard(true);
+      } else {
+        // No missing fields — show results directly
+        setResult(pipelineResult);
+        setTimeout(() => {
+          outputRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 50);
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -71,12 +103,38 @@ export default function RewriteNotePage() {
     }
   }
 
+  // ── Wizard completion callback ──
+  function handleWizardComplete(updatedNotes: ProcessedNote[]) {
+    setShowWizard(false);
+    setWizardNotes(null);
+
+    if (updatedNotes.length > 0) {
+      const updated = updatedNotes[0];
+      // Reconstruct the full RewriteResult with the wizard-updated text and traffic light
+      const originalResult = (updated._pipelineResult as RewriteResult) || {};
+      const finalResult: RewriteResult = {
+        ...originalResult,
+        final_text: updated.final_text,
+        traffic_light: updated.traffic_light,
+      };
+      setResult(finalResult);
+      setTimeout(() => {
+        outputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 50);
+    }
+  }
+
   function handleClear() {
     setRawText("");
     setResult(null);
     setError(null);
     setCopied(false);
     setShowDetails(false);
+    setShowWizard(false);
+    setWizardNotes(null);
   }
 
   async function handleCopy() {
@@ -91,6 +149,25 @@ export default function RewriteNotePage() {
   }
 
   const isDeep = mode === "deep";
+
+  // ── If wizard is active, render it instead of the normal page ──
+  if (showWizard && wizardNotes) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1>Missing Data Wizard</h1>
+          <p>
+            Some information is missing from the rewritten note. Fill in the
+            details below, or skip if the information is not available.
+          </p>
+        </div>
+        <MissingDataWizard
+          notes={wizardNotes}
+          onComplete={handleWizardComplete}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -296,6 +373,11 @@ export default function RewriteNotePage() {
       {/* Output area */}
       {result && !loading && (
         <div ref={outputRef}>
+          {/* Traffic light badge */}
+          <div style={{ marginBottom: "0.75rem" }}>
+            <TrafficLightBadge status={result.traffic_light} />
+          </div>
+
           {/* Final output card */}
           <div className="card card-padded" style={{ marginBottom: "1rem" }}>
             <div
@@ -502,5 +584,59 @@ function DetailCard({ title, content }: { title: string; content: string }) {
         {content}
       </div>
     </div>
+  );
+}
+
+/** Traffic light status badge */
+function TrafficLightBadge({ status }: { status: string }) {
+  const config: Record<string, { bg: string; border: string; color: string; label: string }> = {
+    green: {
+      bg: "#f0fdf4",
+      border: "#86efac",
+      color: "#166534",
+      label: "GREEN — Audit Ready",
+    },
+    orange: {
+      bg: "#fffbeb",
+      border: "#fde68a",
+      color: "#92400e",
+      label: "ORANGE — Missing Information",
+    },
+    red: {
+      bg: "#fef2f2",
+      border: "#fca5a5",
+      color: "#991b1b",
+      label: "RED — Red Flags Detected",
+    },
+  };
+
+  const c = config[status] || config.green;
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.375rem",
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        padding: "0.25rem 0.75rem",
+        borderRadius: "var(--radius-full)",
+        background: c.bg,
+        border: `1px solid ${c.border}`,
+        color: c.color,
+      }}
+    >
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: c.color,
+          flexShrink: 0,
+        }}
+      />
+      {c.label}
+    </span>
   );
 }

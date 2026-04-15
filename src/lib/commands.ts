@@ -64,12 +64,81 @@ export function parseCartridgeConfig(configJson: string): CartridgeConfig {
 export interface RewriteResult {
   final_text: string;
   mode: string;
+  traffic_light: string;
+  red_flag_keywords: string[];
+  red_flag_categories: { category: string; keywords: string[] }[];
+  missing_pillars: { pillar: string; prompt_question: string }[];
+  present_pillars: string[];
   compliance_analysis: string;
   draft_text: string;
   review_notes: string;
 }
 
 export type RewriteMode = "quick" | "deep";
+
+// ─────────────────────────────────────────────
+//  Batch processing types
+// ─────────────────────────────────────────────
+
+export interface BatchNoteInput {
+  id: string;
+  raw_text: string;
+}
+
+export interface BatchNoteResult {
+  id: string;
+  result: RewriteResult;
+}
+
+// ─────────────────────────────────────────────
+//  CSV import types
+// ─────────────────────────────────────────────
+
+export interface RawNote {
+  id: string;
+  participant_name: string;
+  support_worker: string;
+  date: string;
+  time: string;
+  duration: string;
+  raw_text: string;
+  source_platform: string;
+  row_index: number;
+}
+
+export interface CsvParseResult {
+  platform: string;
+  notes: RawNote[];
+  total_count: number;
+  warnings: string[];
+}
+
+// ─────────────────────────────────────────────
+//  Activation types
+// ─────────────────────────────────────────────
+
+export interface ActivationState {
+  is_activated: boolean;
+  key_code: string;
+  hardware_fingerprint: string;
+  subscription_type: string;
+  activated_at: string;
+}
+
+export interface ActivationResult {
+  success: boolean;
+  message: string;
+  subscription_type: string | null;
+}
+
+export interface HardwareProfile {
+  cpu_brand: string;
+  cpu_cores: number;
+  ram_gb: number;
+  machine_id: string;
+  fingerprint: string;
+  recommended_mode: string;
+}
 
 // ─────────────────────────────────────────────
 //  Cartridges
@@ -136,4 +205,54 @@ export async function rewriteNote(
     cartridgeId,
     mode,
   });
+}
+
+// ─────────────────────────────────────────────
+//  Batch rewrite pipeline
+// ─────────────────────────────────────────────
+
+export async function rewriteBatch(
+  notes: BatchNoteInput[],
+  cartridgeId: number,
+  mode: RewriteMode = "deep"
+): Promise<BatchNoteResult[]> {
+  return invoke<BatchNoteResult[]>("rewrite_batch", {
+    notes,
+    cartridgeId,
+    mode,
+  });
+}
+
+// ─────────────────────────────────────────────
+//  CSV import (offline — reads local file)
+// ─────────────────────────────────────────────
+
+export async function importCsv(filePath: string): Promise<CsvParseResult> {
+  return invoke<CsvParseResult>("import_csv", { filePath });
+}
+
+// ─────────────────────────────────────────────
+//  Activation (100% offline)
+// ─────────────────────────────────────────────
+
+export async function activateLicence(
+  keyCode: string
+): Promise<ActivationResult> {
+  return invoke<ActivationResult>("activate_licence", { keyCode });
+}
+
+export async function checkActivation(): Promise<ActivationState | null> {
+  return invoke<ActivationState | null>("check_activation");
+}
+
+export async function deactivateLicence(): Promise<void> {
+  return invoke<void>("deactivate_licence");
+}
+
+// ─────────────────────────────────────────────
+//  Hardware profile (local detection)
+// ─────────────────────────────────────────────
+
+export async function getHardwareProfile(): Promise<HardwareProfile> {
+  return invoke<HardwareProfile>("get_hardware_profile");
 }
