@@ -1,0 +1,8 @@
+# Model files — do NOT commit to git (multi-GB files)
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# Docker build cache
+.docker/

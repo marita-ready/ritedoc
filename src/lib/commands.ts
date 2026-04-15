@@ -3,6 +3,9 @@
  *
  * Each function wraps a `@tauri-apps/api` invoke call so the React
  * frontend can call the Rust backend in a type-safe way.
+ *
+ * The rewriting pipeline calls the Nanoclaw local server (Dockerized
+ * llama.cpp serving Phi-4-mini Q4_K_M) at http://localhost:8080.
  */
 
 import { invoke } from "@tauri-apps/api/core";

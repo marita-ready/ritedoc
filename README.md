@@ -11,10 +11,10 @@ RiteDoc is a **stateless, pass-through tool** — it stores no client data, no p
 1. **Paste** your raw progress notes into the Rewrite Note screen
 2. **Select** the NDIS service cartridge that matches the support type
 3. **Choose** Quick or Deep processing mode
-4. **Click Rewrite** — RiteDoc sends the note to a local language model via Ollama
+4. **Click Rewrite** — RiteDoc sends the note to the local Nanoclaw server for processing
 5. **Copy** the compliance-ready output
 
-RiteDoc uses a local language model running on your machine via [Ollama](https://ollama.com). No data leaves your device.
+RiteDoc uses a local language model running entirely on your machine via **Nanoclaw** — a Dockerized [llama.cpp](https://github.com/ggerganov/llama.cpp) server running **Phi-4-mini Q4_K_M**. No data leaves your device. No internet connection is required after initial setup.
 
 ---
 
@@ -73,19 +73,9 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev 
 
 **Windows:** Install the [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
 
-### 4. Ollama
+### 4. Docker Desktop
 
-Download from [ollama.com](https://ollama.com) and pull the default model:
-
-```bash
-ollama pull llama3.2
-```
-
-Ollama must be running locally before using the Rewrite function:
-
-```bash
-ollama serve
-```
+Download from [docker.com](https://www.docker.com/products/docker-desktop/). Docker is required to run the Nanoclaw local inference server.
 
 ### 5. pnpm
 
@@ -97,6 +87,8 @@ npm install -g pnpm
 
 ## Installation
 
+### 1. Clone the repository
+
 ```bash
 git clone https://github.com/marita-ready/ritedoc.git
 cd ritedoc
@@ -104,11 +96,58 @@ git checkout tauri-scaffold
 pnpm install
 ```
 
+### 2. Set up Nanoclaw (local rewriting server)
+
+Nanoclaw is the Dockerized llama.cpp server that powers the rewriting pipeline. It runs the **Phi-4-mini Q4_K_M** model locally with zero internet access at runtime.
+
+#### Step 2a — Download the model (one-time, ~2.5 GB)
+
+Download the Phi-4-mini Q4_K_M GGUF file from Hugging Face:
+
+```
+https://huggingface.co/microsoft/Phi-4-mini-instruct-gguf
+```
+
+Download the file named: `Phi-4-mini-instruct-Q4_K_M.gguf`
+
+Place it in the `nanoclaw/models/` directory and rename it:
+
+```bash
+mkdir -p nanoclaw/models
+mv ~/Downloads/Phi-4-mini-instruct-Q4_K_M.gguf nanoclaw/models/phi-4-mini-q4_k_m.gguf
+```
+
+#### Step 2b — Build the Docker image (one-time, ~5 minutes)
+
+```bash
+cd nanoclaw
+docker compose build
+cd ..
+```
+
+This compiles llama.cpp from source inside the container. No internet access is needed after this step.
+
+#### Step 2c — Start the server
+
+```bash
+cd nanoclaw
+docker compose up -d
+```
+
+Verify it is running:
+
+```bash
+curl http://localhost:8080/health
+# Expected: {"status":"ok"}
+```
+
+The server runs on `http://localhost:8080`. RiteDoc connects to this URL automatically.
+
 ---
 
 ## Development
 
-Start the development server (Tauri window with Vite hot reload):
+Start the Nanoclaw server first (see above), then:
 
 ```bash
 pnpm tauri dev
@@ -152,14 +191,15 @@ On first launch, RiteDoc runs an onboarding flow to collect your name, organisat
 
 The database contains **only app configuration** (cartridge settings, user preferences). No client data is stored.
 
-### Ollama Settings
+### Rewriting Engine Settings
 
-Change the model and URL in **Settings > Rewriting Engine**:
+Change the server URL in **Settings > Rewriting Engine** inside RiteDoc:
 
 | Setting | Default |
 |---|---|
-| Model | `llama3.2` |
-| Ollama URL | `http://localhost:11434` |
+| Server URL | `http://localhost:8080` |
+
+Only change this if you have moved the Nanoclaw container to a different port or host.
 
 ---
 
@@ -194,11 +234,17 @@ ritedoc/
 │   │   ├── db.rs                   # SQLite database module
 │   │   ├── commands.rs             # Tauri commands (cartridges, settings)
 │   │   ├── cartridges.rs           # 8 pre-loaded NDIS cartridge seed data
-│   │   └── pipeline.rs             # 3-stage rewriting pipeline (Ollama)
+│   │   └── pipeline.rs             # 3-stage rewriting pipeline (Nanoclaw)
 │   ├── Cargo.toml                  # Rust dependencies
 │   ├── tauri.conf.json             # Tauri configuration
 │   ├── capabilities/               # Tauri permission capabilities
 │   └── icons/                      # App icons
+│
+├── nanoclaw/                       # Dockerized llama.cpp server
+│   ├── Dockerfile                  # llama.cpp build + runtime image
+│   ├── docker-compose.yml          # Service definition
+│   ├── README.md                   # Nanoclaw setup guide
+│   └── models/                     # Place phi-4-mini-q4_k_m.gguf here
 │
 ├── package.json
 ├── vite.config.ts
@@ -217,7 +263,17 @@ ritedoc/
 | Rust backend | Rust (stable) |
 | Local database | SQLite via `rusqlite` (bundled) |
 | HTTP client | `reqwest` with `rustls-tls` |
-| Language model | [Ollama](https://ollama.com) (local, any compatible model) |
+| Inference server | [llama.cpp](https://github.com/ggerganov/llama.cpp) (Dockerized via Nanoclaw) |
+| Language model | [Phi-4-mini](https://huggingface.co/microsoft/Phi-4-mini-instruct-gguf) Q4_K_M (local, offline) |
+
+---
+
+## Privacy
+
+- **Zero client data stored** — notes are processed and discarded; nothing is saved
+- **Fully local** — all processing happens on the local machine; no data leaves the device
+- **No internet required** — the rewriting engine runs entirely offline after initial setup
+- **No telemetry** — RiteDoc does not collect or transmit any usage data
 
 ---
 

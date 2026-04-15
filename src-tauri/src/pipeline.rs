@@ -2,11 +2,15 @@
 //!
 //! Two processing modes:
 //!
-//!   Quick Mode  — single Ollama call with a combined prompt (fast)
+//!   Quick Mode  — single-pass rewrite using a combined prompt (fast)
 //!   Deep Mode   — full 3-agent pipeline (thorough, audit-grade)
 //!
 //! Both modes use the selected cartridge's full config_json in their prompts.
 //! The pipeline is entirely stateless — nothing is persisted.
+//!
+//! Backend: Dockerized llama.cpp HTTP server (Nanoclaw) serving Phi-4-mini Q4_K_M.
+//! The server exposes an OpenAI-compatible /v1/chat/completions endpoint.
+//! Default URL: http://localhost:8080
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -129,20 +133,33 @@ impl CartridgeConfig {
 }
 
 // ─────────────────────────────────────────────
-//  Ollama request / response shapes
+//  llama.cpp HTTP request / response shapes
+//  (OpenAI-compatible /v1/chat/completions)
 // ─────────────────────────────────────────────
 
 #[derive(Serialize)]
-struct OllamaRequest {
-    model: String,
-    prompt: String,
-    system: String,
+struct ChatRequest {
+    messages: Vec<ChatMessage>,
+    temperature: f32,
+    /// -1 means no limit (use model default)
+    max_tokens: i32,
     stream: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+struct ChatMessage {
+    role: String,
+    content: String,
+}
+
 #[derive(Deserialize)]
-struct OllamaResponse {
-    response: String,
+struct ChatResponse {
+    choices: Vec<ChatChoice>,
+}
+
+#[derive(Deserialize)]
+struct ChatChoice {
+    message: ChatMessage,
 }
 
 // ─────────────────────────────────────────────
@@ -153,8 +170,7 @@ struct OllamaResponse {
 pub async fn quick_rewrite(
     raw_text: &str,
     config: &CartridgeConfig,
-    model: &str,
-    ollama_url: &str,
+    server_url: &str,
 ) -> Result<PipelineResult, String> {
     let system = format!(
         r#"You are an expert NDIS progress note rewriter specialising in {service_type} supports.
@@ -204,12 +220,12 @@ INSTRUCTIONS:
         },
     );
 
-    let prompt = format!(
+    let user_prompt = format!(
         "Please rewrite the following raw progress note into an audit-ready format:\n\n---\n{}\n---\n\nRewritten note:",
         raw_text
     );
 
-    let final_text = call_ollama(model, &system, &prompt, ollama_url).await?;
+    let final_text = call_llama(server_url, &system, &user_prompt).await?;
 
     Ok(PipelineResult {
         final_text,
@@ -228,20 +244,19 @@ INSTRUCTIONS:
 pub async fn run_pipeline(
     raw_text: &str,
     config: &CartridgeConfig,
-    model: &str,
-    ollama_url: &str,
+    server_url: &str,
 ) -> Result<PipelineResult, String> {
     // ── Agent 1: Compliance Checker ─────────────────────────────
     let compliance_analysis =
-        agent_compliance_checker(raw_text, config, model, ollama_url).await?;
+        agent_compliance_checker(raw_text, config, server_url).await?;
 
     // ── Agent 2: Rewriter ───────────────────────────────────────
     let draft_text =
-        agent_rewriter(raw_text, &compliance_analysis, config, model, ollama_url).await?;
+        agent_rewriter(raw_text, &compliance_analysis, config, server_url).await?;
 
     // ── Agent 3: Quality Reviewer ───────────────────────────────
     let (final_text, review_notes) =
-        agent_quality_reviewer(&draft_text, config, model, ollama_url).await?;
+        agent_quality_reviewer(&draft_text, config, server_url).await?;
 
     Ok(PipelineResult {
         final_text,
@@ -259,8 +274,7 @@ pub async fn run_pipeline(
 async fn agent_compliance_checker(
     raw_text: &str,
     config: &CartridgeConfig,
-    model: &str,
-    ollama_url: &str,
+    server_url: &str,
 ) -> Result<String, String> {
     let system = format!(
         r#"You are an NDIS compliance analysis agent specialising in {service_type} supports.
@@ -302,12 +316,12 @@ Be specific and actionable. Do not rewrite the note — only analyse it."#,
         prohibited = config.prohibited_list(),
     );
 
-    let prompt = format!(
+    let user_prompt = format!(
         "Please analyse the following raw progress note for NDIS compliance issues:\n\n---\n{}\n---",
         raw_text
     );
 
-    call_ollama(model, &system, &prompt, ollama_url).await
+    call_llama(server_url, &system, &user_prompt).await
 }
 
 // ─────────────────────────────────────────────
@@ -318,8 +332,7 @@ async fn agent_rewriter(
     raw_text: &str,
     compliance_analysis: &str,
     config: &CartridgeConfig,
-    model: &str,
-    ollama_url: &str,
+    server_url: &str,
 ) -> Result<String, String> {
     let system = format!(
         r#"You are an NDIS progress note rewriting agent specialising in {service_type} supports.
@@ -369,7 +382,7 @@ INSTRUCTIONS:
         },
     );
 
-    let prompt = format!(
+    let user_prompt = format!(
         r#"Please rewrite the following raw progress note into audit-ready format.
 
 ORIGINAL RAW NOTE:
@@ -386,7 +399,7 @@ Produce the rewritten, audit-ready note now:"#,
         raw_text, compliance_analysis
     );
 
-    call_ollama(model, &system, &prompt, ollama_url).await
+    call_llama(server_url, &system, &user_prompt).await
 }
 
 // ─────────────────────────────────────────────
@@ -397,8 +410,7 @@ Produce the rewritten, audit-ready note now:"#,
 async fn agent_quality_reviewer(
     draft_text: &str,
     config: &CartridgeConfig,
-    model: &str,
-    ollama_url: &str,
+    server_url: &str,
 ) -> Result<(String, String), String> {
     let system = format!(
         r#"You are an NDIS quality review agent specialising in {service_type} supports.
@@ -439,12 +451,12 @@ FINAL NOTE:
         prohibited = config.prohibited_list(),
     );
 
-    let prompt = format!(
+    let user_prompt = format!(
         "Please review and finalise the following rewritten progress note:\n\n---\n{}\n---",
         draft_text
     );
 
-    let response = call_ollama(model, &system, &prompt, ollama_url).await?;
+    let response = call_llama(server_url, &system, &user_prompt).await?;
     let (review_notes, final_text) = parse_reviewer_response(&response);
 
     Ok((final_text, review_notes))
@@ -475,21 +487,30 @@ fn parse_reviewer_response(response: &str) -> (String, String) {
 }
 
 // ─────────────────────────────────────────────
-//  Ollama HTTP client
+//  llama.cpp HTTP client
+//  Calls the OpenAI-compatible /v1/chat/completions endpoint
 // ─────────────────────────────────────────────
 
-async fn call_ollama(
-    model: &str,
+async fn call_llama(
+    server_url: &str,
     system: &str,
-    prompt: &str,
-    ollama_url: &str,
+    user_prompt: &str,
 ) -> Result<String, String> {
-    let url = format!("{}/api/generate", ollama_url);
+    let url = format!("{}/v1/chat/completions", server_url.trim_end_matches('/'));
 
-    let request_body = OllamaRequest {
-        model: model.to_string(),
-        prompt: prompt.to_string(),
-        system: system.to_string(),
+    let request_body = ChatRequest {
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: system.to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_prompt.to_string(),
+            },
+        ],
+        temperature: 0.3,
+        max_tokens: -1,
         stream: false,
     };
 
@@ -503,11 +524,11 @@ async fn call_ollama(
         .await
         .map_err(|e| {
             if e.is_connect() {
-                "Could not connect to Ollama. Please make sure Ollama is running on your machine (http://localhost:11434). You can start it with: ollama serve".to_string()
+                "Could not connect to the Nanoclaw rewriting server. Please make sure the Docker container is running.\n\nRun: cd nanoclaw && docker compose up -d".to_string()
             } else if e.is_timeout() {
-                "The rewriting request timed out. The model may be too large for your hardware, or Ollama may be unresponsive. Please try again.".to_string()
+                "The rewriting request timed out. The model may be processing a large note. Please try again, or use Quick mode for faster results.".to_string()
             } else {
-                format!("Failed to reach Ollama: {}", e)
+                format!("Failed to reach the rewriting server: {}", e)
             }
         })?;
 
@@ -515,17 +536,28 @@ async fn call_ollama(
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         return Err(format!(
-            "Ollama returned an error (HTTP {}). Make sure the model '{}' is pulled. Run: ollama pull {}\n\nDetails: {}",
-            status, model, model, body
+            "The rewriting server returned an error (HTTP {}).\n\nMake sure the Nanoclaw Docker container is running and the model file is present at nanoclaw/models/phi-4-mini-q4_k_m.gguf\n\nDetails: {}",
+            status, body
         ));
     }
 
-    let ollama_resp: OllamaResponse = response
+    let chat_resp: ChatResponse = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
+        .map_err(|e| format!("Failed to parse server response: {}", e))?;
 
-    Ok(ollama_resp.response.trim().to_string())
+    let content = chat_resp
+        .choices
+        .into_iter()
+        .next()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+
+    if content.is_empty() {
+        return Err("The rewriting server returned an empty response. Please try again.".to_string());
+    }
+
+    Ok(content)
 }
 
 // ─────────────────────────────────────────────

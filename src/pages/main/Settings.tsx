@@ -20,8 +20,7 @@ export default function Settings() {
   const [userRole, setUserRole] = useState("");
   const [cartridges, setCartridges] = useState<Cartridge[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [ollamaModel, setOllamaModel] = useState("llama3.2");
-  const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
+  const [serverUrl, setServerUrl] = useState("http://localhost:8080");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -31,8 +30,7 @@ export default function Settings() {
   const [editName, setEditName] = useState("");
   const [editOrg, setEditOrg] = useState("");
   const [editRole, setEditRole] = useState("");
-  const [editModel, setEditModel] = useState("llama3.2");
-  const [editUrl, setEditUrl] = useState("http://localhost:11434");
+  const [editUrl, setEditUrl] = useState("http://localhost:8080");
 
   useEffect(() => {
     loadSettings();
@@ -40,12 +38,11 @@ export default function Settings() {
 
   async function loadSettings() {
     try {
-      const [name, org, role, model, url, carts] = await Promise.all([
+      const [name, org, role, url, carts] = await Promise.all([
         getSetting("user_name"),
         getSetting("user_organisation"),
         getSetting("user_role"),
-        getSetting("ollama_model"),
-        getSetting("ollama_url"),
+        getSetting("llama_server_url"),
         getCartridges(),
       ]);
       setUserName(name ?? "");
@@ -54,11 +51,8 @@ export default function Settings() {
       setEditOrg(org ?? "");
       setUserRole(role ?? "");
       setEditRole(role ?? "");
-      const m = model ?? "llama3.2";
-      const u = url ?? "http://localhost:11434";
-      setOllamaModel(m);
-      setEditModel(m);
-      setOllamaUrl(u);
+      const u = url ?? "http://localhost:8080";
+      setServerUrl(u);
       setEditUrl(u);
       setCartridges(carts);
     } catch (err) {
@@ -89,13 +83,11 @@ export default function Settings() {
       await setSetting("user_name", editName.trim());
       await setSetting("user_organisation", editOrg.trim());
       await setSetting("user_role", editRole);
-      await setSetting("ollama_model", editModel.trim());
-      await setSetting("ollama_url", editUrl.trim());
+      await setSetting("llama_server_url", editUrl.trim());
       setUserName(editName.trim());
       setUserOrg(editOrg.trim());
       setUserRole(editRole);
-      setOllamaModel(editModel.trim());
-      setOllamaUrl(editUrl.trim());
+      setServerUrl(editUrl.trim());
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -109,8 +101,7 @@ export default function Settings() {
     editName.trim() !== userName ||
     editOrg.trim() !== userOrg ||
     editRole !== userRole ||
-    editModel.trim() !== ollamaModel ||
-    editUrl.trim() !== ollamaUrl;
+    editUrl.trim() !== serverUrl;
 
   if (loading) {
     return (
@@ -162,54 +153,39 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* ── Ollama / Model ───────────────────────────────────── */}
+      {/* ── Rewriting Engine (Nanoclaw) ──────────────────────── */}
       <div className="card card-padded" style={{ marginBottom: "1.25rem" }}>
         <SectionTitle>Rewriting Engine</SectionTitle>
         <p className="text-muted text-sm" style={{ margin: "0 0 1rem" }}>
-          RiteDoc uses Ollama to run the rewriting pipeline locally. Make sure
-          Ollama is installed and running before using the Rewrite tool.
+          RiteDoc uses Nanoclaw — a local Docker-based server running the
+          Phi-4-mini model — to rewrite notes. Start it with{" "}
+          <code
+            style={{
+              background: "var(--slate-100)",
+              padding: "0.1em 0.3em",
+              borderRadius: 3,
+              fontSize: "0.75rem",
+            }}
+          >
+            docker compose up -d
+          </code>{" "}
+          inside the <code style={{ background: "var(--slate-100)", padding: "0.1em 0.3em", borderRadius: 3, fontSize: "0.75rem" }}>nanoclaw/</code> directory.
         </p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "1rem",
-          }}
-        >
-          <div>
-            <label className="label">Model</label>
-            <input
-              className="input"
-              value={editModel}
-              onChange={(e) => setEditModel(e.target.value)}
-              placeholder="llama3.2"
-            />
-            <p
-              className="text-muted"
-              style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}
-            >
-              Must be pulled with{" "}
-              <code
-                style={{
-                  background: "var(--slate-100)",
-                  padding: "0.1em 0.3em",
-                  borderRadius: 3,
-                  fontSize: "0.75rem",
-                }}
-              >
-                ollama pull {editModel || "llama3.2"}
-              </code>
-            </p>
-          </div>
-          <div>
-            <label className="label">Ollama URL</label>
-            <input
-              className="input"
-              value={editUrl}
-              onChange={(e) => setEditUrl(e.target.value)}
-              placeholder="http://localhost:11434"
-            />
-          </div>
+        <div>
+          <label className="label">Server URL</label>
+          <input
+            className="input"
+            value={editUrl}
+            onChange={(e) => setEditUrl(e.target.value)}
+            placeholder="http://localhost:8080"
+          />
+          <p
+            className="text-muted"
+            style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}
+          >
+            Default: http://localhost:8080 — only change if you have moved the
+            Nanoclaw container to a different port.
+          </p>
         </div>
       </div>
 
@@ -475,7 +451,7 @@ export default function Settings() {
           <span className="text-muted">App</span>
           <span>RiteDoc</span>
           <span className="text-muted">Version</span>
-          <span>0.1.0</span>
+          <span>1.0.0</span>
           <span className="text-muted">Framework</span>
           <span>Tauri 2.0</span>
           <span className="text-muted">Role</span>

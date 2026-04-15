@@ -32,39 +32,25 @@ async fn rewrite_note(
     // 2. Parse the cartridge config
     let config = CartridgeConfig::from_json(&config_json);
 
-    // 3. Read model name from settings (default: "llama3.2")
-    let model = {
+    // 3. Read Nanoclaw server URL from settings (default: http://localhost:8080)
+    let server_url = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = 'ollama_model'",
+            "SELECT value FROM settings WHERE key = 'llama_server_url'",
             [],
             |row| row.get::<_, String>(0),
         );
         match result {
             Ok(val) if !val.is_empty() => val,
-            _ => "llama3.2".to_string(),
+            _ => "http://localhost:8080".to_string(),
         }
     };
 
-    // 4. Read Ollama URL from settings (default: localhost)
-    let ollama_url = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = 'ollama_url'",
-            [],
-            |row| row.get::<_, String>(0),
-        );
-        match result {
-            Ok(val) if !val.is_empty() => val,
-            _ => "http://localhost:11434".to_string(),
-        }
-    };
-
-    // 5. Run the selected mode
+    // 4. Run the selected mode
     let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
     match selected_mode.as_str() {
-        "quick" => pipeline::quick_rewrite(&raw_text, &config, &model, &ollama_url).await,
-        _ => pipeline::run_pipeline(&raw_text, &config, &model, &ollama_url).await,
+        "quick" => pipeline::quick_rewrite(&raw_text, &config, &server_url).await,
+        _ => pipeline::run_pipeline(&raw_text, &config, &server_url).await,
     }
 }
 
