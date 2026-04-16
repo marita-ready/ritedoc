@@ -1,0 +1,15 @@
+{
+  "name": "readycompliant-tools",
+  "version": "1.0.0",
+  "description": "Local signing tools for ReadyCompliant cartridge updates (run on Aroha only)",
+  "private": true,
+  "scripts": {
+    "generate-keys": "node generate_keys.js",
+    "sign": "node sign_cartridge.js"
+  },
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "tweetnacl": "^1.0.3"
+  }
+}

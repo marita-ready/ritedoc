@@ -126,10 +126,10 @@
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Company</th>
+                <th>Business</th>
                 <th>Subscription</th>
                 <th>Status</th>
-                <th>Start Date</th>
+                <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -201,36 +201,34 @@
       <section id="sec-cartridges" class="section">
         <div class="cartridge-upload-card">
           <h3>Upload New Cartridge Version</h3>
-          <p class="cartridge-desc">Upload updated compliance cartridge files. All four files will be bundled as a new version.</p>
+          <p class="cartridge-desc">
+            Upload a pre-signed <strong>.rsp</strong> (Regulation Sync Package) file produced by
+            <code>tools/sign_cartridge.js</code> on Aroha (Marita's laptop).
+          </p>
+          <div class="cartridge-security-note">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>The private signing key lives only on Aroha. Even if this dashboard is compromised, no fake updates can be pushed.</span>
+          </div>
           <div class="cartridge-files">
             <div class="cartridge-file-row">
-              <label>red_flags_v2.json</label>
-              <input type="file" id="uploadRedFlags" accept=".json" />
+              <label>Regulation Sync Package (.rsp)</label>
+              <input type="file" id="uploadRspFile" accept=".rsp,.json" />
             </div>
-            <div class="cartridge-file-row">
-              <label>rubric_v2.json</label>
-              <input type="file" id="uploadRubric" accept=".json" />
-            </div>
-            <div class="cartridge-file-row">
-              <label>policies.json</label>
-              <input type="file" id="uploadPolicies" accept=".json" />
-            </div>
-            <div class="cartridge-file-row">
-              <label>system_prompts.json</label>
-              <input type="file" id="uploadPrompts" accept=".json" />
-            </div>
-          </div>
-          <div class="cartridge-version-row">
-            <label>Version Number</label>
-            <input type="text" id="cartridgeVersionInput" placeholder="e.g. 2.1.0" />
-            <label style="margin-left:16px;">Release Notes</label>
-            <input type="text" id="cartridgeNotesInput" placeholder="Brief description of changes" style="flex:2;" />
           </div>
           <div class="cartridge-actions">
-            <button class="btn-primary" onclick="handleCartridgeUpload()">Upload Cartridge</button>
+            <button class="btn-primary" onclick="handleCartridgeUpload()">Upload Package</button>
             <button class="btn-secondary" onclick="handleNotifySubscribers()">Notify Subscribers</button>
           </div>
           <div class="cartridge-status" id="cartridgeStatus" style="display:none;"></div>
+
+          <div class="cartridge-help">
+            <h4>How to create a .rsp package on Aroha:</h4>
+            <ol>
+              <li>Place your cartridge JSON files in a directory (e.g. <code>~/cartridge-update/</code>)</li>
+              <li>Run: <code>node tools/sign_cartridge.js ~/cartridge-update/ 2.1.0 "Release notes"</code></li>
+              <li>This creates <code>cartridge_v2.1.0.rsp</code> — upload that file here</li>
+            </ol>
+          </div>
         </div>
 
         <h3 style="margin-top:28px;">Version History</h3>
@@ -239,155 +237,16 @@
             <thead>
               <tr>
                 <th>Version</th>
-                <th>Filename</th>
+                <th>Files</th>
                 <th>Uploaded At</th>
-                <th>Notes</th>
+                <th>Release Notes</th>
+                <th>Signature</th>
               </tr>
             </thead>
             <tbody id="cartridgeVersionsBody">
-              <tr><td colspan="4" class="table-empty">Loading versions...</td></tr>
+              <tr><td colspan="5" class="table-empty">Loading versions...</td></tr>
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <!-- ===== AUTOMATION & API ===== -->
-      <section id="sec-automation" class="section">
-        <div class="api-intro">
-          <h3>API Configuration</h3>
-          <p class="api-desc">All Supabase tables are accessible via the PostgREST API. Use the <strong>service_role</strong> key (not the anon key) for full CRUD access from automation scripts, Zapier, or webhook handlers.</p>
-          <div class="api-config-card">
-            <div class="api-config-row">
-              <span class="api-config-label">Supabase Project URL</span>
-              <code class="api-config-value" id="apiProjectUrl">—</code>
-            </div>
-            <div class="api-config-row">
-              <span class="api-config-label">Auth Header</span>
-              <code class="api-config-value">Authorization: Bearer &lt;service_role_key&gt;</code>
-            </div>
-            <div class="api-config-row">
-              <span class="api-config-label">API Key Header</span>
-              <code class="api-config-value">apikey: &lt;service_role_key&gt;</code>
-            </div>
-          </div>
-        </div>
-
-        <div class="api-endpoints">
-          <h3>Available API Endpoints</h3>
-          <div class="api-endpoint-card">
-            <div class="api-method post">POST</div>
-            <div class="api-path">/rest/v1/activation_keys</div>
-            <div class="api-endpoint-desc">Generate a new activation key</div>
-            <pre class="api-example">curl -X POST '${URL}/rest/v1/activation_keys' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
-  -H 'Content-Type: application/json' \
-  -d '{"key_code":"ABCD-EFGH-JKLM-NPQR","subscription_type":"standard"}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method patch">PATCH</div>
-            <div class="api-path">/rest/v1/activation_keys?key_code=eq.XXXX-XXXX-XXXX-XXXX</div>
-            <div class="api-endpoint-desc">Deactivate an activation key</div>
-            <pre class="api-example">curl -X PATCH '${URL}/rest/v1/activation_keys?key_code=eq.ABCD-EFGH-JKLM-NPQR' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
-  -H 'Content-Type: application/json' \
-  -d '{"is_active":false,"deactivated_at":"2026-04-02T00:00:00Z"}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method get">GET</div>
-            <div class="api-path">/rest/v1/clients</div>
-            <div class="api-endpoint-desc">List all clients</div>
-            <pre class="api-example">curl '${URL}/rest/v1/clients?select=*&order=created_at.desc' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method post">POST</div>
-            <div class="api-path">/rest/v1/clients</div>
-            <div class="api-endpoint-desc">Add a new client</div>
-            <pre class="api-example">curl -X POST '${URL}/rest/v1/clients' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Jane Smith","email":"jane@example.com","subscription_type":"standard","subscription_status":"active"}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method get">GET</div>
-            <div class="api-path">/rest/v1/support_tickets?status=eq.open</div>
-            <div class="api-endpoint-desc">Get all open support tickets</div>
-            <pre class="api-example">curl '${URL}/rest/v1/support_tickets?status=eq.open&order=created_at.desc' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method patch">PATCH</div>
-            <div class="api-path">/rest/v1/support_tickets?id=eq.{uuid}</div>
-            <div class="api-endpoint-desc">Resolve a support ticket</div>
-            <pre class="api-example">curl -X PATCH '${URL}/rest/v1/support_tickets?id=eq.abc-123' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"resolved","resolution":"Issue fixed","resolved_at":"2026-04-02T00:00:00Z"}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method post">POST</div>
-            <div class="api-path">/rest/v1/cartridge_versions</div>
-            <div class="api-endpoint-desc">Log a new cartridge version</div>
-            <pre class="api-example">curl -X POST '${URL}/rest/v1/cartridge_versions' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
-  -H 'Content-Type: application/json' \
-  -d '{"version":"2.2.0","filename":"red_flags_v2.json, rubric_v2.json","notes":"Updated keywords"}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method get">GET</div>
-            <div class="api-path">/rest/v1/agencies</div>
-            <div class="api-endpoint-desc">List all BIAB agencies</div>
-            <pre class="api-example">curl '${URL}/rest/v1/agencies?select=*&order=created_at.desc' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method post">POST</div>
-            <div class="api-path">/rest/v1/automation_log</div>
-            <div class="api-endpoint-desc">Log an automated action (audit trail)</div>
-            <pre class="api-example">curl -X POST '${URL}/rest/v1/automation_log' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}' \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"key_generated","details_json":{"key_code":"ABCD-EFGH","trigger":"stripe_webhook"},"performed_by":"manus"}'</pre>
-          </div>
-
-          <div class="api-endpoint-card">
-            <div class="api-method get">GET</div>
-            <div class="api-path">/rest/v1/automation_log?order=performed_at.desc&limit=50</div>
-            <div class="api-endpoint-desc">View recent automation audit trail</div>
-            <pre class="api-example">curl '${URL}/rest/v1/automation_log?order=performed_at.desc&limit=50' \
-  -H 'apikey: ${KEY}' -H 'Authorization: Bearer ${KEY}'</pre>
-          </div>
-        </div>
-
-        <div class="api-log-section">
-          <h3>Automation Audit Log</h3>
-          <p class="api-desc">All automated actions are logged in the <code>automation_log</code> table for full traceability.</p>
-          <div class="section-toolbar">
-            <button class="btn-primary" onclick="loadAutomationLog()">Refresh Log</button>
-          </div>
-          <div class="data-table-wrapper">
-            <table class="data-table" id="automationLogTable">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Action</th>
-                  <th>Details</th>
-                  <th>Performed By</th>
-                </tr>
-              </thead>
-              <tbody id="automationLogBody">
-                <tr><td colspan="4" class="table-empty">Click "Refresh Log" to load entries</td></tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </section>
 
@@ -414,6 +273,120 @@
               <tr><td colspan="7" class="table-empty">Loading agencies...</td></tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ===== AUTOMATION & API ===== -->
+      <section id="sec-automation" class="section">
+        <div class="api-intro">
+          <h3>API Configuration</h3>
+          <p class="api-desc">The ReadyCompliant API is a Cloudflare Worker. All dashboard operations and RiteDoc regulation sync go through this single endpoint.</p>
+          <div class="api-config-card">
+            <div class="api-config-row">
+              <span class="api-config-label">Worker API URL</span>
+              <code class="api-config-value" id="apiWorkerUrl">https://readycompliant-api.workers.dev</code>
+            </div>
+            <div class="api-config-row">
+              <span class="api-config-label">Auth Header</span>
+              <code class="api-config-value">Authorization: Bearer &lt;jwt_token&gt;</code>
+            </div>
+            <div class="api-config-row">
+              <span class="api-config-label">Regulation Sync</span>
+              <code class="api-config-value">POST /api/sync/check — HMAC-SHA256 authenticated</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-endpoints">
+          <h3>Available API Endpoints</h3>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/auth/login</div>
+            <div class="api-endpoint-desc">Admin dashboard login (returns JWT)</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@readycompliant.com","password":"..."}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/api/clients</div>
+            <div class="api-endpoint-desc">List all clients</div>
+            <pre class="api-example">curl 'https://api.readycompliant.com/api/clients' \
+  -H 'Authorization: Bearer &lt;token&gt;'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/keys/generate</div>
+            <div class="api-endpoint-desc">Generate activation keys</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/keys/generate' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"subscription_type":"standard","count":1}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/sync/check</div>
+            <div class="api-endpoint-desc">Regulation sync check (called by RiteDoc app — HMAC authenticated)</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/sync/check' \
+  -H 'Content-Type: application/json' \
+  -H 'X-HMAC-Signature: &lt;hmac-sha256-hex&gt;' \
+  -H 'X-Timestamp: &lt;unix-timestamp&gt;' \
+  -d '{"license_key":"RD-XXXX-XXXX-XXXX","hardware_fingerprint":"...","current_version":"2.0.0"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/cartridges/upload</div>
+            <div class="api-endpoint-desc">Upload a pre-signed .rsp cartridge package (Ed25519 signature verified)</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/cartridges/upload' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d @cartridge_v2.1.0.rsp</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/api/stats/overview</div>
+            <div class="api-endpoint-desc">Dashboard overview stats (MRR, active clients, etc.)</div>
+            <pre class="api-example">curl 'https://api.readycompliant.com/api/stats/overview' \
+  -H 'Authorization: Bearer &lt;token&gt;'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/webhooks/stripe</div>
+            <div class="api-endpoint-desc">Stripe webhook handler (auto-generates keys on payment)</div>
+            <pre class="api-example"># Configure in Stripe Dashboard:
+# Webhook URL: https://api.readycompliant.com/api/webhooks/stripe
+# Events: payment_intent.succeeded, customer.subscription.deleted</pre>
+          </div>
+        </div>
+
+        <div class="api-log-section">
+          <h3>Automation Audit Log</h3>
+          <p class="api-desc">All automated actions are logged for full traceability.</p>
+          <div class="section-toolbar">
+            <button class="btn-primary" onclick="loadAutomationLog()">Refresh Log</button>
+          </div>
+          <div class="data-table-wrapper">
+            <table class="data-table" id="automationLogTable">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th>Performed By</th>
+                </tr>
+              </thead>
+              <tbody id="automationLogBody">
+                <tr><td colspan="4" class="table-empty">Click "Refresh Log" to load entries</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

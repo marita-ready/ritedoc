@@ -3,15 +3,16 @@
  * Internal administration panel for managing RiteDoc subscriptions,
  * activation keys, support tickets, cartridge updates, and BIAB agencies.
  *
- * Uses Supabase JS client for data operations and Brevo API for notifications.
+ * Backend: Cloudflare Worker API (readycompliant-api)
+ * No Supabase dependency — all data operations go through the Worker.
  */
 
 // ===== CONFIGURATION =====
-// These are loaded from localStorage or set during login
 const CONFIG = {
-  supabaseUrl: localStorage.getItem('rc_supabase_url') || '',
-  supabaseAnonKey: localStorage.getItem('rc_supabase_anon_key') || '',
-  brevoApiKey: localStorage.getItem('rc_brevo_api_key') || '',
+  // Worker API base URL — update after deploying the Worker
+  // Production: https://readycompliant-api.<your-subdomain>.workers.dev
+  // Or custom domain: https://api.readycompliant.com
+  apiUrl: localStorage.getItem('rc_api_url') || 'https://readycompliant-api.workers.dev',
 };
 
 // ===== STATE =====
@@ -22,120 +23,64 @@ const dashState = {
   tickets: [],
   cartridgeVersions: [],
   agencies: [],
-  supabaseClient: null,
+  automationLog: [],
+  authToken: null,
   isAuthenticated: false,
 };
 
-// ===== SUPABASE CLIENT =====
-// Lightweight Supabase REST wrapper (no SDK dependency)
-class SupabaseClient {
-  constructor(url, anonKey) {
-    this.url = url.replace(/\/$/, '');
-    this.anonKey = anonKey;
-    this.authToken = anonKey; // Use anon key for service-level access
+// ===== API CLIENT =====
+/**
+ * Lightweight Cloudflare Worker API client.
+ * Replaces the old Supabase REST wrapper.
+ */
+class ApiClient {
+  constructor(baseUrl, token) {
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.token = token;
   }
 
-  async query(table, { select = '*', filter = '', order = '', limit = null } = {}) {
-    let url = `${this.url}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
-    if (filter) url += `&${filter}`;
-    if (order) url += `&order=${order}`;
-    if (limit) url += `&limit=${limit}`;
+  async request(method, path, body = null) {
+    const url = `${this.baseUrl}${path}`;
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
 
-    const resp = await fetch(url, {
-      headers: {
-        'apikey': this.anonKey,
-        'Authorization': `Bearer ${this.authToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const opts = { method, headers };
+    if (body !== null) {
+      opts.body = JSON.stringify(body);
+    }
 
-    if (!resp.ok) throw new Error(`Query failed: ${resp.status} ${resp.statusText}`);
-    return resp.json();
-  }
+    const resp = await fetch(url, opts);
 
-  async insert(table, data) {
-    const url = `${this.url}/rest/v1/${table}`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'apikey': this.anonKey,
-        'Authorization': `Bearer ${this.authToken}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify(data),
-    });
+    if (resp.status === 401) {
+      // Token expired — force logout
+      handleLogout();
+      throw new Error('Session expired. Please log in again.');
+    }
 
     if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`Insert failed: ${resp.status} — ${text}`);
+      let errMsg = `${resp.status} ${resp.statusText}`;
+      try {
+        const err = await resp.json();
+        errMsg = err.error || errMsg;
+      } catch { /* ignore */ }
+      throw new Error(errMsg);
     }
-    return resp.json();
+
+    const text = await resp.text();
+    return text ? JSON.parse(text) : null;
   }
 
-  async update(table, filter, data) {
-    const url = `${this.url}/rest/v1/${table}?${filter}`;
-    const resp = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'apikey': this.anonKey,
-        'Authorization': `Bearer ${this.authToken}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`Update failed: ${resp.status} — ${text}`);
-    }
-    return resp.json();
-  }
-
-  async delete(table, filter) {
-    const url = `${this.url}/rest/v1/${table}?${filter}`;
-    const resp = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'apikey': this.anonKey,
-        'Authorization': `Bearer ${this.authToken}`,
-      },
-    });
-
-    if (!resp.ok) throw new Error(`Delete failed: ${resp.status}`);
-    return true;
-  }
-
-  async uploadToStorage(bucket, path, file) {
-    const url = `${this.url}/storage/v1/object/${bucket}/${path}`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'apikey': this.anonKey,
-        'Authorization': `Bearer ${this.authToken}`,
-        'Content-Type': file.type || 'application/json',
-      },
-      body: file,
-    });
-
-    if (!resp.ok) {
-      // Try upsert
-      const resp2 = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'apikey': this.anonKey,
-          'Authorization': `Bearer ${this.authToken}`,
-          'Content-Type': file.type || 'application/json',
-          'x-upsert': 'true',
-        },
-        body: file,
-      });
-      if (!resp2.ok) throw new Error(`Upload failed: ${resp2.status}`);
-    }
-    return true;
-  }
+  get(path) { return this.request('GET', path); }
+  post(path, body) { return this.request('POST', path, body); }
+  put(path, body) { return this.request('PUT', path, body); }
+  delete(path) { return this.request('DELETE', path); }
 }
+
+let api = null;
 
 // ===== TOAST =====
 function showToast(message, duration = 2500) {
@@ -146,10 +91,13 @@ function showToast(message, duration = 2500) {
 }
 
 // ===== LOGIN =====
-function handleLogin() {
+async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('btnLogin');
+
+  errorEl.style.display = 'none';
 
   if (!email || !password) {
     errorEl.textContent = 'Please enter your email and password.';
@@ -157,42 +105,49 @@ function handleLogin() {
     return;
   }
 
-  // For the admin dashboard, we use a simple credential check
-  // In production, this would use Supabase Auth
-  // The Supabase URL and key are stored after successful login
-  const supabaseUrl = prompt('Enter Supabase Project URL:');
-  const supabaseKey = prompt('Enter Supabase Anon Key:');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
 
-  if (!supabaseUrl || !supabaseKey) {
-    errorEl.textContent = 'Supabase configuration is required.';
+  try {
+    const resp = await fetch(`${CONFIG.apiUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Login failed' }));
+      throw new Error(err.error || 'Invalid credentials');
+    }
+
+    const data = await resp.json();
+    dashState.authToken = data.token;
+    dashState.isAuthenticated = true;
+
+    localStorage.setItem('rc_auth_token', data.token);
+    localStorage.setItem('rc_admin_email', email);
+
+    api = new ApiClient(CONFIG.apiUrl, data.token);
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboardShell').style.display = 'flex';
+
+    await loadAllData();
+  } catch (e) {
+    errorEl.textContent = e.message;
     errorEl.style.display = 'block';
-    return;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
   }
-
-  // Store config
-  CONFIG.supabaseUrl = supabaseUrl;
-  CONFIG.supabaseAnonKey = supabaseKey;
-  localStorage.setItem('rc_supabase_url', supabaseUrl);
-  localStorage.setItem('rc_supabase_anon_key', supabaseKey);
-  localStorage.setItem('rc_admin_email', email);
-
-  // Initialize client
-  dashState.supabaseClient = new SupabaseClient(supabaseUrl, supabaseKey);
-  dashState.isAuthenticated = true;
-
-  // Show dashboard
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('dashboardShell').style.display = 'flex';
-
-  // Load all data
-  loadAllData();
 }
 
 function handleLogout() {
-  localStorage.removeItem('rc_supabase_url');
-  localStorage.removeItem('rc_supabase_anon_key');
+  localStorage.removeItem('rc_auth_token');
   localStorage.removeItem('rc_admin_email');
+  dashState.authToken = null;
   dashState.isAuthenticated = false;
+  api = null;
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('dashboardShell').style.display = 'none';
 }
@@ -211,10 +166,8 @@ function showSection(sectionId) {
   document.getElementById('sectionTitle').textContent = getSectionTitle(sectionId);
   dashState.currentSection = sectionId;
 
-  // Populate API config when automation section is shown
-  if (sectionId === 'automation' && CONFIG.supabaseUrl) {
-    const urlEl = document.getElementById('apiProjectUrl');
-    if (urlEl) urlEl.textContent = CONFIG.supabaseUrl;
+  if (sectionId === 'automation') {
+    updateAutomationSection();
   }
 }
 
@@ -233,27 +186,25 @@ function getSectionTitle(id) {
 
 // ===== DATA LOADING =====
 async function loadAllData() {
-  const sb = dashState.supabaseClient;
-  if (!sb) return;
+  if (!api) return;
 
   try {
-    // Load all tables in parallel
-    const [clients, keys, tickets, versions, agencies] = await Promise.all([
-      sb.query('clients', { order: 'created_at.desc' }).catch(() => []),
-      sb.query('activation_keys', { order: 'created_at.desc' }).catch(() => []),
-      sb.query('support_tickets', { order: 'created_at.desc' }).catch(() => []),
-      sb.query('cartridge_versions', { order: 'uploaded_at.desc' }).catch(() => []),
-      sb.query('agencies', { order: 'created_at.desc' }).catch(() => []),
+    const [clients, keys, tickets, versions, agencies, stats] = await Promise.all([
+      api.get('/api/clients').catch(() => []),
+      api.get('/api/keys').catch(() => []),
+      api.get('/api/support/tickets').catch(() => []),
+      api.get('/api/cartridges/versions').catch(() => []),
+      api.get('/api/agencies').catch(() => []),
+      api.get('/api/stats/overview').catch(() => ({})),
     ]);
 
-    dashState.clients = clients;
-    dashState.keys = keys;
-    dashState.tickets = tickets;
-    dashState.cartridgeVersions = versions;
-    dashState.agencies = agencies;
+    dashState.clients = clients || [];
+    dashState.keys = keys || [];
+    dashState.tickets = tickets || [];
+    dashState.cartridgeVersions = versions || [];
+    dashState.agencies = agencies || [];
 
-    // Render everything
-    renderOverview();
+    renderOverview(stats);
     renderClients();
     renderKeys();
     renderTickets();
@@ -262,48 +213,41 @@ async function loadAllData() {
 
   } catch (e) {
     console.error('Failed to load data:', e);
-    showToast('Failed to load data. Check Supabase connection.');
+    showToast('Failed to load data: ' + e.message);
   }
 }
 
 // ===== OVERVIEW =====
-function renderOverview() {
-  document.getElementById('statTotalClients').textContent = dashState.clients.length;
-  document.getElementById('statActiveSubscriptions').textContent =
-    dashState.clients.filter(c => c.subscription_status === 'active').length;
-  document.getElementById('statActivatedKeys').textContent =
-    dashState.keys.filter(k => k.activated_at).length;
-  document.getElementById('statOpenTickets').textContent =
-    dashState.tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
-  document.getElementById('statCartridgeVersion').textContent =
-    dashState.cartridgeVersions.length > 0 ? dashState.cartridgeVersions[0].version : '—';
-  document.getElementById('statAgencies').textContent = dashState.agencies.length;
+function renderOverview(stats = {}) {
+  document.getElementById('statTotalClients').textContent = stats.total_clients ?? dashState.clients.length;
+  document.getElementById('statActiveSubscriptions').textContent = stats.active_clients ?? dashState.clients.filter(c => c.status === 'active').length;
+  document.getElementById('statActivatedKeys').textContent = stats.activated_keys ?? dashState.keys.filter(k => k.activated_at).length;
+  document.getElementById('statOpenTickets').textContent = stats.open_tickets ?? dashState.tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+  document.getElementById('statCartridgeVersion').textContent = stats.latest_cartridge_version ?? (dashState.cartridgeVersions.length > 0 ? dashState.cartridgeVersions[0].version : '—');
+  document.getElementById('statAgencies').textContent = stats.active_agencies ?? dashState.agencies.length;
 
   // Recent activity
   const activityEl = document.getElementById('recentActivity');
   const activities = [];
 
-  // Recent keys
   dashState.keys.slice(0, 5).forEach(k => {
     activities.push({
       dot: k.activated_at ? 'green' : 'orange',
-      text: `Key ${k.key_code.substring(0, 12)}... ${k.activated_at ? 'activated' : 'generated'} (${k.subscription_type})`,
+      text: `Key ${(k.key_code || '').substring(0, 14)}... ${k.activated_at ? 'activated' : 'generated'} (${k.subscription_type || 'standard'})`,
       time: formatRelativeTime(k.activated_at || k.created_at),
       date: new Date(k.activated_at || k.created_at),
     });
   });
 
-  // Recent tickets
   dashState.tickets.slice(0, 5).forEach(t => {
     activities.push({
       dot: t.status === 'resolved' ? 'green' : t.status === 'open' ? 'red' : 'orange',
-      text: `Ticket: ${t.category} — ${truncate(t.description, 50)}`,
+      text: `Ticket: ${t.category || 'general'} — ${truncate(t.description || '', 50)}`,
       time: formatRelativeTime(t.created_at),
       date: new Date(t.created_at),
     });
   });
 
-  // Sort by date
   activities.sort((a, b) => b.date - a.date);
 
   if (activities.length === 0) {
@@ -329,14 +273,14 @@ function renderClients() {
 
   tbody.innerHTML = dashState.clients.map(c => `
     <tr>
-      <td><strong>${escapeHtml(c.name || '—')}</strong></td>
+      <td><strong>${escapeHtml(c.contact_name || c.business_name || '—')}</strong></td>
       <td>${escapeHtml(c.email || '—')}</td>
-      <td>${escapeHtml(c.company_name || '—')}</td>
-      <td><span class="badge badge-${c.subscription_type || 'standard'}">${escapeHtml(c.subscription_type || '—')}</span></td>
-      <td><span class="badge badge-${c.subscription_status === 'active' ? 'active' : 'inactive'}">${escapeHtml(c.subscription_status || '—')}</span></td>
-      <td>${formatDate(c.start_date)}</td>
+      <td>${escapeHtml(c.business_name || '—')}</td>
+      <td><span class="badge badge-${c.subscription_tier || 'standard'}">${escapeHtml(c.subscription_tier || '—')}</span></td>
+      <td><span class="badge badge-${c.status === 'active' ? 'active' : 'inactive'}">${escapeHtml(c.status || '—')}</span></td>
+      <td>${formatDate(c.created_at)}</td>
       <td>
-        <button class="btn-sm" onclick="editClient('${c.id}')">Edit</button>
+        <button class="btn-sm" onclick="editClient(${c.id})">Edit</button>
       </td>
     </tr>
   `).join('');
@@ -353,17 +297,17 @@ function filterClients() {
 function showAddClientModal() {
   openModal('Add Client', `
     <div class="form-row">
-      <div class="form-group"><label>Name</label><input type="text" id="fClientName" /></div>
+      <div class="form-group"><label>Contact Name</label><input type="text" id="fClientName" /></div>
       <div class="form-group"><label>Email</label><input type="email" id="fClientEmail" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Phone</label><input type="text" id="fClientPhone" /></div>
-      <div class="form-group"><label>Company</label><input type="text" id="fClientCompany" /></div>
+      <div class="form-group"><label>Business Name</label><input type="text" id="fClientCompany" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>ABN</label><input type="text" id="fClientAbn" /></div>
       <div class="form-group">
-        <label>Subscription Type</label>
+        <label>Subscription Tier</label>
         <select id="fClientSubType">
           <option value="founders">Founders</option>
           <option value="standard">Standard</option>
@@ -371,22 +315,18 @@ function showAddClientModal() {
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Notes</label><textarea id="fClientNotes"></textarea></div>
   `, async () => {
     const data = {
-      name: document.getElementById('fClientName').value,
+      contact_name: document.getElementById('fClientName').value,
       email: document.getElementById('fClientEmail').value,
       phone: document.getElementById('fClientPhone').value,
-      company_name: document.getElementById('fClientCompany').value,
+      business_name: document.getElementById('fClientCompany').value,
       abn: document.getElementById('fClientAbn').value,
-      subscription_type: document.getElementById('fClientSubType').value,
-      subscription_status: 'active',
-      start_date: new Date().toISOString(),
-      notes: document.getElementById('fClientNotes').value,
+      subscription_tier: document.getElementById('fClientSubType').value,
     };
 
     try {
-      await dashState.supabaseClient.insert('clients', data);
+      await api.post('/api/clients', data);
       showToast('Client added successfully');
       closeModal();
       await loadAllData();
@@ -402,38 +342,45 @@ async function editClient(id) {
 
   openModal('Edit Client', `
     <div class="form-row">
-      <div class="form-group"><label>Name</label><input type="text" id="fClientName" value="${escapeAttr(client.name || '')}" /></div>
+      <div class="form-group"><label>Contact Name</label><input type="text" id="fClientName" value="${escapeAttr(client.contact_name || '')}" /></div>
       <div class="form-group"><label>Email</label><input type="email" id="fClientEmail" value="${escapeAttr(client.email || '')}" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Phone</label><input type="text" id="fClientPhone" value="${escapeAttr(client.phone || '')}" /></div>
-      <div class="form-group"><label>Company</label><input type="text" id="fClientCompany" value="${escapeAttr(client.company_name || '')}" /></div>
+      <div class="form-group"><label>Business Name</label><input type="text" id="fClientCompany" value="${escapeAttr(client.business_name || '')}" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>ABN</label><input type="text" id="fClientAbn" value="${escapeAttr(client.abn || '')}" /></div>
       <div class="form-group">
-        <label>Subscription Status</label>
+        <label>Status</label>
         <select id="fClientStatus">
-          <option value="active" ${client.subscription_status === 'active' ? 'selected' : ''}>Active</option>
-          <option value="cancelled" ${client.subscription_status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-          <option value="suspended" ${client.subscription_status === 'suspended' ? 'selected' : ''}>Suspended</option>
+          <option value="active" ${client.status === 'active' ? 'selected' : ''}>Active</option>
+          <option value="cancelled" ${client.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+          <option value="suspended" ${client.status === 'suspended' ? 'selected' : ''}>Suspended</option>
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Notes</label><textarea id="fClientNotes">${escapeHtml(client.notes || '')}</textarea></div>
+    <div class="form-group">
+      <label>Subscription Tier</label>
+      <select id="fClientSubType">
+        <option value="founders" ${client.subscription_tier === 'founders' ? 'selected' : ''}>Founders</option>
+        <option value="standard" ${client.subscription_tier === 'standard' ? 'selected' : ''}>Standard</option>
+        <option value="biab" ${client.subscription_tier === 'biab' ? 'selected' : ''}>Business in a Box</option>
+      </select>
+    </div>
   `, async () => {
     const data = {
-      name: document.getElementById('fClientName').value,
+      contact_name: document.getElementById('fClientName').value,
       email: document.getElementById('fClientEmail').value,
       phone: document.getElementById('fClientPhone').value,
-      company_name: document.getElementById('fClientCompany').value,
+      business_name: document.getElementById('fClientCompany').value,
       abn: document.getElementById('fClientAbn').value,
-      subscription_status: document.getElementById('fClientStatus').value,
-      notes: document.getElementById('fClientNotes').value,
+      status: document.getElementById('fClientStatus').value,
+      subscription_tier: document.getElementById('fClientSubType').value,
     };
 
     try {
-      await dashState.supabaseClient.update('clients', `id=eq.${id}`, data);
+      await api.put(`/api/clients/${id}`, data);
       showToast('Client updated');
       closeModal();
       await loadAllData();
@@ -456,18 +403,18 @@ function renderKeys() {
                    k.activated_at ? 'Activated' : 'Available';
     const statusClass = k.deactivated_at ? 'inactive' :
                         k.activated_at ? 'active' : 'pending';
-    const agencyName = k.agency_id ? (dashState.agencies.find(a => a.id === k.agency_id)?.agency_name || k.agency_id.substring(0, 8)) : '—';
+    const agencyName = k.agency_name || (k.agency_id ? `Agency #${k.agency_id}` : '—');
 
     return `
       <tr>
-        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 6px;border-radius:4px;">${escapeHtml(k.key_code)}</code></td>
+        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 6px;border-radius:4px;">${escapeHtml(k.key_code || '')}</code></td>
         <td><span class="badge badge-${k.subscription_type || 'standard'}">${escapeHtml(k.subscription_type || '—')}</span></td>
         <td>${escapeHtml(agencyName)}</td>
         <td><span class="badge badge-${statusClass}">${status}</span></td>
         <td>${formatDate(k.activated_at)}</td>
-        <td style="font-size:11px;font-family:monospace;">${k.hardware_fingerprint ? escapeHtml(k.hardware_fingerprint.substring(0, 20)) : '—'}</td>
+        <td style="font-size:11px;font-family:monospace;">${k.hardware_fingerprint ? escapeHtml(k.hardware_fingerprint.substring(0, 20)) + '...' : '—'}</td>
         <td>
-          ${!k.deactivated_at ? `<button class="btn-danger" onclick="deactivateKey('${k.id}')">Deactivate</button>` : ''}
+          ${!k.deactivated_at ? `<button class="btn-danger" onclick="revokeKey(${k.id})">Revoke</button>` : ''}
         </td>
       </tr>
     `;
@@ -509,18 +456,12 @@ function showGenerateKeyModal() {
     const count = parseInt(document.getElementById('fKeyCount').value) || 1;
 
     try {
-      const keys = [];
-      for (let i = 0; i < count; i++) {
-        keys.push({
-          key_code: generateKeyCode(),
-          subscription_type: subType,
-          agency_id: agencyId,
-          is_active: true,
-        });
-      }
-
-      await dashState.supabaseClient.insert('activation_keys', keys);
-      showToast(`${count} key(s) generated successfully`);
+      const result = await api.post('/api/keys/generate', {
+        subscription_type: subType,
+        agency_id: agencyId,
+        count,
+      });
+      showToast(`${result.keys?.length || count} key(s) generated successfully`);
       closeModal();
       await loadAllData();
     } catch (e) {
@@ -529,41 +470,16 @@ function showGenerateKeyModal() {
   });
 }
 
-async function deactivateKey(id) {
-  if (!confirm('Are you sure you want to deactivate this key? The user will lose access.')) return;
+async function revokeKey(id) {
+  if (!confirm('Are you sure you want to revoke this key? The user will lose access immediately.')) return;
 
   try {
-    await dashState.supabaseClient.update('activation_keys', `id=eq.${id}`, {
-      is_active: false,
-      deactivated_at: new Date().toISOString(),
-    });
-
-    // Log to audit
-    await dashState.supabaseClient.insert('key_audit_log', {
-      key_id: id,
-      action: 'deactivated',
-      reason: 'Admin deactivation via dashboard',
-      performed_at: new Date().toISOString(),
-    });
-
-    showToast('Key deactivated');
+    await api.put(`/api/keys/${id}/revoke`, {});
+    showToast('Key revoked');
     await loadAllData();
   } catch (e) {
     showToast('Error: ' + e.message);
   }
-}
-
-function generateKeyCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const segments = [];
-  for (let s = 0; s < 4; s++) {
-    let segment = '';
-    for (let i = 0; i < 4; i++) {
-      segment += chars[Math.floor(Math.random() * chars.length)];
-    }
-    segments.push(segment);
-  }
-  return segments.join('-');
 }
 
 // ===== SUPPORT TICKETS =====
@@ -575,21 +491,20 @@ function renderTickets() {
   }
 
   tbody.innerHTML = dashState.tickets.map(t => {
-    const clientName = t.client_id ?
-      (dashState.clients.find(c => c.id === t.client_id)?.name || 'Unknown') : '—';
+    const clientName = t.client_name || (t.client_id ? `Client #${t.client_id}` : '—');
     const statusClass = t.status === 'resolved' ? 'active' :
                         t.status === 'open' ? 'inactive' : 'pending';
 
     return `
       <tr data-status="${t.status}">
-        <td style="font-size:12px;color:var(--text-muted);">${escapeHtml(t.id.substring(0, 8))}</td>
+        <td style="font-size:12px;color:var(--text-muted);">${String(t.id).substring(0, 8)}</td>
         <td>${escapeHtml(clientName)}</td>
         <td>${escapeHtml(t.category || '—')}</td>
         <td>${escapeHtml(truncate(t.description || '', 60))}</td>
         <td><span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span></td>
         <td>${formatDate(t.created_at)}</td>
         <td>
-          <button class="btn-sm" onclick="editTicket('${t.id}')">Edit</button>
+          <button class="btn-sm" onclick="editTicket(${t.id})">Edit</button>
         </td>
       </tr>
     `;
@@ -616,8 +531,12 @@ function showAddTicketModal() {
       <label>Client</label>
       <select id="fTicketClient">
         <option value="">Select client...</option>
-        ${dashState.clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.email)})</option>`).join('')}
+        ${dashState.clients.map(c => `<option value="${c.id}">${escapeHtml(c.contact_name || c.business_name)} (${escapeHtml(c.email || '')})</option>`).join('')}
       </select>
+    </div>
+    <div class="form-group">
+      <label>Subject</label>
+      <input type="text" id="fTicketSubject" placeholder="Brief summary" />
     </div>
     <div class="form-group">
       <label>Category</label>
@@ -626,20 +545,21 @@ function showAddTicketModal() {
         <option value="billing">Billing</option>
         <option value="technical">Technical Support</option>
         <option value="feature_request">Feature Request</option>
-        <option value="other">Other</option>
+        <option value="general">General</option>
       </select>
     </div>
     <div class="form-group"><label>Description</label><textarea id="fTicketDesc"></textarea></div>
   `, async () => {
     const data = {
       client_id: document.getElementById('fTicketClient').value || null,
+      subject: document.getElementById('fTicketSubject').value,
       category: document.getElementById('fTicketCategory').value,
       description: document.getElementById('fTicketDesc').value,
       status: 'open',
     };
 
     try {
-      await dashState.supabaseClient.insert('support_tickets', data);
+      await api.post('/api/support/tickets', data);
       showToast('Ticket created');
       closeModal();
       await loadAllData();
@@ -671,12 +591,9 @@ async function editTicket(id) {
       resolution: document.getElementById('fTicketResolution').value,
       notes: document.getElementById('fTicketNotes').value,
     };
-    if (status === 'resolved') {
-      data.resolved_at = new Date().toISOString();
-    }
 
     try {
-      await dashState.supabaseClient.update('support_tickets', `id=eq.${id}`, data);
+      await api.put(`/api/support/tickets/${id}`, data);
       showToast('Ticket updated');
       closeModal();
       await loadAllData();
@@ -690,23 +607,34 @@ async function editTicket(id) {
 function renderCartridgeVersions() {
   const tbody = document.getElementById('cartridgeVersionsBody');
   if (dashState.cartridgeVersions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="table-empty">No cartridge versions uploaded</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="table-empty">No cartridge versions uploaded</td></tr>';
     return;
   }
 
-  tbody.innerHTML = dashState.cartridgeVersions.map(v => `
-    <tr>
-      <td><strong>${escapeHtml(v.version)}</strong></td>
-      <td>${escapeHtml(v.filename || '—')}</td>
-      <td>${formatDate(v.uploaded_at)}</td>
-      <td>${escapeHtml(v.notes || '—')}</td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = dashState.cartridgeVersions.map(v => {
+    const files = (() => {
+      try {
+        const parsed = JSON.parse(v.files || '[]');
+        return Array.isArray(parsed) ? parsed.map(f => f.name || f).join(', ') : v.files;
+      } catch { return v.files || '—'; }
+    })();
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(v.version)}</strong></td>
+        <td style="font-size:12px;">${escapeHtml(files)}</td>
+        <td>${formatDate(v.uploaded_at)}</td>
+        <td>${escapeHtml(v.release_notes || '—')}</td>
+        <td>
+          ${v.signature ? `<code style="font-size:10px;color:var(--text-muted);">${v.signature.substring(0, 16)}...</code>` : '<span style="color:var(--text-muted);">—</span>'}
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 /**
  * Compute the SHA-256 hash of an ArrayBuffer and return it as a lowercase hex string.
- * Uses the Web Crypto API — available in all modern browsers, no dependencies.
  */
 async function sha256Hex(arrayBuffer) {
   const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
@@ -714,9 +642,6 @@ async function sha256Hex(arrayBuffer) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * Read a File object as an ArrayBuffer.
- */
 function readFileAsArrayBuffer(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -726,99 +651,68 @@ function readFileAsArrayBuffer(file) {
   });
 }
 
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Handle .rsp (Regulation Sync Package) upload.
+ *
+ * The .rsp file is a JSON file produced by tools/sign_cartridge.js on Aroha.
+ * Structure:
+ * {
+ *   manifest: { version, timestamp, files: [{name, hash, size}], release_notes },
+ *   signature: "<hex Ed25519 signature>",
+ *   files: { "filename.json": "<base64 content>", ... }
+ * }
+ *
+ * The Worker verifies the signature before storing.
+ */
 async function handleCartridgeUpload() {
-  const version = document.getElementById('cartridgeVersionInput').value.trim();
-  const notes = document.getElementById('cartridgeNotesInput').value.trim();
+  const rspFile = document.getElementById('uploadRspFile').files[0];
   const statusEl = document.getElementById('cartridgeStatus');
 
-  if (!version) {
+  if (!rspFile) {
     statusEl.className = 'cartridge-status error';
-    statusEl.textContent = 'Please enter a version number.';
+    statusEl.textContent = 'Please select a .rsp package file to upload.';
     statusEl.style.display = 'block';
     return;
   }
 
-  const files = {
-    'red_flags_v2.json': document.getElementById('uploadRedFlags').files[0],
-    'rubric_v2.json': document.getElementById('uploadRubric').files[0],
-    'policies.json': document.getElementById('uploadPolicies').files[0],
-    'system_prompts.json': document.getElementById('uploadPrompts').files[0],
-  };
-
-  const hasFiles = Object.values(files).some(f => f);
-  if (!hasFiles) {
+  if (!rspFile.name.endsWith('.rsp') && !rspFile.name.endsWith('.json')) {
     statusEl.className = 'cartridge-status error';
-    statusEl.textContent = 'Please select at least one cartridge file to upload.';
+    statusEl.textContent = 'Please select a valid .rsp package file (produced by tools/sign_cartridge.js).';
     statusEl.style.display = 'block';
     return;
   }
 
   statusEl.className = 'cartridge-status info';
-  statusEl.textContent = 'Computing checksums...';
+  statusEl.textContent = 'Reading package...';
   statusEl.style.display = 'block';
 
   try {
-    // ── Step 1: Read all files into memory and compute SHA-256 hashes ──────
-    // We must hash the exact bytes that will be stored — before any upload.
-    // The app will re-hash the downloaded bytes and compare, so they must match.
-    const checksums = {};
-    const fileBuffers = {};
+    const buffer = await readFileAsArrayBuffer(rspFile);
+    const text = new TextDecoder().decode(buffer);
+    const pkg = JSON.parse(text);
 
-    for (const [filename, file] of Object.entries(files)) {
-      if (!file) continue;
-
-      const buffer = await readFileAsArrayBuffer(file);
-      const hash = await sha256Hex(buffer);
-      checksums[filename] = hash;
-      fileBuffers[filename] = buffer;
+    if (!pkg.manifest || !pkg.signature || !pkg.files) {
+      throw new Error('Invalid .rsp package: missing manifest, signature, or files. Use tools/sign_cartridge.js to create packages.');
     }
 
-    // ── Step 2: Upload each cartridge file ─────────────────────────────────
-    statusEl.textContent = 'Uploading cartridge files...';
-    let uploadedCount = 0;
+    const version = pkg.manifest.version;
+    statusEl.textContent = `Uploading cartridge v${version}...`;
 
-    for (const [filename, buffer] of Object.entries(fileBuffers)) {
-      const path = `v${version}/${filename}`;
-      // Upload from the original File object (preserves content-type)
-      await dashState.supabaseClient.uploadToStorage('cartridges', path, files[filename]);
-      uploadedCount++;
-    }
-
-    // ── Step 3: Generate and upload checksums.json ─────────────────────────
-    // This file is downloaded by the app before installing any update.
-    // If ANY hash doesn't match, the entire update is rejected.
-    statusEl.textContent = 'Uploading checksums.json...';
-
-    const checksumsJson = JSON.stringify(checksums, null, 2);
-    const checksumsBlob = new Blob([checksumsJson], { type: 'application/json' });
-    const checksumsFile = new File([checksumsBlob], 'checksums.json', { type: 'application/json' });
-
-    await dashState.supabaseClient.uploadToStorage(
-      'cartridges',
-      `v${version}/checksums.json`,
-      checksumsFile
-    );
-
-    // ── Step 4: Create version record in database ──────────────────────────
-    await dashState.supabaseClient.insert('cartridge_versions', {
-      version,
-      filename: Object.keys(fileBuffers).join(', '),
-      notes,
-      uploaded_at: new Date().toISOString(),
-    });
-
-    // ── Step 5: Show success with checksum summary ─────────────────────────
-    const hashSummary = Object.entries(checksums)
-      .map(([name, hash]) => `${name}: ${hash.slice(0, 12)}...`)
-      .join(' | ');
+    const result = await api.post('/api/cartridges/upload', pkg);
 
     statusEl.className = 'cartridge-status success';
-    statusEl.textContent =
-      `Cartridge v${version} uploaded (${uploadedCount} files + checksums.json). ` +
-      `SHA-256: ${hashSummary}`;
-    showToast(`Cartridge v${version} uploaded with checksums`);
+    statusEl.textContent = result.message || `Cartridge v${version} uploaded successfully.`;
+    showToast(`Cartridge v${version} uploaded`);
 
-    // Reload versions table
     await loadAllData();
   } catch (e) {
     statusEl.className = 'cartridge-status error';
@@ -827,21 +721,11 @@ async function handleCartridgeUpload() {
 }
 
 async function handleNotifySubscribers() {
-  const brevoKey = CONFIG.brevoApiKey || prompt('Enter Brevo API Key:');
-  if (!brevoKey) {
-    showToast('Brevo API key is required to send notifications.');
-    return;
-  }
-
-  CONFIG.brevoApiKey = brevoKey;
-  localStorage.setItem('rc_brevo_api_key', brevoKey);
-
   const latestVersion = dashState.cartridgeVersions.length > 0
     ? dashState.cartridgeVersions[0].version : 'latest';
 
-  // Get active client emails
   const activeClients = dashState.clients.filter(c =>
-    c.subscription_status === 'active' && c.email
+    c.status === 'active' && c.email
   );
 
   if (activeClients.length === 0) {
@@ -851,8 +735,14 @@ async function handleNotifySubscribers() {
 
   if (!confirm(`Send update notification to ${activeClients.length} active subscriber(s)?`)) return;
 
+  const brevoKey = localStorage.getItem('rc_brevo_api_key') || prompt('Enter Brevo API Key (stored locally):');
+  if (!brevoKey) {
+    showToast('Brevo API key is required to send notifications.');
+    return;
+  }
+  localStorage.setItem('rc_brevo_api_key', brevoKey);
+
   try {
-    // Send via Brevo API
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -862,17 +752,17 @@ async function handleNotifySubscribers() {
       },
       body: JSON.stringify({
         sender: { name: 'ReadyCompliant', email: 'updates@readycompliant.com' },
-        to: activeClients.map(c => ({ email: c.email, name: c.name })),
-        subject: `RiteDoc Compliance Data Updated`,
+        to: activeClients.map(c => ({ email: c.email, name: c.contact_name || c.business_name || c.email })),
+        subject: `RiteDoc Compliance Data Updated — v${latestVersion}`,
         htmlContent: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
             <h1 style="color: #111827; font-size: 24px;">Your Compliance Data Has Been Updated</h1>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
-              We’ve just released a compliance data update for RiteDoc.
+              We've just released compliance data update <strong>v${latestVersion}</strong> for RiteDoc.
             </p>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
               <strong>No action needed on your end.</strong> The next time you open RiteDoc, it will automatically
-              download and install the update in the background. You’ll see the updated date in Settings.
+              download and install the update in the background. You'll see the updated date in Settings.
             </p>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
               This update ensures your progress notes are assessed against the latest NDIS Practice Standards
@@ -913,12 +803,12 @@ function renderAgencies() {
       <tr>
         <td><strong>${escapeHtml(a.agency_name || '—')}</strong></td>
         <td>${escapeHtml(a.contact_name || '—')}</td>
-        <td>${escapeHtml(a.contact_email || '—')}</td>
+        <td>${escapeHtml(a.contact_email || a.email || '—')}</td>
         <td>${a.seats_purchased || 0}</td>
         <td>${seatsUsed}</td>
         <td><span class="badge badge-${a.is_active ? 'active' : 'inactive'}">${a.is_active ? 'Active' : 'Inactive'}</span></td>
         <td>
-          <button class="btn-sm" onclick="editAgency('${a.id}')">Edit</button>
+          <button class="btn-sm" onclick="editAgency(${a.id})">Edit</button>
         </td>
       </tr>
     `;
@@ -955,11 +845,10 @@ function showAddAgencyModal() {
       contact_email: document.getElementById('fAgencyEmail').value,
       contact_phone: document.getElementById('fAgencyPhone').value,
       seats_purchased: parseInt(document.getElementById('fAgencySeats').value) || 5,
-      is_active: true,
     };
 
     try {
-      await dashState.supabaseClient.insert('agencies', data);
+      await api.post('/api/agencies', data);
       showToast('Agency added');
       closeModal();
       await loadAllData();
@@ -980,7 +869,7 @@ async function editAgency(id) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Contact Name</label><input type="text" id="fAgencyContact" value="${escapeAttr(agency.contact_name || '')}" /></div>
-      <div class="form-group"><label>Contact Email</label><input type="email" id="fAgencyEmail" value="${escapeAttr(agency.contact_email || '')}" /></div>
+      <div class="form-group"><label>Contact Email</label><input type="email" id="fAgencyEmail" value="${escapeAttr(agency.contact_email || agency.email || '')}" /></div>
     </div>
     <div class="form-group">
       <label>Status</label>
@@ -999,7 +888,7 @@ async function editAgency(id) {
     };
 
     try {
-      await dashState.supabaseClient.update('agencies', `id=eq.${id}`, data);
+      await api.put(`/api/agencies/${id}`, data);
       showToast('Agency updated');
       closeModal();
       await loadAllData();
@@ -1011,27 +900,23 @@ async function editAgency(id) {
 
 // ===== AUTOMATION LOG =====
 async function loadAutomationLog() {
-  const sb = dashState.supabaseClient;
-  if (!sb) return;
+  if (!api) return;
 
   const tbody = document.getElementById('automationLogBody');
   tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Loading...</td></tr>';
 
   try {
-    const logs = await sb.query('automation_log', {
-      order: 'performed_at.desc',
-      limit: 100,
-    });
+    const logs = await api.get('/api/automation/log?limit=100');
 
-    if (logs.length === 0) {
+    if (!logs || logs.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="table-empty">No automation log entries</td></tr>';
       return;
     }
 
     tbody.innerHTML = logs.map(l => {
-      const details = typeof l.details_json === 'object'
-        ? JSON.stringify(l.details_json, null, 0)
-        : (l.details_json || '—');
+      const details = typeof l.details_json === 'string'
+        ? l.details_json
+        : JSON.stringify(l.details_json || '{}');
       return `
         <tr>
           <td>${formatDate(l.performed_at)}</td>
@@ -1044,6 +929,11 @@ async function loadAutomationLog() {
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Error: ${escapeHtml(e.message)}</td></tr>`;
   }
+}
+
+function updateAutomationSection() {
+  const apiUrlEl = document.getElementById('apiWorkerUrl');
+  if (apiUrlEl) apiUrlEl.textContent = CONFIG.apiUrl;
 }
 
 // ===== MODAL SYSTEM =====
@@ -1066,16 +956,17 @@ function closeModal() {
   modalSubmitHandler = null;
 }
 
-// Close modal on overlay click
-document.getElementById('modalOverlay').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) closeModal();
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
 });
 
 // ===== UTILITIES =====
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = String(str);
   return div.innerHTML;
 }
 
@@ -1117,17 +1008,28 @@ function formatRelativeTime(dateStr) {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
-  // Check if already configured
-  if (CONFIG.supabaseUrl && CONFIG.supabaseAnonKey) {
-    dashState.supabaseClient = new SupabaseClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+  const savedToken = localStorage.getItem('rc_auth_token');
+
+  if (savedToken) {
+    // Try to restore session
+    dashState.authToken = savedToken;
     dashState.isAuthenticated = true;
+    api = new ApiClient(CONFIG.apiUrl, savedToken);
+
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboardShell').style.display = 'flex';
-    loadAllData();
+
+    loadAllData().catch(() => {
+      // Token expired or invalid — force re-login
+      handleLogout();
+    });
   }
 
-  // Enter key on login
-  document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleLogin();
-  });
+  // Enter key on login form
+  const pwField = document.getElementById('loginPassword');
+  if (pwField) {
+    pwField.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+  }
 });

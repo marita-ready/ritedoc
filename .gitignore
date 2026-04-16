@@ -26,6 +26,14 @@ Thumbs.db
 .env
 .env.local
 
+# Private signing keys — NEVER commit these
+ritedoc_signing_key.pem
+*.pem
+
+# Wrangler
+.wrangler/
+.dev.vars
+
 # Build artifacts
 *.deb
 *.AppImage
