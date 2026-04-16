@@ -354,3 +354,70 @@ export async function checkRegulationSync(): Promise<SyncCheckResult> {
 export async function applyRegulationSync(): Promise<SyncApplyResult> {
   return invoke<SyncApplyResult>("apply_regulation_sync");
 }
+
+// ─────────────────────────────────────────────
+//  Self-Fix Diagnostics types
+// ─────────────────────────────────────────────
+
+export type IssueSeverity = "info" | "warning" | "critical";
+
+export interface DiagnosticIssue {
+  category: string;
+  description: string;
+  action_taken: string;
+  resolved: boolean;
+  severity: IssueSeverity;
+  timestamp: string;
+}
+
+export interface DiagnosticReport {
+  run_at: string;
+  all_ok: boolean;
+  ram_ok: boolean;
+  ram_available_gb: number;
+  disk_ok: boolean;
+  disk_available_gb: number;
+  nanoclaw_ok: boolean;
+  cartridges_ok: boolean;
+  licence_ok: boolean;
+  issues: DiagnosticIssue[];
+  recommend_mode_downgrade: boolean;
+  summary: string;
+}
+
+// ─────────────────────────────────────────────
+//  Diagnostic Reporter types
+// ─────────────────────────────────────────────
+
+export interface SessionError {
+  timestamp: string;
+  category: string;
+  message: string;
+}
+
+export interface DiagnosticReportResult {
+  success: boolean;
+  message: string;
+  report_id: string | null;
+  sent_at: string;
+}
+
+// ─────────────────────────────────────────────
+//  Self-Fix command
+// ─────────────────────────────────────────────
+
+export async function runSelfFix(): Promise<DiagnosticReport> {
+  return invoke<DiagnosticReport>("run_self_fix");
+}
+
+// ─────────────────────────────────────────────
+//  Diagnostic Reporter command (explicit user action only)
+// ─────────────────────────────────────────────
+
+export async function sendDiagnosticReport(
+  sessionErrors: SessionError[] = []
+): Promise<DiagnosticReportResult> {
+  return invoke<DiagnosticReportResult>("send_diagnostic_report", {
+    sessionErrors,
+  });
+}

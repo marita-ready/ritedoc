@@ -5,7 +5,11 @@ import {
   getCartridges,
   updateCartridgeActive,
   parseCartridgeConfig,
+  runSelfFix,
+  sendDiagnosticReport,
   type Cartridge,
+  type DiagnosticReport,
+  type DiagnosticReportResult,
 } from "../../lib/commands";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,6 +29,13 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  // Diagnostics state
+  const [diagRunning, setDiagRunning] = useState(false);
+  const [diagReport, setDiagReport] = useState<DiagnosticReport | null>(null);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [sendResult, setSendResult] = useState<DiagnosticReportResult | null>(null);
+  const [showDiagDetails, setShowDiagDetails] = useState(false);
 
   // Editable copies
   const [editName, setEditName] = useState("");
@@ -217,6 +228,222 @@ export default function Settings() {
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
+      </div>
+
+      {/* ── Diagnostics ─────────────────────────────────────── */}
+      <div className="card card-padded" style={{ marginBottom: "1.25rem" }}>
+        <SectionTitle>System Diagnostics</SectionTitle>
+        <p className="text-muted text-sm" style={{ margin: "0 0 1rem" }}>
+          Run a health check to verify RAM, disk space, Nanoclaw server status,
+          and cartridge integrity. All diagnostics run locally — no data leaves
+          your device.
+        </p>
+
+        {/* Run Diagnostics button */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: diagReport ? "1rem" : 0 }}>
+          <button
+            className="btn btn-secondary"
+            disabled={diagRunning}
+            onClick={async () => {
+              setDiagRunning(true);
+              setSendResult(null);
+              try {
+                const report = await runSelfFix();
+                setDiagReport(report);
+                setShowDiagDetails(false);
+              } catch (err) {
+                console.error("Diagnostics failed:", err);
+              } finally {
+                setDiagRunning(false);
+              }
+            }}
+          >
+            {diagRunning ? "Running..." : "Run Diagnostics"}
+          </button>
+          {diagReport && (
+            <span
+              style={{
+                fontSize: "0.8125rem",
+                fontWeight: 500,
+                color: diagReport.all_ok ? "var(--success)" : "var(--error)",
+              }}
+            >
+              {diagReport.all_ok ? "All systems operational" : diagReport.summary}
+            </span>
+          )}
+        </div>
+
+        {/* Diagnostic results */}
+        {diagReport && (
+          <div style={{ marginTop: "0.75rem" }}>
+            {/* Quick status grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gap: "0.5rem",
+                marginBottom: "0.75rem",
+              }}
+            >
+              {[
+                { label: "RAM", ok: diagReport.ram_ok, detail: `${diagReport.ram_available_gb.toFixed(1)} GB free` },
+                { label: "Disk", ok: diagReport.disk_ok, detail: `${diagReport.disk_available_gb.toFixed(1)} GB free` },
+                { label: "Nanoclaw", ok: diagReport.nanoclaw_ok, detail: diagReport.nanoclaw_ok ? "Reachable" : "Not reachable" },
+                { label: "Cartridges", ok: diagReport.cartridges_ok, detail: diagReport.cartridges_ok ? "Valid" : "Check needed" },
+                { label: "Licence", ok: diagReport.licence_ok, detail: diagReport.licence_ok ? "Activated" : "Not activated" },
+              ].map(({ label, ok, detail }) => (
+                <div
+                  key={label}
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    borderRadius: "var(--radius-md)",
+                    background: ok ? "#f0fdf4" : "#fef2f2",
+                    border: `1px solid ${ok ? "#bbf7d0" : "#fecaca"}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.125rem" }}>
+                    <span style={{ fontSize: "0.75rem" }}>{ok ? "✓" : "✗"}</span>
+                    <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: ok ? "#166534" : "#991b1b" }}>
+                      {label}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: ok ? "#15803d" : "#b91c1c" }}>{detail}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Issues list */}
+            {diagReport.issues.length > 0 && (
+              <div style={{ marginBottom: "0.75rem" }}>
+                <button
+                  onClick={() => setShowDiagDetails(!showDiagDetails)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    fontSize: "0.8125rem",
+                    color: "var(--blue-600)",
+                    fontWeight: 500,
+                    marginBottom: showDiagDetails ? "0.5rem" : 0,
+                  }}
+                >
+                  {showDiagDetails ? "Hide" : "Show"} {diagReport.issues.length} issue{diagReport.issues.length !== 1 ? "s" : ""}
+                </button>
+                {showDiagDetails && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {diagReport.issues.map((issue, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "0.625rem 0.75rem",
+                          borderRadius: "var(--radius-md)",
+                          background: issue.severity === "critical" ? "#fef2f2" : issue.severity === "warning" ? "#fffbeb" : "var(--slate-50)",
+                          border: `1px solid ${issue.severity === "critical" ? "#fecaca" : issue.severity === "warning" ? "#fde68a" : "var(--slate-200)"}`,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                          <span
+                            style={{
+                              fontSize: "0.6875rem",
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
+                              padding: "0.125rem 0.375rem",
+                              borderRadius: 3,
+                              background: issue.severity === "critical" ? "#fee2e2" : issue.severity === "warning" ? "#fef3c7" : "var(--slate-100)",
+                              color: issue.severity === "critical" ? "#991b1b" : issue.severity === "warning" ? "#92400e" : "var(--slate-500)",
+                            }}
+                          >
+                            {issue.severity}
+                          </span>
+                          <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--slate-700)" }}>
+                            {issue.category}
+                          </span>
+                        </div>
+                        <p style={{ margin: "0 0 0.25rem", fontSize: "0.8125rem", color: "var(--slate-600)" }}>
+                          {issue.description}
+                        </p>
+                        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--slate-500)" }}>
+                          <strong>Action:</strong> {issue.action_taken}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mode downgrade recommendation */}
+            {diagReport.recommend_mode_downgrade && (
+              <div
+                style={{
+                  padding: "0.625rem 0.75rem",
+                  borderRadius: "var(--radius-md)",
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  marginBottom: "0.75rem",
+                  fontSize: "0.8125rem",
+                  color: "#92400e",
+                }}
+              >
+                <strong>Recommendation:</strong> Switch from Turbo to Standard mode to reduce memory usage.
+              </div>
+            )}
+
+            {/* Send Diagnostic Report button */}
+            <div
+              style={{
+                borderTop: "1px solid var(--slate-200)",
+                paddingTop: "0.75rem",
+                marginTop: "0.25rem",
+              }}
+            >
+              <p className="text-muted text-sm" style={{ margin: "0 0 0.625rem" }}>
+                Send a technical report to the RiteDoc team to help diagnose issues.
+                This report contains <strong>only</strong> hardware specs, system health
+                data, and error codes — <strong>never</strong> note content, participant
+                names, or any personal information.
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <button
+                  className="btn btn-secondary"
+                  disabled={sendingReport}
+                  onClick={async () => {
+                    setSendingReport(true);
+                    setSendResult(null);
+                    try {
+                      const result = await sendDiagnosticReport([]);
+                      setSendResult(result);
+                    } catch (err) {
+                      setSendResult({
+                        success: false,
+                        message: String(err),
+                        report_id: null,
+                        sent_at: new Date().toISOString(),
+                      });
+                    } finally {
+                      setSendingReport(false);
+                    }
+                  }}
+                >
+                  {sendingReport ? "Sending..." : "Send Diagnostic Report"}
+                </button>
+                {sendResult && (
+                  <span
+                    style={{
+                      fontSize: "0.8125rem",
+                      fontWeight: 500,
+                      color: sendResult.success ? "var(--success)" : "var(--error)",
+                    }}
+                  >
+                    {sendResult.message}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Cartridges ───────────────────────────────────────── */}

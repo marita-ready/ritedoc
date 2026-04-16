@@ -9,6 +9,8 @@ mod quality_scan;
 mod regulation_sync;
 mod safety_scan;
 mod scrubber;
+mod diagnostic_reporter;
+mod self_fix;
 
 use db::Database;
 use pipeline::CartridgeConfig;
@@ -247,6 +249,74 @@ async fn apply_regulation_sync(
 }
 
 // ─────────────────────────────────────────────
+//  Self-Fix Diagnostics command
+//  Runs all health checks in-memory.
+//  ZERO persistence. ZERO network calls.
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+fn run_self_fix(
+    app_handle: tauri::AppHandle,
+    db: tauri::State<'_, Database>,
+) -> Result<self_fix::DiagnosticReport, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+
+    // Read Nanoclaw server URL from settings
+    let nanoclaw_url = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let result = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'llama_server_url'",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        match result {
+            Ok(val) if !val.is_empty() => val,
+            _ => "http://localhost:8080".to_string(),
+        }
+    };
+
+    Ok(self_fix::run_diagnostics(&app_data_dir, &nanoclaw_url))
+}
+
+// ─────────────────────────────────────────────
+//  Diagnostic Reporter command
+//  EXPLICIT USER ACTION ONLY — never automatic.
+//  Collects technical data only. Zero PII. Zero note content.
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+async fn send_diagnostic_report(
+    app_handle: tauri::AppHandle,
+    db: tauri::State<'_, Database>,
+    session_errors: Vec<diagnostic_reporter::SessionError>,
+) -> Result<diagnostic_reporter::DiagnosticReportResult, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+
+    // Read Nanoclaw server URL from settings
+    let nanoclaw_url = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let result = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'llama_server_url'",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        match result {
+            Ok(val) if !val.is_empty() => val,
+            _ => "http://localhost:8080".to_string(),
+        }
+    };
+
+    let payload = diagnostic_reporter::build_payload(&app_data_dir, &nanoclaw_url, session_errors);
+    Ok(diagnostic_reporter::send_report(payload).await)
+}
+
+// ─────────────────────────────────────────────
 //  App entry point
 // ─────────────────────────────────────────────
 
@@ -311,6 +381,10 @@ pub fn run() {
             get_sync_status,
             check_regulation_sync,
             apply_regulation_sync,
+            // Self-fix diagnostics (in-memory only, zero persistence)
+            run_self_fix,
+            // Diagnostic reporter (explicit user action only — never automatic)
+            send_diagnostic_report,
         ])
         .run(tauri::generate_context!())
         .expect("error while running RiteDoc");
