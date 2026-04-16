@@ -34,6 +34,10 @@ sysinfo = "0.32"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 sha2 = "0.10"
 libc = "0.2"
+# Native inference engine (replaces Docker-based Nanoclaw)
+llama-cpp-2 = "0.1.143"
+encoding_rs = "0.8"
+tokio = { version = "1", features = ["rt"] }
 
 [dev-dependencies]
 tempfile = "3"

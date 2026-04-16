@@ -11,10 +11,10 @@ RiteDoc is a **stateless, pass-through tool** — it stores no client data, no p
 1. **Paste** your raw progress notes into the Rewrite Note screen
 2. **Select** the NDIS service cartridge that matches the support type
 3. **Choose** Quick or Deep processing mode
-4. **Click Rewrite** — RiteDoc sends the note to the local Nanoclaw server for processing
+4. **Click Rewrite** — RiteDoc processes the note using the built-in inference engine
 5. **Copy** the compliance-ready output
 
-RiteDoc uses a local language model running entirely on your machine via **Nanoclaw** — a Dockerized [llama.cpp](https://github.com/ggerganov/llama.cpp) server running **Phi-4-mini Q4_K_M**. No data leaves your device. No internet connection is required after initial setup.
+RiteDoc uses a native inference engine compiled directly into the application — **Phi-4-mini Q4_K_M** running via [llama.cpp](https://github.com/ggerganov/llama.cpp) Rust bindings. No data leaves your device. No internet connection is required after initial setup.
 
 ---
 
@@ -46,7 +46,7 @@ Cartridges can be toggled active or inactive in Settings.
 
 ## Prerequisites
 
-Before running RiteDoc, ensure you have the following installed:
+Before building RiteDoc from source, ensure you have the following installed:
 
 ### 1. Node.js (v18 or later)
 
@@ -59,25 +59,24 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 ```
 
-### 3. Tauri system dependencies
+### 3. C/C++ Build Tools and CMake
+
+The native inference engine requires a C++ compiler and CMake to compile llama.cpp from source during the Rust build.
 
 **macOS:**
 ```bash
 xcode-select --install
+brew install cmake
 ```
 
 **Ubuntu / Debian:**
 ```bash
-sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+sudo apt-get install -y build-essential cmake pkg-config libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 ```
 
-**Windows:** Install the [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+**Windows:** Install the [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), [CMake](https://cmake.org/download/), and [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
 
-### 4. Docker Desktop
-
-Download from [docker.com](https://www.docker.com/products/docker-desktop/). Docker is required to run the Nanoclaw local inference server.
-
-### 5. pnpm
+### 4. pnpm
 
 ```bash
 npm install -g pnpm
@@ -96,11 +95,7 @@ git checkout tauri-scaffold
 pnpm install
 ```
 
-### 2. Set up Nanoclaw (local rewriting server)
-
-Nanoclaw is the Dockerized llama.cpp server that powers the rewriting pipeline. It runs the **Phi-4-mini Q4_K_M** model locally with zero internet access at runtime.
-
-#### Step 2a — Download the model (one-time, ~2.5 GB)
+### 2. Download the model file (one-time, ~2.5 GB)
 
 Download the Phi-4-mini Q4_K_M GGUF file from Hugging Face:
 
@@ -110,44 +105,27 @@ https://huggingface.co/microsoft/Phi-4-mini-instruct-gguf
 
 Download the file named: `Phi-4-mini-instruct-Q4_K_M.gguf`
 
-Place it in the `nanoclaw/models/` directory and rename it:
+Place it in the app data directory:
+
+| Platform | Default Model Path |
+|---|---|
+| macOS | `~/Library/Application Support/com.ritedoc.app/models/phi-4-mini-q4_k_m.gguf` |
+| Windows | `%APPDATA%\com.ritedoc.app\models\phi-4-mini-q4_k_m.gguf` |
+| Linux | `~/.local/share/com.ritedoc.app/models/phi-4-mini-q4_k_m.gguf` |
+
+Create the `models/` directory if it does not exist:
 
 ```bash
-mkdir -p nanoclaw/models
-mv ~/Downloads/Phi-4-mini-instruct-Q4_K_M.gguf nanoclaw/models/phi-4-mini-q4_k_m.gguf
+# macOS example:
+mkdir -p ~/Library/Application\ Support/com.ritedoc.app/models
+mv ~/Downloads/Phi-4-mini-instruct-Q4_K_M.gguf ~/Library/Application\ Support/com.ritedoc.app/models/phi-4-mini-q4_k_m.gguf
 ```
 
-#### Step 2b — Build the Docker image (one-time, ~5 minutes)
-
-```bash
-cd nanoclaw
-docker compose build
-cd ..
-```
-
-This compiles llama.cpp from source inside the container. No internet access is needed after this step.
-
-#### Step 2c — Start the server
-
-```bash
-cd nanoclaw
-docker compose up -d
-```
-
-Verify it is running:
-
-```bash
-curl http://localhost:8080/health
-# Expected: {"status":"ok"}
-```
-
-The server runs on `http://localhost:8080`. RiteDoc connects to this URL automatically.
+Alternatively, you can set a custom model path in **Settings > Rewriting Engine** inside RiteDoc.
 
 ---
 
 ## Development
-
-Start the Nanoclaw server first (see above), then:
 
 ```bash
 pnpm tauri dev
@@ -193,13 +171,13 @@ The database contains **only app configuration** (cartridge settings, user prefe
 
 ### Rewriting Engine Settings
 
-Change the server URL in **Settings > Rewriting Engine** inside RiteDoc:
+Configure the model file path in **Settings > Rewriting Engine** inside RiteDoc:
 
 | Setting | Default |
 |---|---|
-| Server URL | `http://localhost:8080` |
+| Model File Path | `{app_data}/models/phi-4-mini-q4_k_m.gguf` |
 
-Only change this if you have moved the Nanoclaw container to a different port or host.
+Only change this if you have placed the model file in a non-default location. Changes take effect on next app restart.
 
 ---
 
@@ -234,17 +212,18 @@ ritedoc/
 │   │   ├── db.rs                   # SQLite database module
 │   │   ├── commands.rs             # Tauri commands (cartridges, settings)
 │   │   ├── cartridges.rs           # 8 pre-loaded NDIS cartridge seed data
-│   │   └── pipeline.rs             # 3-stage rewriting pipeline (Nanoclaw)
+│   │   ├── engine.rs               # Native llama.cpp inference engine
+│   │   ├── pipeline.rs             # 6-step rewriting pipeline
+│   │   ├── scrubber.rs             # PII scrubbing (Step 1)
+│   │   ├── safety_scan.rs          # Red flag keyword scan (Step 2)
+│   │   ├── quality_scan.rs         # 5-pillar compliance check (Step 3)
+│   │   ├── form_generator.rs       # Incident form generation (Step 6)
+│   │   ├── self_fix.rs             # System diagnostics
+│   │   └── diagnostic_reporter.rs  # Diagnostic report sender
 │   ├── Cargo.toml                  # Rust dependencies
 │   ├── tauri.conf.json             # Tauri configuration
 │   ├── capabilities/               # Tauri permission capabilities
 │   └── icons/                      # App icons
-│
-├── nanoclaw/                       # Dockerized llama.cpp server
-│   ├── Dockerfile                  # llama.cpp build + runtime image
-│   ├── docker-compose.yml          # Service definition
-│   ├── README.md                   # Nanoclaw setup guide
-│   └── models/                     # Place phi-4-mini-q4_k_m.gguf here
 │
 ├── package.json
 ├── vite.config.ts
@@ -263,7 +242,7 @@ ritedoc/
 | Rust backend | Rust (stable) |
 | Local database | SQLite via `rusqlite` (bundled) |
 | HTTP client | `reqwest` with `rustls-tls` |
-| Inference server | [llama.cpp](https://github.com/ggerganov/llama.cpp) (Dockerized via Nanoclaw) |
+| Inference engine | [llama.cpp](https://github.com/ggerganov/llama.cpp) via `llama-cpp-2` Rust bindings (native, compiled into binary) |
 | Language model | [Phi-4-mini](https://huggingface.co/microsoft/Phi-4-mini-instruct-gguf) Q4_K_M (local, offline) |
 
 ---

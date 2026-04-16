@@ -4,13 +4,14 @@
 //!
 //! Design:
 //!   - Triggered on demand by the frontend (Tauri command) or on app launch
-//!   - Checks: RAM availability, disk space, Nanoclaw Docker health, cartridge integrity
+//!   - Checks: RAM availability, disk space, native engine health, cartridge integrity
 //!   - Auto-fixes: cache cleanup on low disk, mode downgrade recommendation on low RAM
 //!   - All diagnostics are in-memory only — ZERO persistence to disk
 //!   - NO Supabase, NO network calls, NO phone-home
 //!   - Licence validation is handled by activation.rs (local only)
 
 use crate::activation;
+use crate::engine::{self, EngineState};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -35,7 +36,7 @@ pub enum IssueSeverity {
 /// A single diagnostic issue found during a self-fix run
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticIssue {
-    /// Category: "RAM", "Disk", "Nanoclaw", "Cartridge", "Licence"
+    /// Category: "RAM", "Disk", "Engine", "Cartridge", "Licence"
     pub category: String,
     /// Human-readable description of the issue
     pub description: String,
@@ -64,8 +65,8 @@ pub struct DiagnosticReport {
     pub disk_ok: bool,
     /// Available disk space in GB at time of check
     pub disk_available_gb: f64,
-    /// Whether Nanoclaw (llama.cpp server) is reachable
-    pub nanoclaw_ok: bool,
+    /// Whether the native inference engine is ready
+    pub engine_ok: bool,
     /// Whether all cartridge files are present and valid JSON
     pub cartridges_ok: bool,
     /// Whether the licence is activated (checked via activation.rs — local only)
@@ -226,47 +227,45 @@ fn check_disk(app_data_dir: &Path) -> (bool, f64, Option<DiagnosticIssue>) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Nanoclaw Health Check
+//  Engine Health Check (replaces Docker/Nanoclaw TCP probe)
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// Check if the Nanoclaw llama.cpp server is reachable at the given URL.
-/// Uses a synchronous TCP connect with a short timeout — no async needed.
-fn check_nanoclaw(server_url: &str) -> (bool, Option<DiagnosticIssue>) {
-    // Parse host and port from the URL
-    let url = server_url.trim_end_matches('/');
-    let host_port = url
-        .trim_start_matches("http://")
-        .trim_start_matches("https://");
+/// Check if the native inference engine is ready.
+/// Queries the engine state directly — no network calls.
+fn check_engine(engine_state: &EngineState) -> (bool, Option<DiagnosticIssue>) {
+    let status = engine::get_status(engine_state);
 
-    // Add default port if missing
-    let addr = if host_port.contains(':') {
-        host_port.to_string()
-    } else {
-        format!("{}:8080", host_port)
-    };
-
-    // Try TCP connect with 2-second timeout
-    use std::net::TcpStream;
-    use std::time::Duration;
-
-    let ok = TcpStream::connect_timeout(
-        &addr.parse().unwrap_or_else(|_| "127.0.0.1:8080".parse().unwrap()),
-        Duration::from_secs(2),
-    )
-    .is_ok();
-
-    if ok {
+    if status.ready {
         (true, None)
     } else {
+        let description = if !status.model_file_exists {
+            format!(
+                "Model file not found at: {}",
+                status.model_path
+            )
+        } else {
+            status
+                .error
+                .clone()
+                .unwrap_or_else(|| "Rewriting engine is not ready.".to_string())
+        };
+
+        let action_taken = if !status.model_file_exists {
+            format!(
+                "Download the Phi-4-mini Q4_K_M GGUF model (~2.5 GB) and place it at: {}. \
+                 Then restart the app.",
+                status.model_path
+            )
+        } else {
+            "Check the model file is a valid GGUF file. \
+             Try re-downloading the model and restarting the app."
+                .to_string()
+        };
+
         let issue = DiagnosticIssue {
-            category: "Nanoclaw".to_string(),
-            description: format!(
-                "Nanoclaw AI server is not reachable at {} (TCP connect failed)",
-                server_url
-            ),
-            action_taken: "Ensure the Nanoclaw Docker container is running. \
-                Start it with: docker compose up -d nanoclaw"
-                .to_string(),
+            category: "Engine".to_string(),
+            description,
+            action_taken,
             resolved: false,
             severity: IssueSeverity::Critical,
             timestamp: Utc::now().to_rfc3339(),
@@ -382,8 +381,8 @@ fn check_licence(app_data_dir: &Path) -> (bool, Option<DiagnosticIssue>) {
 ///
 /// # Arguments
 /// * `app_data_dir` — The Tauri app data directory (for disk checks and cartridge checks)
-/// * `nanoclaw_url` — The Nanoclaw server URL (default: "http://localhost:8080")
-pub fn run_diagnostics(app_data_dir: &Path, nanoclaw_url: &str) -> DiagnosticReport {
+/// * `engine_state` — The native inference engine state
+pub fn run_diagnostics(app_data_dir: &Path, engine_state: &EngineState) -> DiagnosticReport {
     let run_at = Utc::now().to_rfc3339();
     let mut issues = Vec::new();
 
@@ -403,9 +402,9 @@ pub fn run_diagnostics(app_data_dir: &Path, nanoclaw_url: &str) -> DiagnosticRep
         issues.push(issue);
     }
 
-    // ── Check 3: Nanoclaw Server ──────────────────────────────────────────────
-    let (nanoclaw_ok, nanoclaw_issue) = check_nanoclaw(nanoclaw_url);
-    if let Some(issue) = nanoclaw_issue {
+    // ── Check 3: Native Engine Health ─────────────────────────────────────────
+    let (engine_ok, engine_issue) = check_engine(engine_state);
+    if let Some(issue) = engine_issue {
         issues.push(issue);
     }
 
@@ -456,11 +455,11 @@ pub fn run_diagnostics(app_data_dir: &Path, nanoclaw_url: &str) -> DiagnosticRep
     };
 
     log::info!(
-        "[self_fix] Diagnostics complete: all_ok={}, ram={:.1}GB, disk={:.1}GB, nanoclaw={}, cartridges={}, licence={}, issues={}",
+        "[self_fix] Diagnostics complete: all_ok={}, ram={:.1}GB, disk={:.1}GB, engine={}, cartridges={}, licence={}, issues={}",
         all_ok,
         ram_available_gb,
         disk_available_gb,
-        nanoclaw_ok,
+        engine_ok,
         cartridges_ok,
         licence_ok,
         issues.len()
@@ -473,7 +472,7 @@ pub fn run_diagnostics(app_data_dir: &Path, nanoclaw_url: &str) -> DiagnosticRep
         ram_available_gb,
         disk_ok,
         disk_available_gb,
-        nanoclaw_ok,
+        engine_ok,
         cartridges_ok,
         licence_ok,
         issues,
@@ -492,15 +491,21 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
+    /// Helper: create a dummy engine state for tests (not ready — no model)
+    fn test_engine() -> EngineState {
+        engine::init_engine(std::path::Path::new("/nonexistent/model.gguf"))
+    }
+
     #[test]
     fn test_diagnostic_report_structure() {
         let tmp = TempDir::new().unwrap();
-        let report = run_diagnostics(tmp.path(), "http://localhost:8080");
+        let engine = test_engine();
+        let report = run_diagnostics(tmp.path(), &engine);
         // Structure must always be present
         assert!(!report.run_at.is_empty());
         assert!(!report.summary.is_empty());
-        // Nanoclaw will be down in test — that's expected
-        assert!(!report.nanoclaw_ok);
+        // Engine will not be ready in test — that's expected
+        assert!(!report.engine_ok);
     }
 
     #[test]
@@ -570,12 +575,12 @@ mod tests {
     }
 
     #[test]
-    fn test_nanoclaw_check_unreachable() {
-        // Port 19999 should not be in use
-        let (ok, issue) = check_nanoclaw("http://localhost:19999");
+    fn test_engine_check_not_ready() {
+        let engine = test_engine();
+        let (ok, issue) = check_engine(&engine);
         assert!(!ok);
         let issue = issue.unwrap();
-        assert_eq!(issue.category, "Nanoclaw");
+        assert_eq!(issue.category, "Engine");
         assert_eq!(issue.severity, IssueSeverity::Critical);
     }
 
@@ -607,7 +612,8 @@ mod tests {
     #[test]
     fn test_recommend_mode_downgrade() {
         let tmp = TempDir::new().unwrap();
-        let report = run_diagnostics(tmp.path(), "http://localhost:19999");
+        let engine = test_engine();
+        let report = run_diagnostics(tmp.path(), &engine);
         // recommend_mode_downgrade is only true if RAM is low AND mode is turbo
         // In test environment, this depends on available RAM — just check it's a bool
         let _ = report.recommend_mode_downgrade;

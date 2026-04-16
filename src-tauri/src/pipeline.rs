@@ -1,131 +1,29 @@
-//! 5-Filter + Rewrite Pipeline
+//! # RiteDoc Rewriting Pipeline
 //!
-//! Every note — regardless of traffic light colour — goes through all steps:
+//! Full 6-step pipeline for rewriting NDIS progress notes:
+//!   Step 1: PII scrubbing (scrubber.rs)
+//!   Step 2: Safety scan — red flag keywords (safety_scan.rs)
+//!   Step 3: Quality scan — 5-pillar compliance check (quality_scan.rs)
+//!   Step 4: Rewrite — Quick (single-pass) or Deep (3-agent pipeline)
+//!   Step 5: Traffic light classification (RED / ORANGE / GREEN)
+//!   Step 6: Incident form generation for RED notes (form_generator.rs)
 //!
-//!   Step 1: PII Scrub        — strips names, phones, addresses, postcodes
-//!   Step 2: Safety Scan      — checks 1,432 red flag keywords (14 categories)
-//!   Step 3: Quality Scan     — checks 5 NDIS compliance pillars
-//!   Step 4: Nanoclaw Rewrite — rewrites via Dockerized llama.cpp (Quick or Deep mode)
-//!   Step 5: Traffic Light    — RED / ORANGE / GREEN determination
-//!   Step 6: Incident Forms   — (RED notes only) Procedural Alignment Check + form pre-fill
-//!
-//! RED is a status flag only — it does NOT halt the pipeline.
-//! Batch processing is fully non-blocking: each note is independent.
-//! After each note, a `batch-progress` Tauri event is emitted.
-//!
-//! Backend: Dockerized llama.cpp HTTP server (Nanoclaw) serving Phi-4-mini Q4_K_M.
-//! OpenAI-compatible /v1/chat/completions endpoint. Default: http://localhost:8080
+//! The rewriting engine is a native llama.cpp integration via the
+//! `llama-cpp-2` Rust bindings. No Docker, no HTTP, no containers.
 
+use crate::engine::{self, EngineState};
+use crate::quality_scan::{self, QualityScanResult};
+use crate::safety_scan;
+use crate::scrubber;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
-use crate::safety_scan::{safety_scan, SafetyScanResult};
-use crate::quality_scan::{quality_scan, QualityScanResult};
-use crate::scrubber::scrub_pii;
-
 // ─────────────────────────────────────────────────────────────────────────────
-//  Traffic light status
+//  Public types
 // ─────────────────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum TrafficLight {
-    Red,
-    Orange,
-    Green,
-}
-
-impl TrafficLight {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            TrafficLight::Red => "red",
-            TrafficLight::Orange => "orange",
-            TrafficLight::Green => "green",
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Batch progress event payload
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Emitted as a Tauri event after each note in a batch is processed.
-/// Frontend subscribes to "batch-progress" to drive a progress bar.
-#[derive(Clone, Serialize)]
-pub struct BatchProgress {
-    pub current: usize,
-    pub total: usize,
-    pub current_note_status: String, // "red", "orange", or "green"
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Public result types
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// The full result returned to the frontend after the pipeline completes.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PipelineResult {
-    /// Final audit-ready rewritten text (with [MISSING: ...] brackets if pillars absent)
-    pub final_text: String,
-    /// Mode used: "quick" or "deep"
-    pub mode: String,
-    /// Traffic light status: "red", "orange", or "green"
-    pub traffic_light: String,
-    /// Red flag keywords matched (empty if GREEN or ORANGE)
-    pub red_flag_keywords: Vec<String>,
-    /// Red flag categories matched (empty if GREEN or ORANGE)
-    pub red_flag_categories: Vec<crate::safety_scan::CategoryMatch>,
-    /// Missing compliance pillars (empty if GREEN)
-    pub missing_pillars: Vec<crate::quality_scan::MissingPillar>,
-    /// Compliance pillars present
-    pub present_pillars: Vec<String>,
-    /// Structured compliance analysis (Deep mode only; empty for Quick)
-    pub compliance_analysis: String,
-    /// Intermediate rewritten draft (Deep mode only; empty for Quick)
-    pub draft_text: String,
-    /// Quality review notes (Deep mode only; empty for Quick)
-    pub review_notes: String,
-    /// Incident package — only present for RED notes (Filter 5 output).
-    /// Contains pre-filled forms, procedural alignment check, and notifications.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub incident_package: Option<crate::form_generator::IncidentPackage>,
-}
-
-/// A single note in a batch processing request.
-#[derive(Debug, Deserialize, Clone)]
-pub struct BatchNoteInput {
-    /// Unique identifier for this note (e.g., row index or external ID)
-    pub id: String,
-    /// The raw note text
-    pub raw_text: String,
-    /// Participant name (from CSV metadata, for incident form auto-fill)
-    #[serde(default)]
-    pub participant_name: Option<String>,
-    /// Support worker name (from CSV metadata, for incident form auto-fill)
-    #[serde(default)]
-    pub support_worker: Option<String>,
-    /// Date (from CSV metadata, for incident form auto-fill)
-    #[serde(default)]
-    pub date: Option<String>,
-    /// Time (from CSV metadata, for incident form auto-fill)
-    #[serde(default)]
-    pub time: Option<String>,
-}
-
-/// The result for a single note in a batch.
-#[derive(Debug, Serialize, Clone)]
-pub struct BatchNoteResult {
-    pub id: String,
-    pub result: PipelineResult,
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Cartridge config
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Parsed cartridge configuration extracted from config_json.
-#[derive(Debug, Default)]
+/// Cartridge configuration parsed from the cartridge's config_json.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CartridgeConfig {
     pub service_type: String,
     pub compliance_rules: Vec<String>,
@@ -138,35 +36,18 @@ pub struct CartridgeConfig {
 
 impl CartridgeConfig {
     pub fn from_json(json: &str) -> Self {
-        let v: Value = serde_json::from_str(json).unwrap_or(Value::Null);
-        if v.is_null() {
-            return Self::default();
-        }
-        let str_vec = |key: &str| -> Vec<String> {
-            v[key]
-                .as_array()
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|x| x.as_str().map(|s| s.to_string()))
-                        .collect()
-                })
-                .unwrap_or_default()
-        };
-        CartridgeConfig {
-            service_type: v["service_type"].as_str().unwrap_or_default().to_string(),
-            compliance_rules: str_vec("compliance_rules"),
-            required_fields: str_vec("required_fields"),
-            format_template: v["format_template"].as_str().unwrap_or_default().to_string(),
-            tone_guidelines: str_vec("tone_guidelines"),
-            prohibited_terms: str_vec("prohibited_terms"),
-            example_output: v["example_output"].as_str().unwrap_or_default().to_string(),
-        }
+        serde_json::from_str(json).unwrap_or_else(|_| Self {
+            service_type: String::new(),
+            compliance_rules: vec![],
+            required_fields: vec![],
+            format_template: String::new(),
+            tone_guidelines: vec![],
+            prohibited_terms: vec![],
+            example_output: String::new(),
+        })
     }
 
-    fn rules_list(&self) -> String {
-        if self.compliance_rules.is_empty() {
-            return "No specific compliance rules provided.".to_string();
-        }
+    pub fn rules_list(&self) -> String {
         self.compliance_rules
             .iter()
             .enumerate()
@@ -175,10 +56,7 @@ impl CartridgeConfig {
             .join("\n")
     }
 
-    fn fields_list(&self) -> String {
-        if self.required_fields.is_empty() {
-            return "No specific required fields provided.".to_string();
-        }
+    pub fn fields_list(&self) -> String {
         self.required_fields
             .iter()
             .map(|f| format!("- {}", f))
@@ -186,10 +64,7 @@ impl CartridgeConfig {
             .join("\n")
     }
 
-    fn tone_list(&self) -> String {
-        if self.tone_guidelines.is_empty() {
-            return "Use professional, person-centred language.".to_string();
-        }
+    pub fn tone_list(&self) -> String {
         self.tone_guidelines
             .iter()
             .map(|t| format!("- {}", t))
@@ -197,75 +72,146 @@ impl CartridgeConfig {
             .join("\n")
     }
 
-    fn prohibited_list(&self) -> String {
-        if self.prohibited_terms.is_empty() {
-            return "None specified.".to_string();
-        }
-        self.prohibited_terms.join(", ")
+    pub fn prohibited_list(&self) -> String {
+        self.prohibited_terms
+            .iter()
+            .map(|p| format!("- {}", p))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
+/// The full pipeline result returned to the frontend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PipelineResult {
+    pub final_text: String,
+    pub mode: String,
+    pub traffic_light: String,
+    pub red_flag_keywords: Vec<String>,
+    pub red_flag_categories: Vec<safety_scan::CategoryMatch>,
+    pub missing_pillars: Vec<quality_scan::MissingPillar>,
+    pub present_pillars: Vec<String>,
+    pub compliance_analysis: String,
+    pub draft_text: String,
+    pub review_notes: String,
+    /// Incident package — only present for RED notes (Filter 5 output).
+    pub incident_package: Option<crate::form_generator::IncidentPackage>,
+}
+
+/// Traffic light classification
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TrafficLight {
+    Red,
+    Orange,
+    Green,
+}
+
+impl TrafficLight {
+    pub fn as_str(&self) -> &str {
+        match self {
+            TrafficLight::Red => "red",
+            TrafficLight::Orange => "orange",
+            TrafficLight::Green => "green",
+        }
+    }
+}
+
+/// Input for batch processing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchNoteInput {
+    pub id: String,
+    pub raw_text: String,
+    pub participant_name: Option<String>,
+    pub support_worker: Option<String>,
+    pub date: Option<String>,
+    pub time: Option<String>,
+}
+
+/// Result for a single note in a batch
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchNoteResult {
+    pub id: String,
+    pub result: PipelineResult,
+}
+
+/// Progress event emitted during batch processing
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchProgress {
+    pub current: usize,
+    pub total: usize,
+    pub current_note_status: String,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-//  Core pipeline — single note
-//
-//  ALL 4 STEPS RUN FOR EVERY NOTE.
-//  RED is a locked status flag — it does NOT skip quality scan or rewrite.
+//  Main pipeline entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Process a single note through all pipeline steps.
+/// Process a single note through the full 6-step pipeline.
 ///
-/// Steps:
-///   1. PII Scrub
-///   2. Safety Scan  (sets is_red flag — does NOT halt pipeline)
-///   3. Quality Scan (runs for ALL notes, including red ones)
-///   4. Nanoclaw Rewrite (runs for ALL notes; missing pillars become [MISSING: ...] brackets)
-///   5. Traffic Light Determination
-///   6. Incident Form Generation (RED notes only — Filter 5)
-///
-/// Traffic light:
-///   is_red = true          → RED  (locked)
-///   is_red = false + gaps  → ORANGE
-///   is_red = false + all 5 → GREEN
+/// This is the main entry point for both Quick and Deep modes.
+/// The `engine` parameter provides direct access to the native inference engine.
 pub async fn process_note(
     raw_text: &str,
     config: &CartridgeConfig,
-    server_url: &str,
-    mode: &str, // "quick" or "deep"
+    engine: &EngineState,
+    mode: &str,
     note_context: Option<&crate::form_generator::NoteContext>,
 ) -> Result<PipelineResult, String> {
-    // ── Step 1: PII Scrub ────────────────────────────────────────────────────
-    let scrubbed = scrub_pii(raw_text);
-    log::info!("[pipeline] PII scrubbed. Sending to Nanoclaw: {}", &scrubbed);
-
-    // ── Step 2: Safety Scan ──────────────────────────────────────────────────
-    // is_red is a FLAG only — pipeline continues regardless.
-    let safety: SafetyScanResult = safety_scan(&scrubbed);
+    // ── Step 1: PII Scrubbing ─────────────────────────────────────────────────
+    let scrubbed = scrubber::scrub_pii(raw_text);
     log::info!(
-        "[pipeline] Safety scan: is_red={}, matched_keywords={:?}",
+        "[pipeline] PII scrubbed: {} chars → {} chars",
+        raw_text.len(),
+        scrubbed.len()
+    );
+
+    // ── Step 2: Safety Scan (red flag keywords) ───────────────────────────────
+    let safety = safety_scan::safety_scan(&scrubbed);
+    log::info!(
+        "[pipeline] Safety scan: is_red={}, keywords={:?}",
         safety.is_red,
         safety.matched_keywords
     );
 
-    // ── Step 3: Quality Scan ─────────────────────────────────────────────────
-    // Runs for ALL notes — including red ones.
-    let quality: QualityScanResult = quality_scan(&scrubbed);
+    // ── Step 3: Quality Scan (5-pillar compliance check) ──────────────────────
+    let quality = quality_scan::quality_scan(&scrubbed);
     log::info!(
-        "[pipeline] Quality scan: is_green={}, missing={:?}",
+        "[pipeline] Quality scan: is_green={}, present={}, missing={}",
         quality.is_green,
-        quality.missing_pillars.iter().map(|p| &p.pillar_name).collect::<Vec<_>>()
+        quality.present_pillars.len(),
+        quality.missing_pillars.len()
     );
 
-    // ── Step 4: Nanoclaw Rewrite ─────────────────────────────────────────────
-    // Runs for ALL notes. Missing pillars are injected as [MISSING: ...] brackets
-    // in the prompt so the model includes them as placeholders in the output.
+    // ── Step 4: Rewrite (Quick or Deep mode) ──────────────────────────────────
+    // Clone the engine Arc so we can move it into spawn_blocking
+    let engine_clone = engine.clone();
     let rewrite_result = match mode {
-        "quick" => quick_rewrite_inner(&scrubbed, config, server_url, &quality).await?,
-        _ => deep_rewrite_inner(&scrubbed, config, server_url, &quality).await?,
+        "quick" => {
+            let scrubbed_owned = scrubbed.clone();
+            let config_owned = config.clone();
+            let quality_owned = quality.clone();
+            tokio::task::spawn_blocking(move || {
+                quick_rewrite_inner(&scrubbed_owned, &config_owned, &engine_clone, &quality_owned)
+            })
+            .await
+            .map_err(|e| format!("Rewrite task failed: {}", e))??
+        }
+        _ => {
+            let scrubbed_owned = scrubbed.clone();
+            let config_owned = config.clone();
+            let quality_owned = quality.clone();
+            tokio::task::spawn_blocking(move || {
+                deep_rewrite_inner(&scrubbed_owned, &config_owned, &engine_clone, &quality_owned)
+            })
+            .await
+            .map_err(|e| format!("Rewrite task failed: {}", e))??
+        }
     };
 
-    // ── Step 5: Traffic Light Determination ─────────────────────────────────
+    // ── Step 5: Traffic Light Classification ──────────────────────────────────
+    // RED is locked — overrides everything. Then ORANGE if missing pillars.
     let traffic_light = if safety.is_red {
-        TrafficLight::Red // Locked — regardless of pillar status
+        TrafficLight::Red
     } else if !quality.is_green {
         TrafficLight::Orange
     } else {
@@ -331,7 +277,7 @@ pub async fn process_note(
 pub async fn process_batch(
     notes: Vec<BatchNoteInput>,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
     mode: &str,
     app_handle: &AppHandle,
 ) -> Vec<BatchNoteResult> {
@@ -351,7 +297,7 @@ pub async fn process_batch(
         };
 
         // Process this note — errors are captured per-note, not propagated.
-        let result = match process_note(&note.raw_text, config, server_url, mode, Some(&note_ctx)).await {
+        let result = match process_note(&note.raw_text, config, engine, mode, Some(&note_ctx)).await {
             Ok(r) => r,
             Err(e) => {
                 // On error, return a RED result with the error message as final_text.
@@ -405,10 +351,10 @@ pub async fn process_batch(
 //  Returns (final_text, compliance_analysis, draft_text, review_notes)
 // ─────────────────────────────────────────────────────────────────────────────
 
-async fn quick_rewrite_inner(
+fn quick_rewrite_inner(
     scrubbed: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
     quality: &QualityScanResult,
 ) -> Result<(String, String, String, String), String> {
     let missing_prompt = build_missing_pillars_prompt(quality);
@@ -510,7 +456,7 @@ INSTRUCTIONS:
         scrubbed
     );
 
-    let final_text = call_llama(server_url, &system, &user_prompt).await?;
+    let final_text = engine::infer(engine, &system, &user_prompt)?;
     Ok((final_text, String::new(), String::new(), String::new()))
 }
 
@@ -519,25 +465,25 @@ INSTRUCTIONS:
 //  Returns (final_text, compliance_analysis, draft_text, review_notes)
 // ─────────────────────────────────────────────────────────────────────────────
 
-async fn deep_rewrite_inner(
+fn deep_rewrite_inner(
     scrubbed: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
     quality: &QualityScanResult,
 ) -> Result<(String, String, String, String), String> {
     let missing_prompt = build_missing_pillars_prompt(quality);
 
     // Agent 1: Compliance Checker
     let compliance_analysis =
-        agent_compliance_checker(scrubbed, config, server_url).await?;
+        agent_compliance_checker(scrubbed, config, engine)?;
 
     // Agent 2: Rewriter
     let draft_text =
-        agent_rewriter(scrubbed, &compliance_analysis, config, server_url, &missing_prompt).await?;
+        agent_rewriter(scrubbed, &compliance_analysis, config, engine, &missing_prompt)?;
 
     // Agent 3: Quality Reviewer
     let (final_text, review_notes) =
-        agent_quality_reviewer(&draft_text, config, server_url).await?;
+        agent_quality_reviewer(&draft_text, config, engine)?;
 
     Ok((final_text, compliance_analysis, draft_text, review_notes))
 }
@@ -568,10 +514,10 @@ fn build_missing_pillars_prompt(quality: &QualityScanResult) -> String {
 //  Agent 1 — Compliance Checker
 // ─────────────────────────────────────────────────────────────────────────────
 
-async fn agent_compliance_checker(
+fn agent_compliance_checker(
     raw_text: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
 ) -> Result<String, String> {
     let system = format!(
         r#"You are an NDIS compliance analysis agent specialising in {service_type} supports.
@@ -618,18 +564,18 @@ Be specific and actionable. Do not rewrite the note — only analyse it."#,
         raw_text
     );
 
-    call_llama(server_url, &system, &user_prompt).await
+    engine::infer(engine, &system, &user_prompt)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Agent 2 — Rewriter
 // ─────────────────────────────────────────────────────────────────────────────
 
-async fn agent_rewriter(
+fn agent_rewriter(
     raw_text: &str,
     compliance_analysis: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
     missing_prompt: &str,
 ) -> Result<String, String> {
     let system = format!(
@@ -742,17 +688,17 @@ Produce the rewritten, audit-ready note now:"#,
         raw_text, compliance_analysis
     );
 
-    call_llama(server_url, &system, &user_prompt).await
+    engine::infer(engine, &system, &user_prompt)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Agent 3 — Quality Reviewer
 // ─────────────────────────────────────────────────────────────────────────────
 
-async fn agent_quality_reviewer(
+fn agent_quality_reviewer(
     draft_text: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
 ) -> Result<(String, String), String> {
     let system = format!(
         r#"You are an NDIS quality review agent specialising in {service_type} supports.
@@ -804,7 +750,7 @@ FINAL NOTE:
         draft_text
     );
 
-    let response = call_llama(server_url, &system, &user_prompt).await?;
+    let response = engine::infer(engine, &system, &user_prompt)?;
     let (review_notes, final_text) = parse_reviewer_response(&response);
     Ok((final_text, review_notes))
 }
@@ -829,96 +775,6 @@ fn parse_reviewer_response(response: &str) -> (String, String) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  llama.cpp HTTP client
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[derive(Serialize)]
-struct ChatRequest {
-    messages: Vec<ChatMessage>,
-    temperature: f32,
-    max_tokens: i32,
-    stream: bool,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct ChatMessage {
-    role: String,
-    content: String,
-}
-
-#[derive(Deserialize)]
-struct ChatResponse {
-    choices: Vec<ChatChoice>,
-}
-
-#[derive(Deserialize)]
-struct ChatChoice {
-    message: ChatMessage,
-}
-
-async fn call_llama(
-    server_url: &str,
-    system: &str,
-    user_prompt: &str,
-) -> Result<String, String> {
-    let url = format!("{}/v1/chat/completions", server_url.trim_end_matches('/'));
-
-    let request_body = ChatRequest {
-        messages: vec![
-            ChatMessage { role: "system".to_string(), content: system.to_string() },
-            ChatMessage { role: "user".to_string(), content: user_prompt.to_string() },
-        ],
-        temperature: 0.3,
-        max_tokens: -1,
-        stream: false,
-    };
-
-    let client = reqwest::Client::new();
-    let response = client
-        .post(&url)
-        .json(&request_body)
-        .timeout(std::time::Duration::from_secs(300))
-        .send()
-        .await
-        .map_err(|e| {
-            if e.is_connect() {
-                "Could not connect to the Nanoclaw rewriting server. Please make sure the Docker container is running.\n\nRun: cd nanoclaw && docker compose up -d".to_string()
-            } else if e.is_timeout() {
-                "The rewriting request timed out. The model may be processing a large note. Please try again, or use Quick mode for faster results.".to_string()
-            } else {
-                format!("Failed to reach the rewriting server: {}", e)
-            }
-        })?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(format!(
-            "The rewriting server returned an error (HTTP {}).\n\nMake sure the Nanoclaw Docker container is running and the model file is present at nanoclaw/models/phi-4-mini-q4_k_m.gguf\n\nDetails: {}",
-            status, body
-        ));
-    }
-
-    let chat_resp: ChatResponse = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse server response: {}", e))?;
-
-    let content = chat_resp
-        .choices
-        .into_iter()
-        .next()
-        .map(|c| c.message.content.trim().to_string())
-        .unwrap_or_default();
-
-    if content.is_empty() {
-        return Err("The rewriting server returned an empty response. Please try again.".to_string());
-    }
-
-    Ok(content)
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 //  Public convenience wrappers (called from lib.rs)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -928,9 +784,9 @@ async fn call_llama(
 pub async fn quick_rewrite(
     raw_text: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
 ) -> Result<PipelineResult, String> {
-    process_note(raw_text, config, server_url, "quick", None).await
+    process_note(raw_text, config, engine, "quick", None).await
 }
 
 /// Single-note Deep mode rewrite.
@@ -938,9 +794,9 @@ pub async fn quick_rewrite(
 pub async fn run_pipeline(
     raw_text: &str,
     config: &CartridgeConfig,
-    server_url: &str,
+    engine: &EngineState,
 ) -> Result<PipelineResult, String> {
-    process_note(raw_text, config, server_url, "deep", None).await
+    process_note(raw_text, config, engine, "deep", None).await
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -954,10 +810,10 @@ mod tests {
     // ── Test 1: ORANGE — missing pillars, no red flags ──────────────────────
     #[test]
     fn test_traffic_light_orange_missing_pillars() {
-        // Simulate the pipeline logic (without the async Nanoclaw call)
+        // Simulate the pipeline logic (without the inference call)
         let text = "Took [NAME] to the shops.";
-        let safety = safety_scan(text);
-        let quality = quality_scan(text);
+        let safety = safety_scan::safety_scan(text);
+        let quality = quality_scan::quality_scan(text);
 
         assert!(!safety.is_red, "Should NOT be RED");
         assert!(!quality.is_green, "Should NOT be GREEN — missing pillars");
@@ -988,7 +844,7 @@ mod tests {
     #[test]
     fn test_orange_missing_prompt_format() {
         let text = "Took [NAME] to the shops.";
-        let quality = quality_scan(text);
+        let quality = quality_scan::quality_scan(text);
         for mp in &quality.missing_pillars {
             assert!(mp.prompt_question.starts_with("[MISSING:"));
             assert!(mp.prompt_question.ends_with(']'));
@@ -1014,8 +870,8 @@ mod tests {
                     [NAME] successfully completed the shop within budget, demonstrating improved \
                     confidence compared to last week.";
 
-        let safety = safety_scan(text);
-        let quality = quality_scan(text);
+        let safety = safety_scan::safety_scan(text);
+        let quality = quality_scan::quality_scan(text);
 
         assert!(!safety.is_red, "Should NOT be RED");
         assert!(quality.is_green, "Should be GREEN — all 5 pillars present");
@@ -1041,8 +897,8 @@ mod tests {
                     No safety concerns. Good progress made. \
                     However, another participant was physically restrained by a staff member in the car park.";
 
-        let safety = safety_scan(text);
-        let quality = quality_scan(text);
+        let safety = safety_scan::safety_scan(text);
+        let quality = quality_scan::quality_scan(text);
 
         // Safety scan MUST find a red flag
         assert!(safety.is_red, "Should be RED — 'restrained' keyword matched");
@@ -1076,8 +932,8 @@ mod tests {
         let mut results: Vec<TrafficLight> = Vec::new();
 
         for note in &notes {
-            let safety = safety_scan(note);
-            let quality = quality_scan(note);
+            let safety = safety_scan::safety_scan(note);
+            let quality = quality_scan::quality_scan(note);
             let tl = if safety.is_red {
                 TrafficLight::Red
             } else if !quality.is_green {
@@ -1124,7 +980,7 @@ mod tests {
 
     #[test]
     fn test_missing_pillars_prompt_builder() {
-        let quality = quality_scan("Took [NAME] to the shops.");
+        let quality = quality_scan::quality_scan("Took [NAME] to the shops.");
         let prompt = build_missing_pillars_prompt(&quality);
         assert!(prompt.contains("[MISSING:"));
         assert!(prompt.contains("Goal Alignment") || prompt.contains("NDIS goal"));

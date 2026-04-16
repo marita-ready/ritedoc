@@ -4,8 +4,9 @@
  * Each function wraps a `@tauri-apps/api` invoke call so the React
  * frontend can call the Rust backend in a type-safe way.
  *
- * The rewriting pipeline calls the Nanoclaw local server (Dockerized
- * llama.cpp serving Phi-4-mini Q4_K_M) at http://localhost:8080.
+ * The rewriting pipeline uses a native inference engine (llama.cpp
+ * compiled directly into the Tauri binary via llama-cpp-2 Rust bindings).
+ * No Docker, no HTTP server, no containers.
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -194,6 +195,17 @@ export interface HardwareProfile {
 }
 
 // ─────────────────────────────────────────────
+//  Engine Status types (native inference engine)
+// ─────────────────────────────────────────────
+
+export interface EngineStatus {
+  ready: boolean;
+  model_path: string;
+  model_found: boolean;
+  error: string | null;
+}
+
+// ─────────────────────────────────────────────
 //  Regulation Sync types
 // ─────────────────────────────────────────────
 
@@ -340,6 +352,14 @@ export async function getHardwareProfile(): Promise<HardwareProfile> {
 }
 
 // ─────────────────────────────────────────────
+//  Engine Status (native inference engine)
+// ─────────────────────────────────────────────
+
+export async function getEngineStatus(): Promise<EngineStatus> {
+  return invoke<EngineStatus>("get_engine_status");
+}
+
+// ─────────────────────────────────────────────
 //  Regulation Sync (offline-first, 5 security layers)
 // ─────────────────────────────────────────────
 
@@ -377,7 +397,7 @@ export interface DiagnosticReport {
   ram_available_gb: number;
   disk_ok: boolean;
   disk_available_gb: number;
-  nanoclaw_ok: boolean;
+  engine_ok: boolean;
   cartridges_ok: boolean;
   licence_ok: boolean;
   issues: DiagnosticIssue[];

@@ -13,6 +13,7 @@
 //!   - If offline, returns a clear error — no silent failure
 
 use crate::activation;
+use crate::engine::EngineState;
 use crate::regulation_sync;
 use crate::self_fix;
 use chrono::Utc;
@@ -84,7 +85,7 @@ pub struct DiagnosticsSnapshot {
     pub ram_available_gb: f64,
     pub disk_ok: bool,
     pub disk_available_gb: f64,
-    pub nanoclaw_ok: bool,
+    pub engine_ok: bool,
     pub cartridges_ok: bool,
     pub licence_ok: bool,
     pub issue_count: usize,
@@ -168,11 +169,11 @@ fn generate_diagnostic_hmac(
 ///
 /// # Arguments
 /// * `app_data_dir` — Tauri app data directory
-/// * `nanoclaw_url` — Nanoclaw server URL for health check
+/// * `engine_state` — The native inference engine state
 /// * `session_errors` — Error log from the current session (caller provides)
 pub fn build_payload(
     app_data_dir: &Path,
-    nanoclaw_url: &str,
+    engine_state: &EngineState,
     session_errors: Vec<SessionError>,
 ) -> DiagnosticPayload {
     let now = Utc::now();
@@ -190,7 +191,7 @@ pub fn build_payload(
     };
 
     // ── Self-fix diagnostics ──────────────────────────────────────────────────
-    let diag = self_fix::run_diagnostics(app_data_dir, nanoclaw_url);
+    let diag = self_fix::run_diagnostics(app_data_dir, engine_state);
     let issue_categories: Vec<String> = diag
         .issues
         .iter()
@@ -202,7 +203,7 @@ pub fn build_payload(
         ram_available_gb: diag.ram_available_gb,
         disk_ok: diag.disk_ok,
         disk_available_gb: diag.disk_available_gb,
-        nanoclaw_ok: diag.nanoclaw_ok,
+        engine_ok: diag.engine_ok,
         cartridges_ok: diag.cartridges_ok,
         licence_ok: diag.licence_ok,
         issue_count: diag.issues.len(),
@@ -267,10 +268,10 @@ pub async fn send_report(payload: DiagnosticPayload) -> DiagnosticReportResult {
     };
 
     log::info!(
-        "[diagnostic_reporter] Sending diagnostic report to {} (app_version={}, nanoclaw_ok={}, issues={})",
+        "[diagnostic_reporter] Sending diagnostic report to {} (app_version={}, engine_ok={}, issues={})",
         DIAGNOSTICS_ENDPOINT,
         payload.app_version,
-        payload.diagnostics.nanoclaw_ok,
+        payload.diagnostics.engine_ok,
         payload.diagnostics.issue_count,
     );
 
@@ -297,7 +298,7 @@ pub async fn send_report(payload: DiagnosticPayload) -> DiagnosticReportResult {
 
                 DiagnosticReportResult {
                     success: true,
-                    message: "Diagnostic report sent successfully. Thank you for helping improve RiteDoc.".to_string(),
+                    message: "Diagnostic report sent successfully.".to_string(),
                     report_id,
                     sent_at,
                 }
@@ -343,12 +344,19 @@ pub async fn send_report(payload: DiagnosticPayload) -> DiagnosticReportResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine;
     use tempfile::TempDir;
+
+    /// Helper: create a dummy engine state for tests (not ready — no model)
+    fn test_engine() -> EngineState {
+        engine::init_engine(std::path::Path::new("/nonexistent/model.gguf"))
+    }
 
     #[test]
     fn test_build_payload_structure() {
         let tmp = TempDir::new().unwrap();
-        let payload = build_payload(tmp.path(), "http://localhost:19999", vec![]);
+        let engine = test_engine();
+        let payload = build_payload(tmp.path(), &engine, vec![]);
 
         // Must have app version
         assert_eq!(payload.app_version, APP_VERSION);
@@ -390,12 +398,13 @@ mod tests {
     #[test]
     fn test_payload_no_pii() {
         let tmp = TempDir::new().unwrap();
+        let engine = test_engine();
         let session_errors = vec![SessionError {
             timestamp: Utc::now().to_rfc3339(),
             category: "pipeline".to_string(),
             message: "LLM timeout after 30s".to_string(),
         }];
-        let payload = build_payload(tmp.path(), "http://localhost:19999", session_errors);
+        let payload = build_payload(tmp.path(), &engine, session_errors);
 
         // Verify no PII fields exist in the payload
         let json = serde_json::to_string(&payload).unwrap();

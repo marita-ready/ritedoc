@@ -1,6 +1,6 @@
 //! Incident Form Generation Engine — Filter 5: Procedural Alignment Check
 //!
-//! For RED notes only. Runs after the Nanoclaw rewrite (Step 4).
+//! For RED notes only. Runs after the native engine rewrite (Step 4).
 //!
 //! 4-step logic:
 //!   A. Entity Extraction — pull participant, staff, date, time, description

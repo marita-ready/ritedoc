@@ -3,6 +3,7 @@ mod cartridges;
 mod commands;
 mod csv_parser;
 mod db;
+mod engine;
 mod form_generator;
 mod pipeline;
 mod quality_scan;
@@ -13,6 +14,7 @@ mod diagnostic_reporter;
 mod self_fix;
 
 use db::Database;
+use engine::EngineState;
 use pipeline::CartridgeConfig;
 use tauri::Manager;
 
@@ -23,6 +25,7 @@ use tauri::Manager;
 #[tauri::command]
 async fn rewrite_note(
     db: tauri::State<'_, Database>,
+    engine: tauri::State<'_, EngineState>,
     raw_text: String,
     cartridge_id: i64,
     mode: Option<String>, // "quick" | "deep" — defaults to "deep"
@@ -41,23 +44,12 @@ async fn rewrite_note(
     // 2. Parse the cartridge config
     let config = CartridgeConfig::from_json(&config_json);
 
-    // 3. Read Nanoclaw server URL from settings (default: http://localhost:8080)
-    let server_url = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = 'llama_server_url'",
-            [],
-            |row| row.get::<_, String>(0),
-        );
-        match result {
-            Ok(val) if !val.is_empty() => val,
-            _ => "http://localhost:8080".to_string(),
-        }
-    };
+    // 3. Get the native engine reference
+    let engine_ref: &EngineState = &engine;
 
     // 4. Run the selected mode through the full pipeline
     let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
-    pipeline::process_note(&raw_text, &config, &server_url, &selected_mode, None).await
+    pipeline::process_note(&raw_text, &config, engine_ref, &selected_mode, None).await
 }
 
 // ─────────────────────────────────────────────
@@ -69,6 +61,7 @@ async fn rewrite_note(
 #[tauri::command]
 async fn rewrite_batch(
     db: tauri::State<'_, Database>,
+    engine: tauri::State<'_, EngineState>,
     app_handle: tauri::AppHandle,
     notes: Vec<pipeline::BatchNoteInput>,
     cartridge_id: i64,
@@ -88,24 +81,13 @@ async fn rewrite_batch(
     // 2. Parse the cartridge config
     let config = CartridgeConfig::from_json(&config_json);
 
-    // 3. Read Nanoclaw server URL from settings
-    let server_url = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = 'llama_server_url'",
-            [],
-            |row| row.get::<_, String>(0),
-        );
-        match result {
-            Ok(val) if !val.is_empty() => val,
-            _ => "http://localhost:8080".to_string(),
-        }
-    };
+    // 3. Get the native engine reference
+    let engine_ref: &EngineState = &engine;
 
     // 4. Process batch — non-blocking, each note independent
     let selected_mode = mode.unwrap_or_else(|| "deep".to_string());
     let results =
-        pipeline::process_batch(notes, &config, &server_url, &selected_mode, &app_handle).await;
+        pipeline::process_batch(notes, &config, engine_ref, &selected_mode, &app_handle).await;
 
     Ok(results)
 }
@@ -167,6 +149,19 @@ fn deactivate_licence(app_handle: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn get_hardware_profile() -> activation::HardwareProfile {
     activation::detect_hardware()
+}
+
+// ─────────────────────────────────────────────
+//  Engine Status command
+//  Returns the current state of the native
+//  inference engine (ready, model path, errors).
+// ─────────────────────────────────────────────
+
+#[tauri::command]
+fn get_engine_status(
+    engine: tauri::State<'_, EngineState>,
+) -> engine::EngineStatus {
+    engine::get_status(&engine)
 }
 
 // ─────────────────────────────────────────────
@@ -257,28 +252,14 @@ async fn apply_regulation_sync(
 #[tauri::command]
 fn run_self_fix(
     app_handle: tauri::AppHandle,
-    db: tauri::State<'_, Database>,
+    engine: tauri::State<'_, EngineState>,
 ) -> Result<self_fix::DiagnosticReport, String> {
     let app_data_dir = app_handle
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
 
-    // Read Nanoclaw server URL from settings
-    let nanoclaw_url = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = 'llama_server_url'",
-            [],
-            |row| row.get::<_, String>(0),
-        );
-        match result {
-            Ok(val) if !val.is_empty() => val,
-            _ => "http://localhost:8080".to_string(),
-        }
-    };
-
-    Ok(self_fix::run_diagnostics(&app_data_dir, &nanoclaw_url))
+    Ok(self_fix::run_diagnostics(&app_data_dir, &engine))
 }
 
 // ─────────────────────────────────────────────
@@ -290,7 +271,7 @@ fn run_self_fix(
 #[tauri::command]
 async fn send_diagnostic_report(
     app_handle: tauri::AppHandle,
-    db: tauri::State<'_, Database>,
+    engine: tauri::State<'_, EngineState>,
     session_errors: Vec<diagnostic_reporter::SessionError>,
 ) -> Result<diagnostic_reporter::DiagnosticReportResult, String> {
     let app_data_dir = app_handle
@@ -298,21 +279,7 @@ async fn send_diagnostic_report(
         .app_data_dir()
         .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
 
-    // Read Nanoclaw server URL from settings
-    let nanoclaw_url = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = 'llama_server_url'",
-            [],
-            |row| row.get::<_, String>(0),
-        );
-        match result {
-            Ok(val) if !val.is_empty() => val,
-            _ => "http://localhost:8080".to_string(),
-        }
-    };
-
-    let payload = diagnostic_reporter::build_payload(&app_data_dir, &nanoclaw_url, session_errors);
+    let payload = diagnostic_reporter::build_payload(&app_data_dir, &engine, session_errors);
     Ok(diagnostic_reporter::send_report(payload).await)
 }
 
@@ -352,7 +319,27 @@ pub fn run() {
                 log::warn!("Failed to seed cartridges: {}", e);
             }
 
+            // ── Read settings BEFORE managing database (can't borrow after manage) ─
+            let custom_model_path = {
+                let conn = database.conn.lock().expect("DB lock failed");
+                conn.query_row(
+                    "SELECT value FROM settings WHERE key = 'model_path'",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .ok()
+            };
+
             app.manage(database);
+
+            let model_path = engine::resolve_model_path(
+                &app_data_dir,
+                custom_model_path.as_deref(),
+            );
+
+            log::info!("Initialising native inference engine...");
+            let engine_state = engine::init_engine(&model_path);
+            app.manage(engine_state);
 
             Ok(())
         })
@@ -377,6 +364,8 @@ pub fn run() {
             deactivate_licence,
             // Hardware profile (local detection)
             get_hardware_profile,
+            // Engine status (native inference engine health)
+            get_engine_status,
             // Regulation sync (offline-first, 5 security layers)
             get_sync_status,
             check_regulation_sync,

@@ -7,9 +7,11 @@ import {
   parseCartridgeConfig,
   runSelfFix,
   sendDiagnosticReport,
+  getEngineStatus,
   type Cartridge,
   type DiagnosticReport,
   type DiagnosticReportResult,
+  type EngineStatus,
 } from "../../lib/commands";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -24,11 +26,15 @@ export default function Settings() {
   const [userRole, setUserRole] = useState("");
   const [cartridges, setCartridges] = useState<Cartridge[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [serverUrl, setServerUrl] = useState("http://localhost:8080");
+  const [modelPath, setModelPath] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  // Engine status state
+  const [engineStatus, setEngineStatus] = useState<EngineStatus | null>(null);
+  const [engineLoading, setEngineLoading] = useState(false);
 
   // Diagnostics state
   const [diagRunning, setDiagRunning] = useState(false);
@@ -41,7 +47,7 @@ export default function Settings() {
   const [editName, setEditName] = useState("");
   const [editOrg, setEditOrg] = useState("");
   const [editRole, setEditRole] = useState("");
-  const [editUrl, setEditUrl] = useState("http://localhost:8080");
+  const [editModelPath, setEditModelPath] = useState("");
 
   useEffect(() => {
     loadSettings();
@@ -49,11 +55,11 @@ export default function Settings() {
 
   async function loadSettings() {
     try {
-      const [name, org, role, url, carts] = await Promise.all([
+      const [name, org, role, mp, carts] = await Promise.all([
         getSetting("user_name"),
         getSetting("user_organisation"),
         getSetting("user_role"),
-        getSetting("llama_server_url"),
+        getSetting("model_path"),
         getCartridges(),
       ]);
       setUserName(name ?? "");
@@ -62,10 +68,18 @@ export default function Settings() {
       setEditOrg(org ?? "");
       setUserRole(role ?? "");
       setEditRole(role ?? "");
-      const u = url ?? "http://localhost:8080";
-      setServerUrl(u);
-      setEditUrl(u);
+      const mp_val = mp ?? "";
+      setModelPath(mp_val);
+      setEditModelPath(mp_val);
       setCartridges(carts);
+
+      // Load engine status
+      try {
+        const status = await getEngineStatus();
+        setEngineStatus(status);
+      } catch (err) {
+        console.error("Failed to load engine status:", err);
+      }
     } catch (err) {
       console.error("Failed to load settings:", err);
     } finally {
@@ -94,11 +108,13 @@ export default function Settings() {
       await setSetting("user_name", editName.trim());
       await setSetting("user_organisation", editOrg.trim());
       await setSetting("user_role", editRole);
-      await setSetting("llama_server_url", editUrl.trim());
+      if (editModelPath.trim() !== modelPath) {
+        await setSetting("model_path", editModelPath.trim());
+      }
       setUserName(editName.trim());
       setUserOrg(editOrg.trim());
       setUserRole(editRole);
-      setServerUrl(editUrl.trim());
+      setModelPath(editModelPath.trim());
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -108,11 +124,23 @@ export default function Settings() {
     }
   }
 
+  async function handleRefreshEngine() {
+    setEngineLoading(true);
+    try {
+      const status = await getEngineStatus();
+      setEngineStatus(status);
+    } catch (err) {
+      console.error("Failed to refresh engine status:", err);
+    } finally {
+      setEngineLoading(false);
+    }
+  }
+
   const hasChanges =
     editName.trim() !== userName ||
     editOrg.trim() !== userOrg ||
     editRole !== userRole ||
-    editUrl.trim() !== serverUrl;
+    editModelPath.trim() !== modelPath;
 
   if (loading) {
     return (
@@ -164,39 +192,86 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* ── Rewriting Engine (Nanoclaw) ──────────────────────── */}
+      {/* ── Rewriting Engine ───────────────────────────────── */}
       <div className="card card-padded" style={{ marginBottom: "1.25rem" }}>
         <SectionTitle>Rewriting Engine</SectionTitle>
         <p className="text-muted text-sm" style={{ margin: "0 0 1rem" }}>
-          RiteDoc uses Nanoclaw — a local Docker-based server running the
-          Phi-4-mini model — to rewrite notes. Start it with{" "}
-          <code
+          RiteDoc uses a native inference engine (Phi-4-mini) compiled directly
+          into the app. Place the model file (GGUF format, ~2.5 GB) in the
+          default location or specify a custom path below.
+        </p>
+
+        {/* Engine status indicator */}
+        {engineStatus && (
+          <div
             style={{
-              background: "var(--slate-100)",
-              padding: "0.1em 0.3em",
-              borderRadius: 3,
-              fontSize: "0.75rem",
+              padding: "0.625rem 0.75rem",
+              borderRadius: "var(--radius-md)",
+              background: engineStatus.ready ? "#f0fdf4" : "#fef2f2",
+              border: `1px solid ${engineStatus.ready ? "#bbf7d0" : "#fecaca"}`,
+              marginBottom: "1rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            docker compose up -d
-          </code>{" "}
-          inside the <code style={{ background: "var(--slate-100)", padding: "0.1em 0.3em", borderRadius: 3, fontSize: "0.75rem" }}>nanoclaw/</code> directory.
-        </p>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.125rem" }}>
+                <span style={{ fontSize: "0.75rem" }}>{engineStatus.ready ? "✓" : "✗"}</span>
+                <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: engineStatus.ready ? "#166534" : "#991b1b" }}>
+                  {engineStatus.ready ? "Engine Ready" : "Engine Not Ready"}
+                </span>
+              </div>
+              <span style={{ fontSize: "0.75rem", color: engineStatus.ready ? "#15803d" : "#b91c1c" }}>
+                {engineStatus.ready
+                  ? "Model loaded and ready for processing"
+                  : engineStatus.error
+                    ? engineStatus.error
+                    : !engineStatus.model_found
+                      ? "Model file not found. Place the GGUF file at the path shown below."
+                      : "Engine failed to initialise"}
+              </span>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={engineLoading}
+              onClick={handleRefreshEngine}
+              style={{ flexShrink: 0 }}
+            >
+              {engineLoading ? "Checking..." : "Refresh"}
+            </button>
+          </div>
+        )}
+
         <div>
-          <label className="label">Server URL</label>
+          <label className="label">Model File Path (optional override)</label>
           <input
             className="input"
-            value={editUrl}
-            onChange={(e) => setEditUrl(e.target.value)}
-            placeholder="http://localhost:8080"
+            value={editModelPath}
+            onChange={(e) => setEditModelPath(e.target.value)}
+            placeholder="Leave blank to use default location"
           />
           <p
             className="text-muted"
             style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}
           >
-            Default: http://localhost:8080 — only change if you have moved the
-            Nanoclaw container to a different port.
+            Default: <code style={{ background: "var(--slate-100)", padding: "0.1em 0.3em", borderRadius: 3, fontSize: "0.75rem" }}>
+              {"{app_data}/models/phi-4-mini-q4_k_m.gguf"}
+            </code>
+            {" — "}only set a custom path if you have placed the model file elsewhere.
+            Changes take effect on next app restart.
           </p>
+          {engineStatus && engineStatus.model_path && (
+            <p
+              className="text-muted"
+              style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}
+            >
+              Current resolved path:{" "}
+              <code style={{ background: "var(--slate-100)", padding: "0.1em 0.3em", borderRadius: 3, fontSize: "0.7rem", wordBreak: "break-all" }}>
+                {engineStatus.model_path}
+              </code>
+            </p>
+          )}
         </div>
       </div>
 
@@ -234,7 +309,7 @@ export default function Settings() {
       <div className="card card-padded" style={{ marginBottom: "1.25rem" }}>
         <SectionTitle>System Diagnostics</SectionTitle>
         <p className="text-muted text-sm" style={{ margin: "0 0 1rem" }}>
-          Run a health check to verify RAM, disk space, Nanoclaw server status,
+          Run a health check to verify RAM, disk space, engine status,
           and cartridge integrity. All diagnostics run locally — no data leaves
           your device.
         </p>
@@ -288,7 +363,7 @@ export default function Settings() {
               {[
                 { label: "RAM", ok: diagReport.ram_ok, detail: `${diagReport.ram_available_gb.toFixed(1)} GB free` },
                 { label: "Disk", ok: diagReport.disk_ok, detail: `${diagReport.disk_available_gb.toFixed(1)} GB free` },
-                { label: "Nanoclaw", ok: diagReport.nanoclaw_ok, detail: diagReport.nanoclaw_ok ? "Reachable" : "Not reachable" },
+                { label: "Engine", ok: diagReport.engine_ok, detail: diagReport.engine_ok ? "Model loaded" : "Not ready" },
                 { label: "Cartridges", ok: diagReport.cartridges_ok, detail: diagReport.cartridges_ok ? "Valid" : "Check needed" },
                 { label: "Licence", ok: diagReport.licence_ok, detail: diagReport.licence_ok ? "Activated" : "Not activated" },
               ].map(({ label, ok, detail }) => (
