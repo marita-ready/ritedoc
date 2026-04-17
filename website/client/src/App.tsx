@@ -13,6 +13,7 @@ import Terms from "./pages/Terms";
 import Waitlist from "./pages/Waitlist";
 import Confirmation from "./pages/Confirmation";
 import ThankYou from "./pages/ThankYou";
+import BetaFounders from "./pages/BetaFounders";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/waitlist" component={Waitlist} />
+        <Route path="/beta-founders" component={BetaFounders} />
         <Route path="/confirmation" component={Confirmation} />
         <Route path="/thank-you" component={ThankYou} />
         <Route path="/404" component={NotFound} />
