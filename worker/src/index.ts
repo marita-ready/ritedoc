@@ -92,6 +92,25 @@ function generateKeyCode(): string {
   return 'RD-' + segments.join('-');
 }
 
+function generateMobileCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const segments = [];
+  for (let s = 0; s < 3; s++) {
+    let segment = '';
+    for (let i = 0; i < 4; i++) {
+      const rand = crypto.getRandomValues(new Uint8Array(1))[0];
+      segment += chars[rand % chars.length];
+    }
+    segments.push(segment);
+  }
+  return 'MAC-' + segments.join('-');
+}
+
+function generateActivationToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function logAction(db: D1Database, action: string, details: object, performedBy: string) {
   await db.prepare(
     'INSERT INTO automation_log (action, details_json, performed_by) VALUES (?, ?, ?)'
@@ -404,7 +423,7 @@ app.put('/api/support/tickets/:id', authMiddleware, async (c) => {
 // ─── STATS ────────────────────────────────────────────────────────────────────
 
 app.get('/api/stats/overview', authMiddleware, async (c) => {
-  const [clientsTotal, clientsActive, keysActive, keysActivated, ticketsOpen, latestCartridge, agenciesCount] = await Promise.all([
+  const [clientsTotal, clientsActive, keysActive, keysActivated, ticketsOpen, latestCartridge, agenciesCount, mobileCodesTotal, mobileCodesRedeemed, mobileCodesActive] = await Promise.all([
     c.env.DB.prepare('SELECT COUNT(*) as count FROM clients').first<{ count: number }>(),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM clients WHERE status = 'active'").first<{ count: number }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM activation_keys WHERE is_active = 1').first<{ count: number }>(),
@@ -412,6 +431,9 @@ app.get('/api/stats/overview', authMiddleware, async (c) => {
     c.env.DB.prepare("SELECT COUNT(*) as count FROM support_tickets WHERE status IN ('open','in_progress')").first<{ count: number }>(),
     c.env.DB.prepare('SELECT version FROM cartridge_versions ORDER BY uploaded_at DESC LIMIT 1').first<{ version: string }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM agencies WHERE is_active = 1').first<{ count: number }>(),
+    c.env.DB.prepare('SELECT COUNT(*) as count FROM mobile_access_codes').first<{ count: number }>().catch(() => ({ count: 0 })),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE status = 'redeemed'").first<{ count: number }>().catch(() => ({ count: 0 })),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE status = 'active'").first<{ count: number }>().catch(() => ({ count: 0 })),
   ]);
 
   return c.json({
@@ -422,6 +444,9 @@ app.get('/api/stats/overview', authMiddleware, async (c) => {
     open_tickets: ticketsOpen?.count || 0,
     latest_cartridge_version: latestCartridge?.version || '—',
     active_agencies: agenciesCount?.count || 0,
+    mobile_codes_generated: mobileCodesTotal?.count || 0,
+    mobile_codes_redeemed: mobileCodesRedeemed?.count || 0,
+    mobile_codes_active: mobileCodesActive?.count || 0,
     mrr: (clientsActive?.count || 0) * 99, // $99/month per active client
   });
 });
@@ -437,12 +462,12 @@ app.get('/api/agencies', authMiddleware, async (c) => {
 
 app.post('/api/agencies', authMiddleware, async (c) => {
   const body = await c.req.json<any>();
-  const { agency_name, contact_name, email, contact_email, contact_phone, abn, seats_purchased } = body;
+  const { agency_name, contact_name, email, contact_email, contact_phone, abn, seats_purchased, mobile_seats_allocated } = body;
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO agencies (agency_name, contact_name, email, contact_email, contact_phone, abn, seats_purchased, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`
-  ).bind(agency_name, contact_name, email || contact_email, contact_email || email, contact_phone || null, abn || null, seats_purchased || 5).run();
+    `INSERT INTO agencies (agency_name, contact_name, email, contact_email, contact_phone, abn, seats_purchased, mobile_seats_allocated, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`
+  ).bind(agency_name, contact_name, email || contact_email, contact_email || email, contact_phone || null, abn || null, seats_purchased || 5, mobile_seats_allocated || 0).run();
 
   return c.json({ success: true, id: result.meta.last_row_id }, 201);
 });
@@ -450,12 +475,12 @@ app.post('/api/agencies', authMiddleware, async (c) => {
 app.put('/api/agencies/:id', authMiddleware, async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json<any>();
-  const { agency_name, contact_name, contact_email, contact_phone, seats_purchased, is_active } = body;
+  const { agency_name, contact_name, contact_email, contact_phone, seats_purchased, mobile_seats_allocated, is_active } = body;
 
   await c.env.DB.prepare(
     `UPDATE agencies SET agency_name = ?, contact_name = ?, contact_email = ?,
-     contact_phone = ?, seats_purchased = ?, is_active = ? WHERE id = ?`
-  ).bind(agency_name, contact_name, contact_email || null, contact_phone || null, seats_purchased || 0, is_active ? 1 : 0, id).run();
+     contact_phone = ?, seats_purchased = ?, mobile_seats_allocated = ?, is_active = ? WHERE id = ?`
+  ).bind(agency_name, contact_name, contact_email || null, contact_phone || null, seats_purchased || 0, mobile_seats_allocated || 0, is_active ? 1 : 0, id).run();
 
   return c.json({ success: true });
 });
@@ -689,9 +714,236 @@ app.post('/api/webhooks/stripe', async (c) => {
   return c.json({ received: true });
 });
 
-// ─── HEALTH ───────────────────────────────────────────────────────────────────
+// ─── MOBILE ACCESS CODES (BIAB) ───────────────────────────────────────────────
 
-app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
+/**
+ * GET /api/mobile/codes
+ * List all mobile access codes, optionally filtered by agency_id.
+ */
+app.get('/api/mobile/codes', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  let query = `
+    SELECT m.*, a.agency_name
+    FROM mobile_access_codes m
+    LEFT JOIN agencies a ON m.agency_id = a.id
+  `;
+  const params: any[] = [];
+
+  if (agencyId) {
+    query += ' WHERE m.agency_id = ?';
+    params.push(parseInt(agencyId));
+  }
+  query += ' ORDER BY m.created_at DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/mobile/codes/stats
+ * Get mobile code stats, optionally filtered by agency_id.
+ */
+app.get('/api/mobile/codes/stats', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+
+  if (agencyId) {
+    const aid = parseInt(agencyId);
+    const [agency, totalCodes, redeemedCodes, activeCodes] = await Promise.all([
+      c.env.DB.prepare('SELECT mobile_seats_allocated FROM agencies WHERE id = ?').bind(aid).first<{ mobile_seats_allocated: number }>(),
+      c.env.DB.prepare('SELECT COUNT(*) as count FROM mobile_access_codes WHERE agency_id = ?').bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE agency_id = ? AND status = 'redeemed'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE agency_id = ? AND status = 'active'").bind(aid).first<{ count: number }>(),
+    ]);
+
+    return c.json({
+      allocated: agency?.mobile_seats_allocated || 0,
+      generated: totalCodes?.count || 0,
+      redeemed: redeemedCodes?.count || 0,
+      active: activeCodes?.count || 0,
+      remaining: Math.max(0, (agency?.mobile_seats_allocated || 0) - (totalCodes?.count || 0)),
+    });
+  }
+
+  const [totalCodes, redeemedCodes, activeCodes] = await Promise.all([
+    c.env.DB.prepare('SELECT COUNT(*) as count FROM mobile_access_codes').first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE status = 'redeemed'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE status = 'active'").first<{ count: number }>(),
+  ]);
+
+  return c.json({
+    generated: totalCodes?.count || 0,
+    redeemed: redeemedCodes?.count || 0,
+    active: activeCodes?.count || 0,
+  });
+});
+
+/**
+ * POST /api/mobile/codes/generate
+ * Generate mobile access codes for an agency (up to their allocation limit).
+ */
+app.post('/api/mobile/codes/generate', authMiddleware, async (c) => {
+  const { agency_id, count } = await c.req.json<{ agency_id: number; count?: number }>();
+
+  if (!agency_id) {
+    return c.json({ error: 'agency_id is required' }, 400);
+  }
+
+  const agency = await c.env.DB.prepare(
+    'SELECT * FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string; mobile_seats_allocated: number; mobile_seats_used: number }>();
+
+  if (!agency) {
+    return c.json({ error: 'Agency not found or inactive' }, 404);
+  }
+
+  const existingCodes = await c.env.DB.prepare(
+    "SELECT COUNT(*) as count FROM mobile_access_codes WHERE agency_id = ? AND status IN ('active', 'redeemed')"
+  ).bind(agency_id).first<{ count: number }>();
+
+  const currentCount = existingCodes?.count || 0;
+  const allocated = agency.mobile_seats_allocated || 0;
+  const available = Math.max(0, allocated - currentCount);
+
+  if (available <= 0) {
+    return c.json({ error: `No remaining allocation. Agency has ${allocated} seats allocated, ${currentCount} codes already generated.` }, 400);
+  }
+
+  const requestedCount = Math.min(parseInt(String(count)) || 1, 50, available);
+  const generated: string[] = [];
+
+  for (let i = 0; i < requestedCount; i++) {
+    const code = generateMobileCode();
+    await c.env.DB.prepare(
+      "INSERT INTO mobile_access_codes (code, agency_id, status) VALUES (?, ?, 'active')"
+    ).bind(code, agency_id).run();
+    generated.push(code);
+  }
+
+  await c.env.DB.prepare(
+    "UPDATE agencies SET mobile_seats_used = (SELECT COUNT(*) FROM mobile_access_codes WHERE agency_id = ? AND status IN ('active', 'redeemed')) WHERE id = ?"
+  ).bind(agency_id, agency_id).run();
+
+  await logAction(c.env.DB, 'mobile_codes_generated', { agency_id, agency_name: agency.agency_name, count: requestedCount, codes: generated }, c.get('jwtPayload')?.email || 'admin');
+
+  return c.json({
+    success: true,
+    codes: generated,
+    agency_name: agency.agency_name,
+    remaining: available - requestedCount,
+  });
+});
+
+/**
+ * PUT /api/mobile/codes/:id/revoke
+ * Revoke an active mobile access code.
+ */
+app.put('/api/mobile/codes/:id/revoke', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+
+  const code = await c.env.DB.prepare(
+    'SELECT * FROM mobile_access_codes WHERE id = ?'
+  ).bind(id).first<{ id: number; code: string; agency_id: number; status: string }>();
+
+  if (!code) {
+    return c.json({ error: 'Code not found' }, 404);
+  }
+
+  if (code.status === 'redeemed') {
+    return c.json({ error: 'Cannot revoke a redeemed code' }, 400);
+  }
+
+  await c.env.DB.prepare(
+    "UPDATE mobile_access_codes SET status = 'revoked' WHERE id = ?"
+  ).bind(id).run();
+
+  await logAction(c.env.DB, 'mobile_code_revoked', { code_id: id, code: code.code, agency_id: code.agency_id }, c.get('jwtPayload')?.email || 'admin');
+  return c.json({ success: true });
+});
+
+/**
+ * POST /api/mobile/verify-code
+ * PUBLIC endpoint — called by the mobile app to verify and redeem an access code.
+ * One quick online call — after this the mobile app works offline.
+ *
+ * Request: { code: "MAC-XXXX-XXXX-XXXX", device_id?: "<device identifier>" }
+ * Success: { success: true, activation_token: "<hex token>", agency_name: "...", message: "..." }
+ * Failure: { error: "..." }
+ */
+app.post('/api/mobile/verify-code', async (c) => {
+  let body: { code: string; device_id?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const { code, device_id } = body;
+
+  if (!code || typeof code !== 'string') {
+    return c.json({ error: 'Access code is required' }, 400);
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+
+  const accessCode = await c.env.DB.prepare(
+    'SELECT m.*, a.agency_name FROM mobile_access_codes m LEFT JOIN agencies a ON m.agency_id = a.id WHERE m.code = ?'
+  ).bind(cleanCode).first<{ id: number; code: string; agency_id: number; status: string; agency_name: string; activation_token: string | null }>();
+
+  if (!accessCode) {
+    return c.json({ error: 'Invalid access code. Please check and try again.' }, 404);
+  }
+
+  if (accessCode.status === 'redeemed') {
+    return c.json({ error: 'This code has already been used.' }, 400);
+  }
+
+  if (accessCode.status === 'expired') {
+    return c.json({ error: 'This code has expired. Please contact your agency.' }, 400);
+  }
+
+  if (accessCode.status === 'revoked') {
+    return c.json({ error: 'This code has been revoked. Please contact your agency.' }, 400);
+  }
+
+  if (accessCode.status !== 'active') {
+    return c.json({ error: 'This code is no longer valid.' }, 400);
+  }
+
+  const activationToken = generateActivationToken();
+
+  await c.env.DB.prepare(
+    `UPDATE mobile_access_codes
+     SET status = 'redeemed',
+         redeemed_at = datetime('now'),
+         redeemed_by = ?,
+         activation_token = ?
+     WHERE id = ?`
+  ).bind(device_id || 'unknown', activationToken, accessCode.id).run();
+
+  await c.env.DB.prepare(
+    "UPDATE agencies SET mobile_seats_used = (SELECT COUNT(*) FROM mobile_access_codes WHERE agency_id = ? AND status = 'redeemed') WHERE id = ?"
+  ).bind(accessCode.agency_id, accessCode.agency_id).run();
+
+  await logAction(c.env.DB, 'mobile_code_redeemed', {
+    code: cleanCode,
+    agency_id: accessCode.agency_id,
+    agency_name: accessCode.agency_name,
+    device_id: device_id || 'unknown',
+  }, 'mobile_app');
+
+  return c.json({
+    success: true,
+    activation_token: activationToken,
+    agency_name: accessCode.agency_name,
+    message: 'Access code verified. Your app is now activated.',
+  });
+});
+
+// ─── HEALTH ─────────────────────────────────────────────────────────────────────app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
 app.get('/', (c) => c.json({ service: 'ReadyCompliant API', version: '1.0.0' }));
 
 // ─── Export ───────────────────────────────────────────────────────────────────

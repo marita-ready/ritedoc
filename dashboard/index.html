@@ -263,8 +263,8 @@
                 <th>Agency Name</th>
                 <th>Contact</th>
                 <th>Email</th>
-                <th>Seats Purchased</th>
-                <th>Seats Used</th>
+                <th>Desktop Seats</th>
+                <th>Mobile Allocated</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -273,6 +273,51 @@
               <tr><td colspan="7" class="table-empty">Loading agencies...</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Mobile Access Codes Sub-section -->
+        <div class="mobile-codes-section" style="margin-top:32px;">
+          <h3 style="margin-bottom:16px;">Mobile Access Codes</h3>
+          <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card">
+              <div class="stat-label">Codes Generated</div>
+              <div class="stat-value" id="statMobileGenerated">&mdash;</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Codes Redeemed</div>
+              <div class="stat-value" id="statMobileRedeemed">&mdash;</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Codes Available</div>
+              <div class="stat-value" id="statMobileActive">&mdash;</div>
+            </div>
+          </div>
+
+          <div class="section-toolbar">
+            <select id="mobileCodesAgencyFilter" onchange="filterMobileCodes()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;min-width:200px;">
+              <option value="">All Agencies</option>
+            </select>
+            <button class="btn-primary" onclick="showGenerateMobileCodesModal()">+ Generate Mobile Codes</button>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table" id="mobileCodesTable">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Agency</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Redeemed At</th>
+                  <th>Redeemed By</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="mobileCodesBody">
+                <tr><td colspan="7" class="table-empty">Loading mobile codes...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -353,6 +398,33 @@
             <div class="api-path">/api/stats/overview</div>
             <div class="api-endpoint-desc">Dashboard overview stats (MRR, active clients, etc.)</div>
             <pre class="api-example">curl 'https://api.readycompliant.com/api/stats/overview' \
+  -H 'Authorization: Bearer &lt;token&gt;'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/mobile/verify-code</div>
+            <div class="api-endpoint-desc">Verify and redeem a mobile access code (public &mdash; called by mobile app)</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/mobile/verify-code' \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"MAC-XXXX-XXXX-XXXX","device_id":"optional-device-id"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/mobile/codes/generate</div>
+            <div class="api-endpoint-desc">Generate mobile access codes for a BIAB agency</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/mobile/codes/generate' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"agency_id":1,"count":5}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/api/mobile/codes</div>
+            <div class="api-endpoint-desc">List mobile access codes (optional ?agency_id= filter)</div>
+            <pre class="api-example">curl 'https://api.readycompliant.com/api/mobile/codes?agency_id=1' \
   -H 'Authorization: Bearer &lt;token&gt;'</pre>
           </div>
 

@@ -23,6 +23,7 @@ const dashState = {
   tickets: [],
   cartridgeVersions: [],
   agencies: [],
+  mobileCodes: [],
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -189,12 +190,13 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, stats] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, stats] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
       api.get('/api/cartridges/versions').catch(() => []),
       api.get('/api/agencies').catch(() => []),
+      api.get('/api/mobile/codes').catch(() => []),
       api.get('/api/stats/overview').catch(() => ({})),
     ]);
 
@@ -203,6 +205,7 @@ async function loadAllData() {
     dashState.tickets = tickets || [];
     dashState.cartridgeVersions = versions || [];
     dashState.agencies = agencies || [];
+    dashState.mobileCodes = mobileCodes || [];
 
     renderOverview(stats);
     renderClients();
@@ -210,6 +213,7 @@ async function loadAllData() {
     renderTickets();
     renderCartridgeVersions();
     renderAgencies();
+    renderMobileCodes(stats);
 
   } catch (e) {
     console.error('Failed to load data:', e);
@@ -798,17 +802,19 @@ function renderAgencies() {
   }
 
   tbody.innerHTML = dashState.agencies.map(a => {
-    const seatsUsed = dashState.keys.filter(k => k.agency_id === a.id && k.activated_at).length;
+    const mobileAllocated = a.mobile_seats_allocated || 0;
+    const mobileUsed = dashState.mobileCodes.filter(c => c.agency_id === a.id && (c.status === 'active' || c.status === 'redeemed')).length;
     return `
       <tr>
         <td><strong>${escapeHtml(a.agency_name || '—')}</strong></td>
         <td>${escapeHtml(a.contact_name || '—')}</td>
         <td>${escapeHtml(a.contact_email || a.email || '—')}</td>
         <td>${a.seats_purchased || 0}</td>
-        <td>${seatsUsed}</td>
+        <td>${mobileUsed} / ${mobileAllocated}</td>
         <td><span class="badge badge-${a.is_active ? 'active' : 'inactive'}">${a.is_active ? 'Active' : 'Inactive'}</span></td>
         <td>
           <button class="btn-sm" onclick="editAgency(${a.id})">Edit</button>
+          <button class="btn-sm" onclick="showGenerateMobileCodesForAgency(${a.id})" style="margin-left:4px;">Mobile Codes</button>
         </td>
       </tr>
     `;
@@ -835,7 +841,10 @@ function showAddAgencyModal() {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Contact Phone</label><input type="text" id="fAgencyPhone" /></div>
-      <div class="form-group"><label>Seats Purchased</label><input type="number" id="fAgencySeats" value="5" min="1" /></div>
+      <div class="form-group"><label>Desktop Seats</label><input type="number" id="fAgencySeats" value="5" min="1" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Mobile App Seats</label><input type="number" id="fAgencyMobileSeats" value="5" min="0" /></div>
     </div>
   `, async () => {
     const data = {
@@ -845,6 +854,7 @@ function showAddAgencyModal() {
       contact_email: document.getElementById('fAgencyEmail').value,
       contact_phone: document.getElementById('fAgencyPhone').value,
       seats_purchased: parseInt(document.getElementById('fAgencySeats').value) || 5,
+      mobile_seats_allocated: parseInt(document.getElementById('fAgencyMobileSeats').value) || 0,
     };
 
     try {
@@ -865,23 +875,27 @@ async function editAgency(id) {
   openModal('Edit Agency', `
     <div class="form-row">
       <div class="form-group"><label>Agency Name</label><input type="text" id="fAgencyName" value="${escapeAttr(agency.agency_name || '')}" /></div>
-      <div class="form-group"><label>Seats Purchased</label><input type="number" id="fAgencySeats" value="${agency.seats_purchased || 0}" /></div>
+      <div class="form-group"><label>Desktop Seats</label><input type="number" id="fAgencySeats" value="${agency.seats_purchased || 0}" /></div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label>Mobile App Seats</label><input type="number" id="fAgencyMobileSeats" value="${agency.mobile_seats_allocated || 0}" min="0" /></div>
       <div class="form-group"><label>Contact Name</label><input type="text" id="fAgencyContact" value="${escapeAttr(agency.contact_name || '')}" /></div>
-      <div class="form-group"><label>Contact Email</label><input type="email" id="fAgencyEmail" value="${escapeAttr(agency.contact_email || agency.email || '')}" /></div>
     </div>
-    <div class="form-group">
-      <label>Status</label>
-      <select id="fAgencyStatus">
-        <option value="true" ${agency.is_active ? 'selected' : ''}>Active</option>
-        <option value="false" ${!agency.is_active ? 'selected' : ''}>Inactive</option>
-      </select>
+    <div class="form-row">
+      <div class="form-group"><label>Contact Email</label><input type="email" id="fAgencyEmail" value="${escapeAttr(agency.contact_email || agency.email || '')}" /></div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="fAgencyStatus">
+          <option value="true" ${agency.is_active ? 'selected' : ''}>Active</option>
+          <option value="false" ${!agency.is_active ? 'selected' : ''}>Inactive</option>
+        </select>
+      </div>
     </div>
   `, async () => {
     const data = {
       agency_name: document.getElementById('fAgencyName').value,
       seats_purchased: parseInt(document.getElementById('fAgencySeats').value),
+      mobile_seats_allocated: parseInt(document.getElementById('fAgencyMobileSeats').value) || 0,
       contact_name: document.getElementById('fAgencyContact').value,
       contact_email: document.getElementById('fAgencyEmail').value,
       is_active: document.getElementById('fAgencyStatus').value === 'true',
@@ -891,6 +905,174 @@ async function editAgency(id) {
       await api.put(`/api/agencies/${id}`, data);
       showToast('Agency updated');
       closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+// ===== MOBILE ACCESS CODES =====
+function renderMobileCodes(stats = {}) {
+  // Update stats cards
+  document.getElementById('statMobileGenerated').textContent = stats.mobile_codes_generated ?? dashState.mobileCodes.length;
+  document.getElementById('statMobileRedeemed').textContent = stats.mobile_codes_redeemed ?? dashState.mobileCodes.filter(c => c.status === 'redeemed').length;
+  document.getElementById('statMobileActive').textContent = stats.mobile_codes_active ?? dashState.mobileCodes.filter(c => c.status === 'active').length;
+
+  // Populate agency filter dropdown
+  const filterEl = document.getElementById('mobileCodesAgencyFilter');
+  const currentVal = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Agencies</option>' +
+    dashState.agencies.map(a => `<option value="${a.id}" ${String(a.id) === currentVal ? 'selected' : ''}>${escapeHtml(a.agency_name)}</option>`).join('');
+
+  // Render codes table
+  const tbody = document.getElementById('mobileCodesBody');
+  let codes = dashState.mobileCodes;
+
+  if (currentVal) {
+    codes = codes.filter(c => c.agency_id === parseInt(currentVal));
+  }
+
+  if (codes.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No mobile access codes found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = codes.map(c => {
+    const statusClass = c.status === 'redeemed' ? 'active' : c.status === 'active' ? 'standard' : 'inactive';
+    return `
+      <tr>
+        <td><code style="font-size:13px;background:#f3f4f6;padding:2px 8px;border-radius:4px;letter-spacing:0.5px;">${escapeHtml(c.code)}</code></td>
+        <td>${escapeHtml(c.agency_name || '—')}</td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(c.status)}</span></td>
+        <td>${formatDate(c.created_at)}</td>
+        <td>${c.redeemed_at ? formatDate(c.redeemed_at) : '—'}</td>
+        <td>${escapeHtml(c.redeemed_by || '—')}</td>
+        <td>
+          ${c.status === 'active' ? `<button class="btn-sm" onclick="revokeMobileCode(${c.id})">Revoke</button>` : ''}
+          <button class="btn-sm" onclick="copyToClipboard('${escapeAttr(c.code)}')" style="margin-left:4px;">Copy</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterMobileCodes() {
+  renderMobileCodes();
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard');
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('Copied to clipboard');
+  });
+}
+
+async function revokeMobileCode(id) {
+  if (!confirm('Revoke this mobile access code? This cannot be undone.')) return;
+
+  try {
+    await api.put(`/api/mobile/codes/${id}/revoke`);
+    showToast('Code revoked');
+    await loadAllData();
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+function showGenerateMobileCodesModal() {
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active && (a.mobile_seats_allocated || 0) > 0)
+    .map(a => {
+      const used = dashState.mobileCodes.filter(c => c.agency_id === a.id && (c.status === 'active' || c.status === 'redeemed')).length;
+      const remaining = Math.max(0, (a.mobile_seats_allocated || 0) - used);
+      return `<option value="${a.id}">${escapeHtml(a.agency_name)} (${remaining} remaining)</option>`;
+    }).join('');
+
+  if (!agencyOptions) {
+    showToast('No agencies with mobile seat allocation. Edit an agency to set Mobile App Seats first.');
+    return;
+  }
+
+  openModal('Generate Mobile Access Codes', `
+    <div class="form-group">
+      <label>Agency</label>
+      <select id="fMobileAgency">${agencyOptions}</select>
+    </div>
+    <div class="form-group">
+      <label>Number of Codes</label>
+      <input type="number" id="fMobileCount" value="1" min="1" max="50" />
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Each code is a one-time use access code for the RiteDoc mobile app. Codes are tied to this agency's allocation.</p>
+  `, async () => {
+    const agencyId = parseInt(document.getElementById('fMobileAgency').value);
+    const count = parseInt(document.getElementById('fMobileCount').value) || 1;
+
+    try {
+      const result = await api.post('/api/mobile/codes/generate', { agency_id: agencyId, count });
+      closeModal();
+
+      if (result.codes && result.codes.length > 0) {
+        const codesHtml = result.codes.map(c => `<code style="display:block;font-size:15px;background:#f3f4f6;padding:8px 12px;border-radius:6px;margin:4px 0;letter-spacing:1px;">${c}</code>`).join('');
+        openModal('Generated Mobile Access Codes', `
+          <p style="margin-bottom:12px;">Generated <strong>${result.codes.length}</strong> code(s) for <strong>${escapeHtml(result.agency_name)}</strong>. Remaining allocation: <strong>${result.remaining}</strong>.</p>
+          <div style="max-height:300px;overflow-y:auto;">${codesHtml}</div>
+          <button class="btn-secondary" onclick="copyToClipboard('${result.codes.join('\n')}')" style="margin-top:12px;">Copy All Codes</button>
+        `, () => { closeModal(); });
+      }
+
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+function showGenerateMobileCodesForAgency(agencyId) {
+  const agency = dashState.agencies.find(a => a.id === agencyId);
+  if (!agency) return;
+
+  const used = dashState.mobileCodes.filter(c => c.agency_id === agencyId && (c.status === 'active' || c.status === 'redeemed')).length;
+  const remaining = Math.max(0, (agency.mobile_seats_allocated || 0) - used);
+
+  if (remaining <= 0) {
+    showToast(`No remaining mobile allocation for ${agency.agency_name}. Edit the agency to increase Mobile App Seats.`);
+    return;
+  }
+
+  openModal(`Generate Mobile Codes — ${escapeHtml(agency.agency_name)}`, `
+    <div class="stats-grid" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-label">Allocated</div><div class="stat-value">${agency.mobile_seats_allocated || 0}</div></div>
+      <div class="stat-card"><div class="stat-label">Used</div><div class="stat-value">${used}</div></div>
+      <div class="stat-card"><div class="stat-label">Remaining</div><div class="stat-value">${remaining}</div></div>
+    </div>
+    <div class="form-group">
+      <label>Number of Codes to Generate</label>
+      <input type="number" id="fMobileCount" value="1" min="1" max="${remaining}" />
+    </div>
+  `, async () => {
+    const count = parseInt(document.getElementById('fMobileCount').value) || 1;
+
+    try {
+      const result = await api.post('/api/mobile/codes/generate', { agency_id: agencyId, count });
+      closeModal();
+
+      if (result.codes && result.codes.length > 0) {
+        const codesHtml = result.codes.map(c => `<code style="display:block;font-size:15px;background:#f3f4f6;padding:8px 12px;border-radius:6px;margin:4px 0;letter-spacing:1px;">${c}</code>`).join('');
+        openModal('Generated Mobile Access Codes', `
+          <p style="margin-bottom:12px;">Generated <strong>${result.codes.length}</strong> code(s) for <strong>${escapeHtml(result.agency_name || agency.agency_name)}</strong>. Remaining allocation: <strong>${result.remaining}</strong>.</p>
+          <div style="max-height:300px;overflow-y:auto;">${codesHtml}</div>
+          <button class="btn-secondary" onclick="copyToClipboard('${result.codes.join('\n')}')" style="margin-top:12px;">Copy All Codes</button>
+        `, () => { closeModal(); });
+      }
+
       await loadAllData();
     } catch (e) {
       showToast('Error: ' + e.message);

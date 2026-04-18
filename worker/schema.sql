@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS agencies (
   contact_phone TEXT,
   abn TEXT,
   seats_purchased INTEGER DEFAULT 5,
+  mobile_seats_allocated INTEGER DEFAULT 0,
+  mobile_seats_used INTEGER DEFAULT 0,
   is_active INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT (datetime('now')),
   updated_at DATETIME DEFAULT (datetime('now'))
@@ -95,6 +97,19 @@ CREATE TABLE IF NOT EXISTS automation_log (
   performed_at DATETIME DEFAULT (datetime('now'))
 );
 
+-- ─── Mobile Access Codes (BIAB) ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS mobile_access_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  agency_id INTEGER NOT NULL REFERENCES agencies(id),
+  status TEXT NOT NULL DEFAULT 'active',  -- active, redeemed, expired, revoked
+  created_at DATETIME DEFAULT (datetime('now')),
+  redeemed_at DATETIME,
+  redeemed_by TEXT,                       -- device identifier or user name
+  activation_token TEXT,                  -- returned on successful redemption
+  expires_at DATETIME                     -- optional expiry for unused codes
+);
+
 -- ─── Indexes ─────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
 CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
@@ -105,6 +120,9 @@ CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_client ON support_tickets(client_id);
 CREATE INDEX IF NOT EXISTS idx_log_action ON automation_log(action);
 CREATE INDEX IF NOT EXISTS idx_log_time ON automation_log(performed_at);
+CREATE INDEX IF NOT EXISTS idx_mobile_codes_code ON mobile_access_codes(code);
+CREATE INDEX IF NOT EXISTS idx_mobile_codes_agency ON mobile_access_codes(agency_id);
+CREATE INDEX IF NOT EXISTS idx_mobile_codes_status ON mobile_access_codes(status);
 
 -- ─── Default Admin User ───────────────────────────────────────────────────────
 -- Password: ReadyCompliant2026! (SHA-256 hashed)
