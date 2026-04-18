@@ -2,8 +2,14 @@
  * RiteDoc Mobile App — Write Note Screen
  *
  * The primary note entry screen where support workers type their raw
- * progress notes. Features a large multiline text input, word/character
- * count, a clear button, and a "Rewrite Note" action button.
+ * progress notes and tap "Rewrite Note" to transform them into
+ * professional NDIS-compliant notes via the on-device Gemma 2B model.
+ *
+ * States:
+ * 1. Editing — user types raw notes
+ * 2. Loading model — model is being loaded into memory (first use)
+ * 3. Rewriting — inference is running, tokens stream in
+ * 4. Result — rewritten note displayed, ready to copy
  *
  * Keyboard handling:
  * - KeyboardAvoidingView keeps the bottom toolbar visible above the keyboard
@@ -22,12 +28,18 @@ import {
   Keyboard,
   Platform,
   Alert,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRewriter } from '../hooks/useRewriter';
 
 const BRAND_BLUE = '#2563EB';
-const BRAND_BLUE_DARK = '#1D4ED8';
+
+// ─── Screen modes ────────────────────────────────────────────────────
+type ScreenMode = 'editing' | 'rewriting' | 'result';
 
 interface Props {
   onGoBack: () => void;
@@ -35,13 +47,26 @@ interface Props {
 
 export default function WriteNoteScreen({ onGoBack }: Props) {
   const [noteText, setNoteText] = useState('');
+  const [screenMode, setScreenMode] = useState<ScreenMode>('editing');
+  const [rewrittenText, setRewrittenText] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const inputRef = useRef<TextInput>(null);
+
+  const {
+    rewrite,
+    isModelLoading,
+    isRewriting,
+    streamedText,
+    error,
+    clearError,
+  } = useRewriter();
 
   // ── Derived counts ──────────────────────────────────────────────────
   const charCount = noteText.length;
   const wordCount = noteText.trim()
     ? noteText.trim().split(/\s+/).length
     : 0;
+  const hasText = noteText.trim().length > 0;
 
   // ── Handlers ────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
@@ -57,14 +82,17 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
           style: 'destructive',
           onPress: () => {
             setNoteText('');
+            setRewrittenText('');
+            setScreenMode('editing');
+            clearError();
             inputRef.current?.focus();
           },
         },
       ]
     );
-  }, [noteText]);
+  }, [noteText, clearError]);
 
-  const handleRewrite = useCallback(() => {
+  const handleRewrite = useCallback(async () => {
     if (!noteText.trim()) {
       Alert.alert(
         'Nothing to Rewrite',
@@ -73,13 +101,54 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
       return;
     }
 
-    Alert.alert(
-      'Rewrite Coming Soon',
-      'The AI rewrite feature will transform your raw notes into a polished, professional progress note. This feature is coming in the next update.'
-    );
-  }, [noteText]);
+    Keyboard.dismiss();
+    setScreenMode('rewriting');
+    setRewrittenText('');
+    clearError();
+
+    const result = await rewrite(noteText);
+
+    if (result) {
+      setRewrittenText(result.text);
+      setScreenMode('result');
+    } else {
+      // Error occurred — go back to editing mode
+      setScreenMode('editing');
+    }
+  }, [noteText, rewrite, clearError]);
+
+  const handleCopy = useCallback(async () => {
+    if (!rewrittenText) return;
+
+    try {
+      await Clipboard.setStringAsync(rewrittenText);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    } catch {
+      Alert.alert('Copy Failed', 'Could not copy text to clipboard.');
+    }
+  }, [rewrittenText]);
+
+  const handleEditAgain = useCallback(() => {
+    setScreenMode('editing');
+    setRewrittenText('');
+    clearError();
+  }, [clearError]);
+
+  const handleUseRewritten = useCallback(() => {
+    // Replace the raw note with the rewritten version
+    setNoteText(rewrittenText);
+    setRewrittenText('');
+    setScreenMode('editing');
+    clearError();
+  }, [rewrittenText, clearError]);
 
   const handleBack = useCallback(() => {
+    if (screenMode === 'rewriting') {
+      // Don't allow back during rewriting
+      return;
+    }
+
     if (noteText.trim()) {
       Alert.alert(
         'Discard Note?',
@@ -96,40 +165,226 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
     } else {
       onGoBack();
     }
-  }, [noteText, onGoBack]);
+  }, [noteText, onGoBack, screenMode]);
 
-  const hasText = noteText.trim().length > 0;
+  // ── Render: Rewriting / Loading state ──────────────────────────────
+  const renderRewritingState = () => (
+    <View style={styles.rewritingContainer}>
+      <View style={styles.rewritingHeader}>
+        <ActivityIndicator size="small" color={BRAND_BLUE} />
+        <Text style={styles.rewritingTitle}>
+          {isModelLoading ? 'Loading AI Model...' : 'Rewriting Note...'}
+        </Text>
+      </View>
+      <Text style={styles.rewritingSubtitle}>
+        {isModelLoading
+          ? 'Preparing the on-device AI model. This may take a moment on first use.'
+          : 'Transforming your notes into a professional progress note.'}
+      </Text>
 
+      {/* Streaming preview */}
+      {streamedText ? (
+        <ScrollView style={styles.streamPreview} nestedScrollEnabled>
+          <Text style={styles.streamPreviewText}>{streamedText}</Text>
+        </ScrollView>
+      ) : (
+        <View style={styles.streamPreviewPlaceholder}>
+          <Text style={styles.streamPreviewPlaceholderText}>
+            {isModelLoading
+              ? 'The model runs entirely on this device — no internet needed.'
+              : 'Tokens will appear here as they are generated...'}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  // ── Render: Result state ───────────────────────────────────────────
+  const renderResultState = () => (
+    <View style={styles.resultContainer}>
+      {/* Result header */}
+      <View style={styles.resultHeader}>
+        <View style={styles.resultBadge}>
+          <Text style={styles.resultBadgeText}>✓ Rewritten</Text>
+        </View>
+      </View>
+
+      {/* Rewritten note */}
+      <ScrollView
+        style={styles.resultScroll}
+        contentContainerStyle={styles.resultScrollContent}
+        nestedScrollEnabled
+      >
+        <Text style={styles.resultText} selectable>
+          {rewrittenText}
+        </Text>
+      </ScrollView>
+
+      {/* Action buttons */}
+      <View style={styles.resultActions}>
+        <TouchableOpacity
+          style={styles.copyButton}
+          onPress={handleCopy}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.copyButtonText}>
+            {copyFeedback ? '✓ Copied!' : '📋 Copy to Clipboard'}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.resultSecondaryActions}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleEditAgain}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>Edit Original</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleUseRewritten}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>Use as Base</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  // ── Render: Editing state (default) ────────────────────────────────
+  const renderEditingState = () => (
+    <>
+      {/* Text Input Area */}
+      <View style={styles.inputWrapper}>
+        <TextInput
+          ref={inputRef}
+          style={styles.textInput}
+          value={noteText}
+          onChangeText={setNoteText}
+          placeholder={
+            'Type your raw progress notes here...\n\n' +
+            'Even dot points are fine — for example:\n' +
+            '• Assisted client with morning routine\n' +
+            '• Client was in good spirits today\n' +
+            '• Reminded about medication at 10am\n' +
+            '• Went for a 20 min walk together'
+          }
+          placeholderTextColor="#9CA3AF"
+          multiline
+          textAlignVertical="top"
+          autoCorrect
+          autoCapitalize="sentences"
+          spellCheck
+          scrollEnabled
+          returnKeyType="default"
+          blurOnSubmit={false}
+          autoFocus={screenMode === 'editing'}
+        />
+      </View>
+
+      {/* Error banner */}
+      {error ? (
+        <TouchableOpacity
+          style={styles.errorBanner}
+          onPress={clearError}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.errorBannerText}>⚠ {error}</Text>
+          <Text style={styles.errorDismiss}>Tap to dismiss</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {/* Stats Bar */}
+      <View style={styles.statsBar}>
+        <View style={styles.statsLeft}>
+          <View style={styles.statBadge}>
+            <Text style={styles.statValue}>{wordCount}</Text>
+            <Text style={styles.statLabel}>
+              {wordCount === 1 ? ' word' : ' words'}
+            </Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statBadge}>
+            <Text style={styles.statValue}>{charCount}</Text>
+            <Text style={styles.statLabel}>
+              {charCount === 1 ? ' char' : ' chars'}
+            </Text>
+          </View>
+        </View>
+        {hasText && (
+          <View style={styles.readyIndicator}>
+            <View style={styles.readyDot} />
+            <Text style={styles.readyText}>Ready to rewrite</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Bottom Action */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity
+          style={[
+            styles.rewriteButton,
+            !hasText && styles.rewriteButtonDisabled,
+          ]}
+          onPress={handleRewrite}
+          activeOpacity={0.85}
+          disabled={!hasText}
+        >
+          <Text style={styles.rewriteButtonIcon}>✨</Text>
+          <Text style={styles.rewriteButtonText}>Rewrite Note</Text>
+        </TouchableOpacity>
+        <Text style={styles.rewriteHint}>
+          {hasText
+            ? 'Tap to transform your notes into a professional progress note'
+            : 'Start typing above, then tap to rewrite'}
+        </Text>
+      </View>
+    </>
+  );
+
+  // ── Main render ────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.inner}>
-            {/* ── Header ─────────────────────────────────────────── */}
+            {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity
                 onPress={handleBack}
                 style={styles.backButton}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                disabled={screenMode === 'rewriting'}
               >
-                <Text style={styles.backButtonText}>← Back</Text>
+                <Text
+                  style={[
+                    styles.backButtonText,
+                    screenMode === 'rewriting' && styles.backButtonDisabled,
+                  ]}
+                >
+                  ← Back
+                </Text>
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>New Note</Text>
+              <Text style={styles.headerTitle}>
+                {screenMode === 'result' ? 'Rewritten Note' : 'New Note'}
+              </Text>
               <TouchableOpacity
                 onPress={handleClear}
                 style={styles.clearButton}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                disabled={!hasText}
+                disabled={!hasText || screenMode === 'rewriting'}
               >
                 <Text
                   style={[
                     styles.clearButtonText,
-                    !hasText && styles.clearButtonTextDisabled,
+                    (!hasText || screenMode === 'rewriting') &&
+                      styles.clearButtonTextDisabled,
                   ]}
                 >
                   Clear
@@ -137,78 +392,10 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* ── Text Input Area ────────────────────────────────── */}
-            <View style={styles.inputWrapper}>
-              <TextInput
-                ref={inputRef}
-                style={styles.textInput}
-                value={noteText}
-                onChangeText={setNoteText}
-                placeholder={
-                  'Type your raw progress notes here...\n\n' +
-                  'Even dot points are fine — for example:\n' +
-                  '• Assisted client with morning routine\n' +
-                  '• Client was in good spirits today\n' +
-                  '• Reminded about medication at 10am\n' +
-                  '• Went for a 20 min walk together'
-                }
-                placeholderTextColor="#9CA3AF"
-                multiline
-                textAlignVertical="top"
-                autoCorrect
-                autoCapitalize="sentences"
-                spellCheck
-                scrollEnabled
-                returnKeyType="default"
-                blurOnSubmit={false}
-                autoFocus
-              />
-            </View>
-
-            {/* ── Stats Bar ──────────────────────────────────────── */}
-            <View style={styles.statsBar}>
-              <View style={styles.statsLeft}>
-                <View style={styles.statBadge}>
-                  <Text style={styles.statValue}>{wordCount}</Text>
-                  <Text style={styles.statLabel}>
-                    {wordCount === 1 ? ' word' : ' words'}
-                  </Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statBadge}>
-                  <Text style={styles.statValue}>{charCount}</Text>
-                  <Text style={styles.statLabel}>
-                    {charCount === 1 ? ' char' : ' chars'}
-                  </Text>
-                </View>
-              </View>
-              {hasText && (
-                <View style={styles.readyIndicator}>
-                  <View style={styles.readyDot} />
-                  <Text style={styles.readyText}>Ready to rewrite</Text>
-                </View>
-              )}
-            </View>
-
-            {/* ── Bottom Action ───────────────────────────────────── */}
-            <View style={styles.bottomBar}>
-              <TouchableOpacity
-                style={[
-                  styles.rewriteButton,
-                  !hasText && styles.rewriteButtonDisabled,
-                ]}
-                onPress={handleRewrite}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.rewriteButtonIcon}>✨</Text>
-                <Text style={styles.rewriteButtonText}>Rewrite Note</Text>
-              </TouchableOpacity>
-              <Text style={styles.rewriteHint}>
-                {hasText
-                  ? 'Tap to transform your notes into a professional progress note'
-                  : 'Start typing above, then tap to rewrite'}
-              </Text>
-            </View>
+            {/* Content based on screen mode */}
+            {screenMode === 'rewriting' && renderRewritingState()}
+            {screenMode === 'result' && renderResultState()}
+            {screenMode === 'editing' && renderEditingState()}
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -250,6 +437,9 @@ const styles = StyleSheet.create({
     color: BRAND_BLUE,
     fontWeight: '600',
   },
+  backButtonDisabled: {
+    color: '#D1D5DB',
+  },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
@@ -269,6 +459,8 @@ const styles = StyleSheet.create({
   clearButtonTextDisabled: {
     color: '#D1D5DB',
   },
+
+  // ── Editing state ──────────────────────────────────────────────────
 
   // Text Input
   inputWrapper: {
@@ -293,6 +485,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     lineHeight: 24,
+  },
+
+  // Error banner
+  errorBanner: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorBannerText: {
+    fontSize: 13,
+    color: '#DC2626',
+    lineHeight: 18,
+  },
+  errorDismiss: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
 
   // Stats Bar
@@ -384,5 +597,144 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     lineHeight: 16,
+  },
+
+  // ── Rewriting state ────────────────────────────────────────────────
+
+  rewritingContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+  },
+  rewritingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rewritingTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: BRAND_BLUE,
+    marginLeft: 10,
+  },
+  rewritingSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  streamPreview: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    padding: 18,
+  },
+  streamPreviewText: {
+    fontSize: 15,
+    color: '#111827',
+    lineHeight: 23,
+  },
+  streamPreviewPlaceholder: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streamPreviewPlaceholderText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // ── Result state ───────────────────────────────────────────────────
+
+  resultContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  resultHeader: {
+    marginBottom: 12,
+  },
+  resultBadge: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  resultBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  resultScroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  resultScrollContent: {
+    padding: 18,
+  },
+  resultText: {
+    fontSize: 16,
+    color: '#111827',
+    lineHeight: 25,
+  },
+  resultActions: {
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
+  },
+  copyButton: {
+    backgroundColor: BRAND_BLUE,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: BRAND_BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    marginBottom: 10,
+  },
+  copyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  resultSecondaryActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

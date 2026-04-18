@@ -11,3 +11,7 @@ npm-debug.*
 web-build/
 .env
 .env.local
+
+# AI model files (too large for Git)
+*.gguf
+models/
