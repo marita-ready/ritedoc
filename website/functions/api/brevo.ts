@@ -1,22 +1,22 @@
+export async function onRequestOptions() {
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
 export async function onRequestPost(context) {
   try {
     const body = await context.request.json();
-
-    const apiKey = (context.env.BREVO_API_KEY || context.env.VITE_BREVO_API_KEY || "").trim();
-
-
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API key not configured" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
 
     const brevoResponse = await fetch("https://api.brevo.com/v3/contacts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "api-key": apiKey,
+        "api-key": "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",
       },
       body: JSON.stringify(body),
     });
@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   }
 }
