@@ -13,22 +13,13 @@ import {
   Star,
 } from "lucide-react";
 
-// Set VITE_BREVO_API_KEY in Cloudflare Pages environment variables (never commit the real key)
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY as string;
-// List ID 2 = RiteDoc Private Beta list in Brevo
-const WAITLIST_LIST_ID = 2;
-
-async function submitToBrevoWaitlist(firstName: string, email: string) {
-  const res = await fetch("/api/brevo", {
-
+async function submitToWaitlist(firstName: string, email: string) {
+  const res = await fetch("/api/join-beta", {
     method: "POST",
-   headers: { "Content-Type": "application/json" },
-
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      name: firstName,
       email,
-      attributes: { FIRSTNAME: firstName },
-      listIds: [WAITLIST_LIST_ID],
-      updateEnabled: true,
     }),
   });
   if (!res.ok && res.status !== 400) {
@@ -48,7 +39,7 @@ export default function Waitlist() {
     if (!firstName.trim() || !email.trim()) return;
     setFormState("loading");
     try {
-      await submitToBrevoWaitlist(firstName.trim(), email.trim());
+      await submitToWaitlist(firstName.trim(), email.trim());
       setFormState("success");
       setFirstName("");
       setEmail("");
@@ -82,7 +73,7 @@ export default function Waitlist() {
           </div>
         </section>
 
-        {/* Brevo contact form */}
+        {/* Contact form */}
         <section className="pb-20 bg-white">
           <div className="max-w-xl mx-auto px-6">
             <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
