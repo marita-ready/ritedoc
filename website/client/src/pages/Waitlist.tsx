@@ -19,9 +19,11 @@ const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY as string;
 const WAITLIST_LIST_ID = 2;
 
 async function submitToBrevoWaitlist(firstName: string, email: string) {
-  const res = await fetch("https://api.brevo.com/v3/contacts", {
+  const res = await fetch("/api/brevo", {
+
     method: "POST",
-    headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json" },
+   headers: { "Content-Type": "application/json" },
+
     body: JSON.stringify({
       email,
       attributes: { FIRSTNAME: firstName },
