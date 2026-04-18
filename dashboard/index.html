@@ -186,34 +186,174 @@
         </div>
       </section>
 
-      <!-- ===== SUPPORT TICKETS ===== -->
+      <!-- ===== SUPPORT TICKETS (BIAB) ===== -->
       <section id="sec-support" class="section">
-        <div class="section-toolbar">
-          <div class="filter-group">
-            <button class="filter-btn active" data-filter="all" onclick="filterTickets('all')">All</button>
-            <button class="filter-btn" data-filter="open" onclick="filterTickets('open')">Open</button>
-            <button class="filter-btn" data-filter="in_progress" onclick="filterTickets('in_progress')">In Progress</button>
-            <button class="filter-btn" data-filter="resolved" onclick="filterTickets('resolved')">Resolved</button>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" style="grid-template-columns: repeat(6, 1fr); margin-bottom: 24px;">
+          <div class="stat-card" style="border-left: 3px solid var(--red);">
+            <div class="stat-label">Open</div>
+            <div class="stat-value" id="statTicketOpen">&mdash;</div>
           </div>
-          <button class="btn-primary" onclick="showAddTicketModal()">+ New Ticket</button>
+          <div class="stat-card" style="border-left: 3px solid var(--orange);">
+            <div class="stat-label">In Progress</div>
+            <div class="stat-value" id="statTicketInProgress">&mdash;</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid #2563eb;">
+            <div class="stat-label">Waiting on Customer</div>
+            <div class="stat-value" id="statTicketWaiting">&mdash;</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid var(--green);">
+            <div class="stat-label">Resolved</div>
+            <div class="stat-value" id="statTicketResolved">&mdash;</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid #6b7280;">
+            <div class="stat-label">Closed</div>
+            <div class="stat-value" id="statTicketClosed">&mdash;</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid var(--indigo);">
+            <div class="stat-label">Total</div>
+            <div class="stat-value" id="statTicketTotal">&mdash;</div>
+          </div>
         </div>
-        <div class="data-table-wrapper">
-          <table class="data-table" id="ticketsTable">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Client</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="ticketsBody">
-              <tr><td colspan="7" class="table-empty">Loading tickets...</td></tr>
-            </tbody>
-          </table>
+
+        <!-- Agency Ticket View -->
+        <div style="margin-bottom: 32px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">Submit &amp; Track Tickets</h3>
+          <div class="section-toolbar">
+            <select id="ticketAgencyFilter" onchange="filterTicketsByAgency()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;min-width:200px;">
+              <option value="">All Agencies</option>
+            </select>
+            <div style="display:flex;gap:8px;">
+              <select id="ticketCategoryFilter" onchange="filterTicketsByDropdowns()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;">
+                <option value="">All Categories</option>
+                <option value="activation_failed">Activation Failed</option>
+                <option value="licence_expired">Licence Expired</option>
+                <option value="billing_query">Billing Query</option>
+                <option value="app_crash">App Crash</option>
+                <option value="feature_request">Feature Request</option>
+                <option value="other">Other</option>
+              </select>
+              <button class="btn-primary" onclick="showAddTicketModal()">+ Submit Ticket</button>
+            </div>
+          </div>
+
+          <div class="section-toolbar" style="margin-top:8px;">
+            <div class="filter-group">
+              <button class="filter-btn active" data-ticket-filter="all" onclick="filterTicketsByStatus('all')">All</button>
+              <button class="filter-btn" data-ticket-filter="open" onclick="filterTicketsByStatus('open')">Open</button>
+              <button class="filter-btn" data-ticket-filter="in_progress" onclick="filterTicketsByStatus('in_progress')">In Progress</button>
+              <button class="filter-btn" data-ticket-filter="waiting_on_customer" onclick="filterTicketsByStatus('waiting_on_customer')">Waiting</button>
+              <button class="filter-btn" data-ticket-filter="resolved" onclick="filterTicketsByStatus('resolved')">Resolved</button>
+              <button class="filter-btn" data-ticket-filter="closed" onclick="filterTicketsByStatus('closed')">Closed</button>
+            </div>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table" id="ticketsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Agency</th>
+                  <th>Submitted By</th>
+                  <th>Subject</th>
+                  <th>Category</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Assigned To</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ticketsBody">
+                <tr><td colspan="10" class="table-empty">Loading tickets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin: All Tickets Overview -->
+        <div style="margin-bottom: 32px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">Admin Overview &mdash; All Tickets</h3>
+
+          <!-- Admin Summary Cards -->
+          <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+            <div class="stat-card" style="border-left: 3px solid var(--red);">
+              <div class="stat-label">Unassigned</div>
+              <div class="stat-value" id="statTicketUnassigned">&mdash;</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid var(--indigo);">
+              <div class="stat-label">Avg Resolution (hrs)</div>
+              <div class="stat-value" id="statTicketAvgResolution">&mdash;</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid var(--orange);">
+              <div class="stat-label">Urgent/High Open</div>
+              <div class="stat-value" id="statTicketUrgentHigh">&mdash;</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid var(--green);">
+              <div class="stat-label">Agencies with Tickets</div>
+              <div class="stat-value" id="statTicketAgencyCount">&mdash;</div>
+            </div>
+          </div>
+
+          <!-- Unassigned Tickets -->
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Unassigned Tickets (Priority Order)</h4>
+          <div class="data-table-wrapper" style="margin-bottom: 24px;">
+            <table class="data-table" id="unassignedTicketsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Agency</th>
+                  <th>Subject</th>
+                  <th>Category</th>
+                  <th>Priority</th>
+                  <th>Submitted By</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="unassignedTicketsBody">
+                <tr><td colspan="8" class="table-empty">Loading unassigned tickets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Tickets by Agency -->
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Tickets by Agency</h4>
+          <div class="data-table-wrapper" style="margin-bottom: 24px;">
+            <table class="data-table" id="ticketsByAgencyTable">
+              <thead>
+                <tr>
+                  <th>Agency</th>
+                  <th>Total</th>
+                  <th>Open</th>
+                  <th>In Progress</th>
+                  <th>Resolved</th>
+                  <th>Closed</th>
+                </tr>
+              </thead>
+              <tbody id="ticketsByAgencyBody">
+                <tr><td colspan="6" class="table-empty">Loading agency ticket data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Tickets by Category -->
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Tickets by Category</h4>
+          <div class="data-table-wrapper">
+            <table class="data-table" id="ticketsByCategoryTable">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Total</th>
+                  <th>Active</th>
+                </tr>
+              </thead>
+              <tbody id="ticketsByCategoryBody">
+                <tr><td colspan="3" class="table-empty">Loading category data...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

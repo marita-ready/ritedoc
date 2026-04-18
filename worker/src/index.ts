@@ -841,41 +841,445 @@ app.post('/api/cartridges/upload', authMiddleware, async (c) => {
   });
 });
 
-// ─── SUPPORT TICKETS ─────────────────────────────────────────────────────────
+// ─── SUPPORT TICKETS (BIAB) ──────────────────────────────────────────────────
 
-app.get('/api/support/tickets', authMiddleware, async (c) => {
-  const { results } = await c.env.DB.prepare(
-    `SELECT t.*, c.business_name as client_name
-     FROM support_tickets t
-     LEFT JOIN clients c ON t.client_id = c.id
-     ORDER BY t.created_at DESC`
-  ).all();
-  return c.json(results);
-});
+const VALID_TICKET_CATEGORIES = ['activation_failed', 'licence_expired', 'billing_query', 'app_crash', 'feature_request', 'other'];
+const VALID_TICKET_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+const VALID_TICKET_STATUSES = ['open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed'];
 
+/**
+ * POST /api/support/tickets
+ * Agency submits a new support ticket.
+ * Body: { agency_id, submitted_by, submitted_by_email, category, priority, subject, description }
+ */
 app.post('/api/support/tickets', authMiddleware, async (c) => {
   const body = await c.req.json<any>();
-  const { client_id, subject, category, description, priority } = body;
+  const { agency_id, submitted_by, submitted_by_email, category, priority, subject, description } = body;
+
+  if (!agency_id) return c.json({ error: 'agency_id is required' }, 400);
+  if (!submitted_by || !submitted_by.trim()) return c.json({ error: 'submitted_by is required' }, 400);
+  if (!submitted_by_email || !submitted_by_email.trim()) return c.json({ error: 'submitted_by_email is required' }, 400);
+  if (!subject || !subject.trim()) return c.json({ error: 'subject is required' }, 400);
+
+  const agency = await c.env.DB.prepare(
+    'SELECT id, agency_name FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string }>();
+
+  if (!agency) return c.json({ error: 'Agency not found or inactive' }, 404);
+
+  const cat = VALID_TICKET_CATEGORIES.includes(category) ? category : 'other';
+  const pri = VALID_TICKET_PRIORITIES.includes(priority) ? priority : 'medium';
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO support_tickets (client_id, subject, category, description, priority, status)
-     VALUES (?, ?, ?, ?, ?, 'open')`
-  ).bind(client_id || null, subject || 'Support Request', category || 'general', description || '', priority || 'normal').run();
+    `INSERT INTO support_tickets (agency_id, submitted_by, submitted_by_email, category, priority, subject, description, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'open')`
+  ).bind(agency_id, submitted_by.trim(), submitted_by_email.trim(), cat, pri, subject.trim(), description || '').run();
+
+  await logAction(c.env.DB, 'support_ticket_created', {
+    ticket_id: result.meta.last_row_id,
+    agency_id,
+    agency_name: agency.agency_name,
+    category: cat,
+    priority: pri,
+    subject: subject.trim(),
+  }, c.get('jwtPayload')?.email || submitted_by_email.trim());
 
   return c.json({ success: true, id: result.meta.last_row_id }, 201);
 });
 
+/**
+ * GET /api/support/tickets
+ * List tickets. Supports filters:
+ *   ?agency_id=N — filter by agency
+ *   ?status=open|in_progress|... — filter by status
+ *   ?category=activation_failed|... — filter by category
+ *   ?priority=low|medium|high|urgent — filter by priority
+ */
+app.get('/api/support/tickets', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const status = c.req.query('status');
+  const category = c.req.query('category');
+  const priority = c.req.query('priority');
+
+  let query = `
+    SELECT t.*, a.agency_name
+    FROM support_tickets t
+    LEFT JOIN agencies a ON t.agency_id = a.id
+  `;
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (agencyId) {
+    conditions.push('t.agency_id = ?');
+    params.push(parseInt(agencyId));
+  }
+  if (status && VALID_TICKET_STATUSES.includes(status)) {
+    conditions.push('t.status = ?');
+    params.push(status);
+  }
+  if (category && VALID_TICKET_CATEGORIES.includes(category)) {
+    conditions.push('t.category = ?');
+    params.push(category);
+  }
+  if (priority && VALID_TICKET_PRIORITIES.includes(priority)) {
+    conditions.push('t.priority = ?');
+    params.push(priority);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  query += ' ORDER BY t.created_at DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/support/tickets/stats
+ * Ticket stats. Optionally filter by ?agency_id=N.
+ * Returns counts by status and by category.
+ */
+app.get('/api/support/tickets/stats', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const agencyFilter = agencyId ? ' WHERE agency_id = ?' : '';
+  const bindParams = agencyId ? [parseInt(agencyId)] : [];
+
+  const statusStats = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*) as total,
+      COALESCE(SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END), 0) as open,
+      COALESCE(SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END), 0) as in_progress,
+      COALESCE(SUM(CASE WHEN status = 'waiting_on_customer' THEN 1 ELSE 0 END), 0) as waiting_on_customer,
+      COALESCE(SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END), 0) as resolved,
+      COALESCE(SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END), 0) as closed
+    FROM support_tickets${agencyFilter}
+  `).bind(...bindParams).first<any>();
+
+  const { results: categoryStats } = await (bindParams.length > 0
+    ? c.env.DB.prepare(`
+        SELECT category, COUNT(*) as count
+        FROM support_tickets${agencyFilter}
+        GROUP BY category ORDER BY count DESC
+      `).bind(...bindParams)
+    : c.env.DB.prepare(`
+        SELECT category, COUNT(*) as count
+        FROM support_tickets
+        GROUP BY category ORDER BY count DESC
+      `)
+  ).all();
+
+  return c.json({
+    total: statusStats?.total || 0,
+    open: statusStats?.open || 0,
+    in_progress: statusStats?.in_progress || 0,
+    waiting_on_customer: statusStats?.waiting_on_customer || 0,
+    resolved: statusStats?.resolved || 0,
+    closed: statusStats?.closed || 0,
+    by_category: categoryStats || [],
+  });
+});
+
+/**
+ * GET /api/support/tickets/admin-overview
+ * Admin overview: all tickets across agencies, unassigned tickets, response time stats.
+ */
+app.get('/api/support/tickets/admin-overview', authMiddleware, async (c) => {
+  // Platform-wide stats
+  const platformStats = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*) as total,
+      COALESCE(SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END), 0) as open,
+      COALESCE(SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END), 0) as in_progress,
+      COALESCE(SUM(CASE WHEN status = 'waiting_on_customer' THEN 1 ELSE 0 END), 0) as waiting_on_customer,
+      COALESCE(SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END), 0) as resolved,
+      COALESCE(SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END), 0) as closed,
+      COALESCE(SUM(CASE WHEN assigned_to IS NULL AND status IN ('open','in_progress') THEN 1 ELSE 0 END), 0) as unassigned
+    FROM support_tickets
+  `).first<any>();
+
+  // Per-agency breakdown
+  const { results: agencyBreakdown } = await c.env.DB.prepare(`
+    SELECT
+      t.agency_id,
+      a.agency_name,
+      COUNT(*) as total_tickets,
+      COALESCE(SUM(CASE WHEN t.status = 'open' THEN 1 ELSE 0 END), 0) as open,
+      COALESCE(SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END), 0) as in_progress,
+      COALESCE(SUM(CASE WHEN t.status = 'resolved' THEN 1 ELSE 0 END), 0) as resolved,
+      COALESCE(SUM(CASE WHEN t.status = 'closed' THEN 1 ELSE 0 END), 0) as closed
+    FROM support_tickets t
+    LEFT JOIN agencies a ON t.agency_id = a.id
+    GROUP BY t.agency_id
+    ORDER BY open DESC, total_tickets DESC
+  `).all();
+
+  // By category
+  const { results: categoryBreakdown } = await c.env.DB.prepare(`
+    SELECT category, COUNT(*) as count,
+      COALESCE(SUM(CASE WHEN status IN ('open','in_progress','waiting_on_customer') THEN 1 ELSE 0 END), 0) as active
+    FROM support_tickets
+    GROUP BY category ORDER BY count DESC
+  `).all();
+
+  // By priority
+  const { results: priorityBreakdown } = await c.env.DB.prepare(`
+    SELECT priority, COUNT(*) as count,
+      COALESCE(SUM(CASE WHEN status IN ('open','in_progress','waiting_on_customer') THEN 1 ELSE 0 END), 0) as active
+    FROM support_tickets
+    GROUP BY priority ORDER BY
+      CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 END
+  `).all();
+
+  // Unassigned tickets
+  const { results: unassignedTickets } = await c.env.DB.prepare(`
+    SELECT t.*, a.agency_name
+    FROM support_tickets t
+    LEFT JOIN agencies a ON t.agency_id = a.id
+    WHERE t.assigned_to IS NULL AND t.status IN ('open', 'in_progress')
+    ORDER BY
+      CASE t.priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 END,
+      t.created_at ASC
+    LIMIT 20
+  `).all();
+
+  // Recent tickets (last 20)
+  const { results: recentTickets } = await c.env.DB.prepare(`
+    SELECT t.*, a.agency_name
+    FROM support_tickets t
+    LEFT JOIN agencies a ON t.agency_id = a.id
+    ORDER BY t.created_at DESC
+    LIMIT 20
+  `).all();
+
+  // Average resolution time (for resolved/closed tickets)
+  const avgResolution = await c.env.DB.prepare(`
+    SELECT AVG(
+      (julianday(COALESCE(resolved_at, closed_at)) - julianday(created_at)) * 24
+    ) as avg_hours
+    FROM support_tickets
+    WHERE status IN ('resolved', 'closed') AND (resolved_at IS NOT NULL OR closed_at IS NOT NULL)
+  `).first<{ avg_hours: number | null }>();
+
+  return c.json({
+    platform: {
+      total: platformStats?.total || 0,
+      open: platformStats?.open || 0,
+      in_progress: platformStats?.in_progress || 0,
+      waiting_on_customer: platformStats?.waiting_on_customer || 0,
+      resolved: platformStats?.resolved || 0,
+      closed: platformStats?.closed || 0,
+      unassigned: platformStats?.unassigned || 0,
+      avg_resolution_hours: avgResolution?.avg_hours ? Math.round(avgResolution.avg_hours * 10) / 10 : null,
+    },
+    agencies: agencyBreakdown || [],
+    by_category: categoryBreakdown || [],
+    by_priority: priorityBreakdown || [],
+    unassigned_tickets: unassignedTickets || [],
+    recent: recentTickets || [],
+  });
+});
+
+/**
+ * GET /api/support/tickets/:id
+ * Get a single ticket detail including replies.
+ */
+app.get('/api/support/tickets/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+
+  const ticket = await c.env.DB.prepare(
+    `SELECT t.*, a.agency_name
+     FROM support_tickets t
+     LEFT JOIN agencies a ON t.agency_id = a.id
+     WHERE t.id = ?`
+  ).bind(id).first();
+
+  if (!ticket) {
+    return c.json({ error: 'Ticket not found' }, 404);
+  }
+
+  const { results: replies } = await c.env.DB.prepare(
+    'SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY created_at ASC'
+  ).bind(id).all();
+
+  return c.json({ ...ticket, replies: replies || [] });
+});
+
+/**
+ * PUT /api/support/tickets/:id
+ * Update ticket (change status, priority, assign to admin, add resolution notes).
+ * Body: { status?, priority?, assigned_to?, resolution_notes? }
+ */
 app.put('/api/support/tickets/:id', authMiddleware, async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json<any>();
-  const { status, resolution, notes, priority } = body;
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const ticket = await c.env.DB.prepare(
+    'SELECT * FROM support_tickets WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; status: string; priority: string; assigned_to: string | null }>();
+
+  if (!ticket) {
+    return c.json({ error: 'Ticket not found' }, 404);
+  }
+
+  const statusVal = body.status && VALID_TICKET_STATUSES.includes(body.status) ? body.status : ticket.status;
+  const priorityVal = body.priority && VALID_TICKET_PRIORITIES.includes(body.priority) ? body.priority : ticket.priority;
+  const assignedTo = body.assigned_to !== undefined ? (body.assigned_to || null) : ticket.assigned_to;
+  const resolutionNotes = body.resolution_notes !== undefined ? (body.resolution_notes || null) : undefined;
+
+  let updateFields = `status = ?, priority = ?, assigned_to = ?, updated_at = datetime('now')`;
+  const updateParams: any[] = [statusVal, priorityVal, assignedTo];
+
+  if (resolutionNotes !== undefined) {
+    updateFields += ', resolution_notes = ?';
+    updateParams.push(resolutionNotes);
+  }
+
+  // Set resolved_at when transitioning to resolved
+  if (statusVal === 'resolved' && ticket.status !== 'resolved') {
+    updateFields += ", resolved_at = datetime('now')";
+  }
+
+  // Set closed_at when transitioning to closed
+  if (statusVal === 'closed' && ticket.status !== 'closed') {
+    updateFields += ", closed_at = datetime('now')";
+  }
+
+  updateParams.push(id);
 
   await c.env.DB.prepare(
-    `UPDATE support_tickets SET status = ?, resolution = ?, notes = ?, priority = ?,
-     updated_at = datetime('now') WHERE id = ?`
-  ).bind(status || 'open', resolution || null, notes || null, priority || 'normal', id).run();
+    `UPDATE support_tickets SET ${updateFields} WHERE id = ?`
+  ).bind(...updateParams).run();
+
+  await logAction(c.env.DB, 'support_ticket_updated', {
+    ticket_id: parseInt(id),
+    agency_id: ticket.agency_id,
+    changes: {
+      status: statusVal !== ticket.status ? { from: ticket.status, to: statusVal } : undefined,
+      priority: priorityVal !== ticket.priority ? { from: ticket.priority, to: priorityVal } : undefined,
+      assigned_to: assignedTo !== ticket.assigned_to ? { from: ticket.assigned_to, to: assignedTo } : undefined,
+    },
+  }, adminEmail);
 
   return c.json({ success: true });
+});
+
+/**
+ * PUT /api/support/tickets/:id/resolve
+ * Resolve a ticket.
+ * Body: { resolution_notes? }
+ */
+app.put('/api/support/tickets/:id/resolve', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const ticket = await c.env.DB.prepare(
+    'SELECT * FROM support_tickets WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; status: string }>();
+
+  if (!ticket) return c.json({ error: 'Ticket not found' }, 404);
+  if (ticket.status === 'resolved' || ticket.status === 'closed') {
+    return c.json({ error: `Ticket is already ${ticket.status}` }, 400);
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE support_tickets SET status = 'resolved', resolution_notes = ?,
+     resolved_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+  ).bind(body.resolution_notes || null, id).run();
+
+  await logAction(c.env.DB, 'support_ticket_resolved', {
+    ticket_id: parseInt(id),
+    agency_id: ticket.agency_id,
+  }, adminEmail);
+
+  return c.json({ success: true });
+});
+
+/**
+ * PUT /api/support/tickets/:id/close
+ * Close a ticket.
+ * Body: { resolution_notes? }
+ */
+app.put('/api/support/tickets/:id/close', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const ticket = await c.env.DB.prepare(
+    'SELECT * FROM support_tickets WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; status: string }>();
+
+  if (!ticket) return c.json({ error: 'Ticket not found' }, 404);
+  if (ticket.status === 'closed') {
+    return c.json({ error: 'Ticket is already closed' }, 400);
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE support_tickets SET status = 'closed', resolution_notes = CASE WHEN ? IS NOT NULL THEN ? ELSE resolution_notes END,
+     closed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+  ).bind(body.resolution_notes || null, body.resolution_notes || null, id).run();
+
+  await logAction(c.env.DB, 'support_ticket_closed', {
+    ticket_id: parseInt(id),
+    agency_id: ticket.agency_id,
+  }, adminEmail);
+
+  return c.json({ success: true });
+});
+
+/**
+ * POST /api/support/tickets/:id/replies
+ * Add a reply to a ticket.
+ * Body: { author_name, author_role (agency|admin), message }
+ */
+app.post('/api/support/tickets/:id/replies', authMiddleware, async (c) => {
+  const ticketId = c.req.param('id');
+  const body = await c.req.json<any>();
+  const { author_name, author_role, message } = body;
+
+  if (!author_name || !author_name.trim()) return c.json({ error: 'author_name is required' }, 400);
+  if (!message || !message.trim()) return c.json({ error: 'message is required' }, 400);
+
+  const ticket = await c.env.DB.prepare(
+    'SELECT id, agency_id, status FROM support_tickets WHERE id = ?'
+  ).bind(ticketId).first<{ id: number; agency_id: number; status: string }>();
+
+  if (!ticket) return c.json({ error: 'Ticket not found' }, 404);
+
+  const role = author_role === 'admin' ? 'admin' : 'agency';
+
+  const result = await c.env.DB.prepare(
+    'INSERT INTO ticket_replies (ticket_id, author_name, author_role, message) VALUES (?, ?, ?, ?)'
+  ).bind(ticketId, author_name.trim(), role, message.trim()).run();
+
+  // Auto-update ticket status based on who replied
+  if (role === 'admin' && ticket.status === 'open') {
+    await c.env.DB.prepare(
+      "UPDATE support_tickets SET status = 'in_progress', updated_at = datetime('now') WHERE id = ?"
+    ).bind(ticketId).run();
+  } else if (role === 'agency' && ticket.status === 'waiting_on_customer') {
+    await c.env.DB.prepare(
+      "UPDATE support_tickets SET status = 'in_progress', updated_at = datetime('now') WHERE id = ?"
+    ).bind(ticketId).run();
+  } else {
+    await c.env.DB.prepare(
+      "UPDATE support_tickets SET updated_at = datetime('now') WHERE id = ?"
+    ).bind(ticketId).run();
+  }
+
+  await logAction(c.env.DB, 'ticket_reply_added', {
+    ticket_id: parseInt(ticketId),
+    reply_id: result.meta.last_row_id,
+    author_role: role,
+  }, c.get('jwtPayload')?.email || author_name.trim());
+
+  return c.json({ success: true, id: result.meta.last_row_id }, 201);
 });
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
@@ -886,7 +1290,7 @@ app.get('/api/stats/overview', authMiddleware, async (c) => {
     c.env.DB.prepare("SELECT COUNT(*) as count FROM clients WHERE status = 'active'").first<{ count: number }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM activation_keys WHERE is_active = 1').first<{ count: number }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM activation_keys WHERE activated_at IS NOT NULL').first<{ count: number }>(),
-    c.env.DB.prepare("SELECT COUNT(*) as count FROM support_tickets WHERE status IN ('open','in_progress')").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM support_tickets WHERE status IN ('open','in_progress','waiting_on_customer')").first<{ count: number }>(),
     c.env.DB.prepare('SELECT version FROM cartridge_versions ORDER BY uploaded_at DESC LIMIT 1').first<{ version: string }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM agencies WHERE is_active = 1').first<{ count: number }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM mobile_access_codes').first<{ count: number }>().catch(() => ({ count: 0 })),

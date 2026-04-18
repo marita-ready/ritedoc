@@ -32,6 +32,8 @@ const dashState = {
   revenueMonthly: [],
   subscriptions: [],
   subscriptionAdminOverview: null,
+  ticketStats: null,
+  ticketAdminOverview: null,
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -203,7 +205,7 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats, revenueTransactions, revenueAdminOverview, revenueMonthly, subscriptions, subscriptionAdminOverview] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats, revenueTransactions, revenueAdminOverview, revenueMonthly, subscriptions, subscriptionAdminOverview, ticketStats, ticketAdminOverview] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
@@ -219,6 +221,8 @@ async function loadAllData() {
       api.get('/api/revenue/monthly').catch(() => []),
       api.get('/api/subscriptions').catch(() => []),
       api.get('/api/subscriptions/admin-overview').catch(() => null),
+      api.get('/api/support/tickets/stats').catch(() => null),
+      api.get('/api/support/tickets/admin-overview').catch(() => null),
     ]);
 
     dashState.clients = clients || [];
@@ -235,6 +239,8 @@ async function loadAllData() {
     dashState.revenueMonthly = revenueMonthly || [];
     dashState.subscriptions = subscriptions || [];
     dashState.subscriptionAdminOverview = subscriptionAdminOverview || null;
+    dashState.ticketStats = ticketStats || null;
+    dashState.ticketAdminOverview = ticketAdminOverview || null;
 
     renderOverview(stats);
     renderClients();
@@ -279,8 +285,8 @@ function renderOverview(stats = {}) {
 
   dashState.tickets.slice(0, 5).forEach(t => {
     activities.push({
-      dot: t.status === 'resolved' ? 'green' : t.status === 'open' ? 'red' : 'orange',
-      text: `Ticket: ${t.category || 'general'} — ${truncate(t.description || '', 50)}`,
+      dot: t.status === 'resolved' || t.status === 'closed' ? 'green' : t.status === 'open' ? 'red' : 'orange',
+      text: `Ticket #${t.id}: ${formatCategoryLabel(t.category)} — ${truncate(t.subject || t.description || '', 50)}`,
       time: formatRelativeTime(t.created_at),
       date: new Date(t.created_at),
     });
@@ -520,38 +526,157 @@ async function revokeKey(id) {
   }
 }
 
-// ===== SUPPORT TICKETS =====
+// ===== SUPPORT TICKETS (BIAB) =====
+
+const CATEGORY_LABELS = {
+  activation_failed: 'Activation Failed',
+  licence_expired: 'Licence Expired',
+  billing_query: 'Billing Query',
+  app_crash: 'App Crash',
+  feature_request: 'Feature Request',
+  other: 'Other',
+};
+
+const PRIORITY_LABELS = { low: 'Low', medium: 'Medium', high: 'High', urgent: 'Urgent' };
+const STATUS_LABELS = { open: 'Open', in_progress: 'In Progress', waiting_on_customer: 'Waiting on Customer', resolved: 'Resolved', closed: 'Closed' };
+
+function formatCategoryLabel(cat) { return CATEGORY_LABELS[cat] || cat || '\u2014'; }
+function formatPriorityLabel(pri) { return PRIORITY_LABELS[pri] || pri || '\u2014'; }
+function formatStatusLabel(st) { return STATUS_LABELS[st] || st || '\u2014'; }
+
 function renderTickets() {
+  // Populate agency filter dropdown
+  const agencyFilter = document.getElementById('ticketAgencyFilter');
+  if (agencyFilter) {
+    const currentVal = agencyFilter.value;
+    agencyFilter.innerHTML = '<option value="">All Agencies</option>' +
+      dashState.agencies.map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)}</option>`).join('');
+    agencyFilter.value = currentVal;
+  }
+
+  // Render stats
+  const ts = dashState.ticketStats;
+  if (ts) {
+    document.getElementById('statTicketOpen').textContent = ts.open || 0;
+    document.getElementById('statTicketInProgress').textContent = ts.in_progress || 0;
+    document.getElementById('statTicketWaiting').textContent = ts.waiting_on_customer || 0;
+    document.getElementById('statTicketResolved').textContent = ts.resolved || 0;
+    document.getElementById('statTicketClosed').textContent = ts.closed || 0;
+    document.getElementById('statTicketTotal').textContent = ts.total || 0;
+  }
+
+  // Render main tickets table
+  renderTicketsTable();
+
+  // Render admin overview
+  renderTicketsAdminView();
+}
+
+function renderTicketsTable() {
   const tbody = document.getElementById('ticketsBody');
-  if (dashState.tickets.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No support tickets</td></tr>';
+  const tickets = dashState.tickets;
+
+  if (!tickets || tickets.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="table-empty">No support tickets</td></tr>';
     return;
   }
 
-  tbody.innerHTML = dashState.tickets.map(t => {
-    const clientName = t.client_name || (t.client_id ? `Client #${t.client_id}` : '—');
-    const statusClass = t.status === 'resolved' ? 'active' :
-                        t.status === 'open' ? 'inactive' : 'pending';
-
-    return `
-      <tr data-status="${t.status}">
-        <td style="font-size:12px;color:var(--text-muted);">${String(t.id).substring(0, 8)}</td>
-        <td>${escapeHtml(clientName)}</td>
-        <td>${escapeHtml(t.category || '—')}</td>
-        <td>${escapeHtml(truncate(t.description || '', 60))}</td>
-        <td><span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span></td>
-        <td>${formatDate(t.created_at)}</td>
-        <td>
-          <button class="btn-sm" onclick="editTicket(${t.id})">Edit</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  tbody.innerHTML = tickets.map(t => `
+    <tr data-status="${t.status}" data-category="${t.category}" data-agency="${t.agency_id}">
+      <td style="font-size:12px;color:var(--text-muted);">#${t.id}</td>
+      <td>${escapeHtml(t.agency_name || '\u2014')}</td>
+      <td>${escapeHtml(t.submitted_by || '\u2014')}</td>
+      <td>${escapeHtml(truncate(t.subject || '', 40))}</td>
+      <td><span class="badge badge-${t.category}">${formatCategoryLabel(t.category)}</span></td>
+      <td><span class="badge badge-${t.priority}">${formatPriorityLabel(t.priority)}</span></td>
+      <td><span class="badge badge-${t.status}">${formatStatusLabel(t.status)}</span></td>
+      <td>${escapeHtml(t.assigned_to || '\u2014')}</td>
+      <td>${formatDate(t.created_at)}</td>
+      <td>
+        <button class="btn-sm" onclick="viewTicketDetail(${t.id})">View</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
-function filterTickets(status) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.filter-btn[data-filter="${status}"]`).classList.add('active');
+function renderTicketsAdminView() {
+  const overview = dashState.ticketAdminOverview;
+  if (!overview) return;
+
+  const p = overview.platform || {};
+  document.getElementById('statTicketUnassigned').textContent = p.unassigned || 0;
+  document.getElementById('statTicketAvgResolution').textContent = p.avg_resolution_hours != null ? p.avg_resolution_hours : '\u2014';
+
+  // Count urgent+high open tickets
+  const urgentHigh = dashState.tickets.filter(t =>
+    (t.priority === 'urgent' || t.priority === 'high') &&
+    ['open', 'in_progress', 'waiting_on_customer'].includes(t.status)
+  ).length;
+  document.getElementById('statTicketUrgentHigh').textContent = urgentHigh;
+  document.getElementById('statTicketAgencyCount').textContent = (overview.agencies || []).length;
+
+  // Unassigned tickets table
+  const unassignedBody = document.getElementById('unassignedTicketsBody');
+  const unassigned = overview.unassigned_tickets || [];
+  if (unassigned.length === 0) {
+    unassignedBody.innerHTML = '<tr><td colspan="8" class="table-empty">No unassigned tickets</td></tr>';
+  } else {
+    unassignedBody.innerHTML = unassigned.map(t => `
+      <tr>
+        <td style="font-size:12px;color:var(--text-muted);">#${t.id}</td>
+        <td>${escapeHtml(t.agency_name || '\u2014')}</td>
+        <td>${escapeHtml(truncate(t.subject || '', 40))}</td>
+        <td><span class="badge badge-${t.category}">${formatCategoryLabel(t.category)}</span></td>
+        <td><span class="badge badge-${t.priority}">${formatPriorityLabel(t.priority)}</span></td>
+        <td>${escapeHtml(t.submitted_by || '\u2014')}</td>
+        <td>${formatDate(t.created_at)}</td>
+        <td>
+          <button class="btn-sm" onclick="assignTicket(${t.id})">Assign</button>
+          <button class="btn-sm" onclick="viewTicketDetail(${t.id})">View</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Tickets by agency table
+  const agencyBody = document.getElementById('ticketsByAgencyBody');
+  const agencies = overview.agencies || [];
+  if (agencies.length === 0) {
+    agencyBody.innerHTML = '<tr><td colspan="6" class="table-empty">No agency ticket data</td></tr>';
+  } else {
+    agencyBody.innerHTML = agencies.map(a => `
+      <tr>
+        <td>${escapeHtml(a.agency_name || 'Agency #' + a.agency_id)}</td>
+        <td><strong>${a.total_tickets}</strong></td>
+        <td>${a.open}</td>
+        <td>${a.in_progress}</td>
+        <td>${a.resolved}</td>
+        <td>${a.closed}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Tickets by category table
+  const catBody = document.getElementById('ticketsByCategoryBody');
+  const cats = overview.by_category || [];
+  if (cats.length === 0) {
+    catBody.innerHTML = '<tr><td colspan="3" class="table-empty">No category data</td></tr>';
+  } else {
+    catBody.innerHTML = cats.map(c => `
+      <tr>
+        <td><span class="badge badge-${c.category}">${formatCategoryLabel(c.category)}</span></td>
+        <td><strong>${c.count}</strong></td>
+        <td>${c.active}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+// Filter tickets by status buttons
+function filterTicketsByStatus(status) {
+  document.querySelectorAll('[data-ticket-filter]').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`[data-ticket-filter="${status}"]`);
+  if (btn) btn.classList.add('active');
 
   const rows = document.querySelectorAll('#ticketsBody tr');
   rows.forEach(row => {
@@ -563,82 +688,345 @@ function filterTickets(status) {
   });
 }
 
+// Filter tickets by agency dropdown
+function filterTicketsByAgency() {
+  const agencyId = document.getElementById('ticketAgencyFilter').value;
+  const catFilter = document.getElementById('ticketCategoryFilter').value;
+  const rows = document.querySelectorAll('#ticketsBody tr');
+  rows.forEach(row => {
+    let show = true;
+    if (agencyId && row.dataset.agency !== agencyId) show = false;
+    if (catFilter && row.dataset.category !== catFilter) show = false;
+    row.style.display = show ? '' : 'none';
+  });
+  // Reset status filter to all
+  document.querySelectorAll('[data-ticket-filter]').forEach(b => b.classList.remove('active'));
+  const allBtn = document.querySelector('[data-ticket-filter="all"]');
+  if (allBtn) allBtn.classList.add('active');
+}
+
+// Filter tickets by category dropdown
+function filterTicketsByDropdowns() {
+  filterTicketsByAgency();
+}
+
+// Submit new ticket modal
 function showAddTicketModal() {
-  openModal('New Support Ticket', `
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)}</option>`)
+    .join('');
+
+  if (!agencyOptions) {
+    showToast('No active agencies found. Add an agency first.');
+    return;
+  }
+
+  const currentFilter = document.getElementById('ticketAgencyFilter').value;
+
+  openModal('Submit Support Ticket', `
     <div class="form-group">
-      <label>Client</label>
-      <select id="fTicketClient">
-        <option value="">Select client...</option>
-        ${dashState.clients.map(c => `<option value="${c.id}">${escapeHtml(c.contact_name || c.business_name)} (${escapeHtml(c.email || '')})</option>`).join('')}
-      </select>
+      <label>Agency *</label>
+      <select id="fTicketAgency">${agencyOptions}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Your Name *</label>
+        <input type="text" id="fTicketName" placeholder="Jane Doe" />
+      </div>
+      <div class="form-group">
+        <label>Your Email *</label>
+        <input type="email" id="fTicketEmail" placeholder="jane@agency.com" />
+      </div>
     </div>
     <div class="form-group">
-      <label>Subject</label>
-      <input type="text" id="fTicketSubject" placeholder="Brief summary" />
+      <label>Subject *</label>
+      <input type="text" id="fTicketSubject" placeholder="Brief summary of the issue" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category *</label>
+        <select id="fTicketCategory">
+          <option value="activation_failed">Activation Failed</option>
+          <option value="licence_expired">Licence Expired</option>
+          <option value="billing_query">Billing Query</option>
+          <option value="app_crash">App Crash</option>
+          <option value="feature_request">Feature Request</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select id="fTicketPriority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
     </div>
     <div class="form-group">
-      <label>Category</label>
-      <select id="fTicketCategory">
-        <option value="activation">Activation Issue</option>
-        <option value="billing">Billing</option>
-        <option value="technical">Technical Support</option>
-        <option value="feature_request">Feature Request</option>
-        <option value="general">General</option>
-      </select>
+      <label>Description</label>
+      <textarea id="fTicketDesc" placeholder="Describe the issue in detail..."></textarea>
     </div>
-    <div class="form-group"><label>Description</label><textarea id="fTicketDesc"></textarea></div>
   `, async () => {
     const data = {
-      client_id: document.getElementById('fTicketClient').value || null,
+      agency_id: parseInt(document.getElementById('fTicketAgency').value),
+      submitted_by: document.getElementById('fTicketName').value,
+      submitted_by_email: document.getElementById('fTicketEmail').value,
       subject: document.getElementById('fTicketSubject').value,
       category: document.getElementById('fTicketCategory').value,
+      priority: document.getElementById('fTicketPriority').value,
       description: document.getElementById('fTicketDesc').value,
-      status: 'open',
     };
+
+    if (!data.submitted_by || !data.submitted_by_email || !data.subject) {
+      showToast('Please fill in all required fields');
+      return;
+    }
 
     try {
       await api.post('/api/support/tickets', data);
-      showToast('Ticket created');
+      showToast('Ticket submitted successfully');
       closeModal();
       await loadAllData();
     } catch (e) {
       showToast('Error: ' + e.message);
     }
   });
+
+  // Pre-select agency if filter is set
+  if (currentFilter) {
+    setTimeout(() => {
+      const sel = document.getElementById('fTicketAgency');
+      if (sel) sel.value = currentFilter;
+    }, 50);
+  }
 }
 
-async function editTicket(id) {
+// View ticket detail with reply thread
+async function viewTicketDetail(id) {
+  try {
+    const ticket = await api.get(`/api/support/tickets/${id}`);
+    if (!ticket) { showToast('Ticket not found'); return; }
+
+    const replies = ticket.replies || [];
+    const repliesHtml = replies.length === 0
+      ? '<div class="reply-empty">No replies yet</div>'
+      : replies.map(r => `
+        <div class="reply-item reply-${r.author_role}">
+          <div class="reply-avatar">${escapeHtml((r.author_name || '?')[0].toUpperCase())}</div>
+          <div style="flex:1;">
+            <div class="reply-meta"><strong>${escapeHtml(r.author_name)}</strong> &middot; <span class="badge badge-${r.author_role === 'admin' ? 'active' : 'standard'}" style="font-size:10px;padding:1px 6px;">${r.author_role}</span> &middot; ${formatDate(r.created_at)}</div>
+            <div class="reply-message">${escapeHtml(r.message)}</div>
+          </div>
+        </div>
+      `).join('');
+
+    openModal(`Ticket #${ticket.id} \u2014 ${escapeHtml(truncate(ticket.subject, 40))}`, `
+      <div class="ticket-detail-grid">
+        <div class="detail-item"><div class="detail-label">Agency</div><div class="detail-value">${escapeHtml(ticket.agency_name || '\u2014')}</div></div>
+        <div class="detail-item"><div class="detail-label">Submitted By</div><div class="detail-value">${escapeHtml(ticket.submitted_by)} (${escapeHtml(ticket.submitted_by_email)})</div></div>
+        <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value"><span class="badge badge-${ticket.category}">${formatCategoryLabel(ticket.category)}</span></div></div>
+        <div class="detail-item"><div class="detail-label">Priority</div><div class="detail-value"><span class="badge badge-${ticket.priority}">${formatPriorityLabel(ticket.priority)}</span></div></div>
+        <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="badge badge-${ticket.status}">${formatStatusLabel(ticket.status)}</span></div></div>
+        <div class="detail-item"><div class="detail-label">Assigned To</div><div class="detail-value">${escapeHtml(ticket.assigned_to || 'Unassigned')}</div></div>
+        <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value">${formatDate(ticket.created_at)}</div></div>
+        <div class="detail-item"><div class="detail-label">Updated</div><div class="detail-value">${formatDate(ticket.updated_at)}</div></div>
+        ${ticket.resolved_at ? `<div class="detail-item"><div class="detail-label">Resolved</div><div class="detail-value">${formatDate(ticket.resolved_at)}</div></div>` : ''}
+        ${ticket.closed_at ? `<div class="detail-item"><div class="detail-label">Closed</div><div class="detail-value">${formatDate(ticket.closed_at)}</div></div>` : ''}
+      </div>
+
+      <div class="ticket-description-box">${escapeHtml(ticket.description || 'No description provided.')}</div>
+
+      ${ticket.resolution_notes ? `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Resolution Notes</div><div class="ticket-description-box">${escapeHtml(ticket.resolution_notes)}</div></div>` : ''}
+
+      <div class="reply-thread">
+        <h4>Conversation (${replies.length} ${replies.length === 1 ? 'reply' : 'replies'})</h4>
+        ${repliesHtml}
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="form-group">
+          <label>Add Reply</label>
+          <textarea id="fReplyMessage" placeholder="Type your reply..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Your Name</label>
+            <input type="text" id="fReplyAuthor" placeholder="Your name" />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="fReplyRole">
+              <option value="admin">Admin</option>
+              <option value="agency">Agency</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticket-actions-bar">
+        <button class="btn-sm" onclick="sendTicketReply(${ticket.id})">Send Reply</button>
+        <button class="btn-sm" onclick="editTicketStatus(${ticket.id})">Change Status</button>
+        <button class="btn-sm" onclick="assignTicket(${ticket.id})">Assign</button>
+        ${ticket.status !== 'resolved' && ticket.status !== 'closed' ? `<button class="btn-sm" style="color:var(--green);border-color:var(--green-border);" onclick="resolveTicket(${ticket.id})">Resolve</button>` : ''}
+        ${ticket.status !== 'closed' ? `<button class="btn-sm" style="color:var(--text-muted);" onclick="closeTicket(${ticket.id})">Close</button>` : ''}
+      </div>
+    `, null);
+  } catch (e) {
+    showToast('Error loading ticket: ' + e.message);
+  }
+}
+
+// Send reply to a ticket
+async function sendTicketReply(ticketId) {
+  const message = document.getElementById('fReplyMessage').value;
+  const authorName = document.getElementById('fReplyAuthor').value;
+  const authorRole = document.getElementById('fReplyRole').value;
+
+  if (!message || !message.trim()) { showToast('Please enter a reply message'); return; }
+  if (!authorName || !authorName.trim()) { showToast('Please enter your name'); return; }
+
+  try {
+    await api.post(`/api/support/tickets/${ticketId}/replies`, {
+      author_name: authorName,
+      author_role: authorRole,
+      message: message,
+    });
+    showToast('Reply sent');
+    closeModal();
+    await loadAllData();
+    // Re-open the ticket detail to see the new reply
+    setTimeout(() => viewTicketDetail(ticketId), 300);
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+// Edit ticket status/priority modal
+async function editTicketStatus(id) {
   const ticket = dashState.tickets.find(t => t.id === id);
   if (!ticket) return;
 
-  openModal('Edit Ticket', `
-    <div class="form-group">
-      <label>Status</label>
-      <select id="fTicketStatus">
-        <option value="open" ${ticket.status === 'open' ? 'selected' : ''}>Open</option>
-        <option value="in_progress" ${ticket.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
-        <option value="resolved" ${ticket.status === 'resolved' ? 'selected' : ''}>Resolved</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Resolution Notes</label><textarea id="fTicketResolution">${escapeHtml(ticket.resolution || '')}</textarea></div>
-    <div class="form-group"><label>Internal Notes</label><textarea id="fTicketNotes">${escapeHtml(ticket.notes || '')}</textarea></div>
-  `, async () => {
-    const status = document.getElementById('fTicketStatus').value;
-    const data = {
-      status,
-      resolution: document.getElementById('fTicketResolution').value,
-      notes: document.getElementById('fTicketNotes').value,
-    };
+  closeModal();
+  setTimeout(() => {
+    openModal('Update Ticket #' + id, `
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="fEditTicketStatus">
+            <option value="open" ${ticket.status === 'open' ? 'selected' : ''}>Open</option>
+            <option value="in_progress" ${ticket.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+            <option value="waiting_on_customer" ${ticket.status === 'waiting_on_customer' ? 'selected' : ''}>Waiting on Customer</option>
+            <option value="resolved" ${ticket.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+            <option value="closed" ${ticket.status === 'closed' ? 'selected' : ''}>Closed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="fEditTicketPriority">
+            <option value="low" ${ticket.priority === 'low' ? 'selected' : ''}>Low</option>
+            <option value="medium" ${ticket.priority === 'medium' ? 'selected' : ''}>Medium</option>
+            <option value="high" ${ticket.priority === 'high' ? 'selected' : ''}>High</option>
+            <option value="urgent" ${ticket.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Resolution Notes</label>
+        <textarea id="fEditTicketResolution">${escapeHtml(ticket.resolution_notes || '')}</textarea>
+      </div>
+    `, async () => {
+      const data = {
+        status: document.getElementById('fEditTicketStatus').value,
+        priority: document.getElementById('fEditTicketPriority').value,
+        resolution_notes: document.getElementById('fEditTicketResolution').value,
+      };
 
-    try {
-      await api.put(`/api/support/tickets/${id}`, data);
-      showToast('Ticket updated');
-      closeModal();
-      await loadAllData();
-    } catch (e) {
-      showToast('Error: ' + e.message);
-    }
-  });
+      try {
+        await api.put(`/api/support/tickets/${id}`, data);
+        showToast('Ticket updated');
+        closeModal();
+        await loadAllData();
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      }
+    });
+  }, 200);
+}
+
+// Assign ticket to admin
+async function assignTicket(id) {
+  const ticket = dashState.tickets.find(t => t.id === id);
+  closeModal();
+  setTimeout(() => {
+    openModal('Assign Ticket #' + id, `
+      <div class="form-group">
+        <label>Assign To (Admin Name)</label>
+        <input type="text" id="fAssignTo" placeholder="Admin name" value="${escapeAttr(ticket?.assigned_to || '')}" />
+      </div>
+    `, async () => {
+      const assignedTo = document.getElementById('fAssignTo').value;
+      try {
+        await api.put(`/api/support/tickets/${id}`, { assigned_to: assignedTo });
+        showToast('Ticket assigned to ' + (assignedTo || 'nobody'));
+        closeModal();
+        await loadAllData();
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      }
+    });
+  }, 200);
+}
+
+// Resolve ticket
+async function resolveTicket(id) {
+  closeModal();
+  setTimeout(() => {
+    openModal('Resolve Ticket #' + id, `
+      <div class="form-group">
+        <label>Resolution Notes</label>
+        <textarea id="fResolveNotes" placeholder="Describe how the issue was resolved..."></textarea>
+      </div>
+    `, async () => {
+      try {
+        await api.put(`/api/support/tickets/${id}/resolve`, {
+          resolution_notes: document.getElementById('fResolveNotes').value,
+        });
+        showToast('Ticket resolved');
+        closeModal();
+        await loadAllData();
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      }
+    });
+  }, 200);
+}
+
+// Close ticket
+async function closeTicket(id) {
+  closeModal();
+  setTimeout(() => {
+    openModal('Close Ticket #' + id, `
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Are you sure you want to close this ticket?</p>
+      <div class="form-group">
+        <label>Final Notes (optional)</label>
+        <textarea id="fCloseNotes" placeholder="Any final notes..."></textarea>
+      </div>
+    `, async () => {
+      try {
+        await api.put(`/api/support/tickets/${id}/close`, {
+          resolution_notes: document.getElementById('fCloseNotes').value,
+        });
+        showToast('Ticket closed');
+        closeModal();
+        await loadAllData();
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      }
+    });
+  }, 200);
 }
 
 // ===== CARTRIDGE MANAGEMENT =====
