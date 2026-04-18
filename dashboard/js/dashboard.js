@@ -26,6 +26,7 @@ const dashState = {
   mobileCodes: [],
   seatRequests: [],
   clientAssignments: [],
+  bundledDeliveries: [],
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -184,6 +185,7 @@ function getSectionTitle(id) {
     agencies: 'BIAB Agencies',
     'seat-requests': 'Wholesale Seat Requests',
     'client-assignments': 'Client Assignments',
+    'bundled-deliveries': 'Bundled Deliveries',
     automation: 'Automation & API',
   };
   return titles[id] || id;
@@ -194,7 +196,7 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, stats] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
@@ -203,6 +205,7 @@ async function loadAllData() {
       api.get('/api/mobile/codes').catch(() => []),
       api.get('/api/seat-requests').catch(() => []),
       api.get('/api/client-assignments').catch(() => []),
+      api.get('/api/bundled-deliveries').catch(() => []),
       api.get('/api/stats/overview').catch(() => ({})),
     ]);
 
@@ -214,6 +217,7 @@ async function loadAllData() {
     dashState.mobileCodes = mobileCodes || [];
     dashState.seatRequests = seatRequests || [];
     dashState.clientAssignments = clientAssignments || [];
+    dashState.bundledDeliveries = bundledDeliveries || [];
 
     renderOverview(stats);
     renderClients();
@@ -224,6 +228,7 @@ async function loadAllData() {
     renderMobileCodes(stats);
     renderSeatRequests(stats);
     renderClientAssignments();
+    renderBundledDeliveries();
 
   } catch (e) {
     console.error('Failed to load data:', e);
@@ -1720,6 +1725,339 @@ function updateAutomationSection() {
   if (apiUrlEl) apiUrlEl.textContent = CONFIG.apiUrl;
 }
 
+// ===== BUNDLED DELIVERIES =====
+
+function renderBundledDeliveries() {
+  // Update stats
+  const total = dashState.bundledDeliveries.length;
+  const pending = dashState.bundledDeliveries.filter(d => d.delivery_status === 'pending').length;
+  const sent = dashState.bundledDeliveries.filter(d => d.delivery_status === 'sent').length;
+  const delivered = dashState.bundledDeliveries.filter(d => d.delivery_status === 'delivered').length;
+  const failed = dashState.bundledDeliveries.filter(d => d.delivery_status === 'failed').length;
+
+  document.getElementById('statDeliveryTotal').textContent = total;
+  document.getElementById('statDeliveryPending').textContent = pending;
+  document.getElementById('statDeliverySent').textContent = sent;
+  document.getElementById('statDeliveryDelivered').textContent = delivered;
+  document.getElementById('statDeliveryFailed').textContent = failed;
+
+  // Populate agency filter dropdown
+  const filterEl = document.getElementById('deliveryAgencyFilter');
+  const currentVal = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Agencies</option>' +
+    dashState.agencies.map(a => `<option value="${a.id}" ${String(a.id) === currentVal ? 'selected' : ''}>${escapeHtml(a.agency_name)}</option>`).join('');
+
+  // Render agency-filtered table
+  renderBundledDeliveriesTable();
+  // Render admin table (all deliveries)
+  renderAdminDeliveriesTable();
+}
+
+function getDeliveryStatusBadge(status) {
+  const map = {
+    pending: 'pending',
+    sent: 'active',
+    delivered: 'active',
+    failed: 'inactive',
+  };
+  return map[status] || 'pending';
+}
+
+function renderBundledDeliveriesTable() {
+  const tbody = document.getElementById('bundledDeliveriesBody');
+  const filterAgency = document.getElementById('deliveryAgencyFilter').value;
+
+  let deliveries = dashState.bundledDeliveries;
+  if (filterAgency) {
+    deliveries = deliveries.filter(d => d.agency_id === parseInt(filterAgency));
+  }
+
+  if (deliveries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">No bundled deliveries found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = deliveries.map(d => {
+    const statusClass = getDeliveryStatusBadge(d.delivery_status);
+    const canResend = d.delivery_status === 'sent' || d.delivery_status === 'failed' || d.delivery_status === 'delivered';
+    const actions = `<button class="btn-sm" onclick="viewDeliveryDetail(${d.id})">View</button>` +
+      (canResend ? ` <button class="btn-sm" style="margin-left:4px;" onclick="resendDelivery(${d.id})">Resend</button>` : '') +
+      (d.delivery_status === 'pending' ? ` <button class="btn-sm" style="margin-left:4px;" onclick="updateDeliveryStatus(${d.id})">Update</button>` : '');
+
+    return `
+      <tr data-delivery-status="${d.delivery_status}">
+        <td><strong>${escapeHtml(d.client_name || '—')}</strong></td>
+        <td>${escapeHtml(d.client_email || '—')}</td>
+        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 8px;border-radius:4px;letter-spacing:0.5px;">${escapeHtml(d.activation_key)}</code></td>
+        <td><span class="badge badge-${d.delivery_method === 'email' ? 'active' : 'pending'}">${escapeHtml(d.delivery_method)}</span></td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(d.delivery_status)}</span></td>
+        <td>${formatDate(d.sent_at)}</td>
+        <td>${escapeHtml(d.agency_name || '—')}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderAdminDeliveriesTable() {
+  const tbody = document.getElementById('adminDeliveriesBody');
+
+  if (dashState.bundledDeliveries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="table-empty">No deliveries found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = dashState.bundledDeliveries.map(d => {
+    const statusClass = getDeliveryStatusBadge(d.delivery_status);
+    const canResend = d.delivery_status === 'sent' || d.delivery_status === 'failed' || d.delivery_status === 'delivered';
+    const actions = `<button class="btn-sm" onclick="viewDeliveryDetail(${d.id})">View</button>` +
+      (canResend ? ` <button class="btn-sm" style="margin-left:4px;" onclick="resendDelivery(${d.id})">Resend</button>` : '') +
+      (d.delivery_status === 'pending' ? ` <button class="btn-sm" style="margin-left:4px;" onclick="updateDeliveryStatus(${d.id})">Update</button>` : '');
+
+    return `
+      <tr data-delivery-status="${d.delivery_status}">
+        <td style="font-size:12px;color:var(--text-muted);">#${d.id}</td>
+        <td><strong>${escapeHtml(d.agency_name || '—')}</strong></td>
+        <td>${escapeHtml(d.client_name || '—')}</td>
+        <td>${escapeHtml(d.client_email || '—')}</td>
+        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 8px;border-radius:4px;letter-spacing:0.5px;">${escapeHtml(d.activation_key)}</code></td>
+        <td><span class="badge badge-${d.delivery_method === 'email' ? 'active' : 'pending'}">${escapeHtml(d.delivery_method)}</span></td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(d.delivery_status)}</span></td>
+        <td>${formatDate(d.sent_at)}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterBundledDeliveries() {
+  renderBundledDeliveriesTable();
+}
+
+function searchBundledDeliveries() {
+  const q = document.getElementById('deliverySearch').value.toLowerCase();
+  const rows = document.querySelectorAll('#bundledDeliveriesBody tr');
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function filterDeliveriesByStatus(status) {
+  document.querySelectorAll('[data-delivery-filter]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-delivery-filter="${status}"]`).classList.add('active');
+
+  const rows = document.querySelectorAll('#adminDeliveriesBody tr');
+  rows.forEach(row => {
+    if (status === 'all') {
+      row.style.display = '';
+    } else {
+      row.style.display = row.dataset.deliveryStatus === status ? '' : 'none';
+    }
+  });
+}
+
+function showSendBundleModal() {
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)}</option>`)
+    .join('');
+
+  if (!agencyOptions) {
+    showToast('No active agencies found. Add an agency first.');
+    return;
+  }
+
+  openModal('Send Bundle to Client', `
+    <div class="form-group">
+      <label>Agency</label>
+      <select id="fBundleAgency" onchange="updateAvailableAssignments()">${agencyOptions}</select>
+    </div>
+    <div class="form-group">
+      <label>Assigned Client *</label>
+      <select id="fBundleAssignment">
+        <option value="">Loading assigned clients...</option>
+      </select>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Only active client assignments for the selected agency are shown.</p>
+    </div>
+    <div class="form-group">
+      <label>Delivery Method</label>
+      <select id="fBundleMethod">
+        <option value="email">Email (send installer link + key via email)</option>
+        <option value="manual">Manual (mark for manual delivery)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="fBundleNotes" placeholder="Internal notes about this delivery"></textarea>
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:#1e40af;margin-top:12px;">
+      <strong>Bundle includes:</strong> RiteDoc installer download link + the client's activation key.
+    </div>
+  `, async () => {
+    const agencyId = parseInt(document.getElementById('fBundleAgency').value);
+    const assignmentId = parseInt(document.getElementById('fBundleAssignment').value);
+    const method = document.getElementById('fBundleMethod').value;
+    const notes = document.getElementById('fBundleNotes').value;
+
+    if (!assignmentId) { showToast('Please select a client assignment'); return; }
+
+    try {
+      await api.post('/api/bundled-deliveries', {
+        agency_id: agencyId,
+        client_assignment_id: assignmentId,
+        delivery_method: method,
+        notes: notes || undefined,
+      });
+      showToast('Bundle sent to client');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+
+  // Trigger initial assignment load
+  updateAvailableAssignments();
+}
+
+function updateAvailableAssignments() {
+  const agencyId = parseInt(document.getElementById('fBundleAgency').value);
+  const assignSelect = document.getElementById('fBundleAssignment');
+
+  // Get active assignments for this agency
+  const agencyAssignments = dashState.clientAssignments.filter(a =>
+    a.status === 'active' && a.agency_id === agencyId
+  );
+
+  if (agencyAssignments.length === 0) {
+    assignSelect.innerHTML = '<option value="">No active client assignments for this agency</option>';
+  } else {
+    assignSelect.innerHTML = '<option value="">Select a client...</option>' +
+      agencyAssignments.map(a => {
+        return `<option value="${a.id}">${escapeHtml(a.client_name)} (${escapeHtml(a.client_email)}) — ${escapeHtml(a.activation_key)}</option>`;
+      }).join('');
+  }
+}
+
+async function viewDeliveryDetail(id) {
+  try {
+    const detail = await api.get(`/api/bundled-deliveries/${id}`);
+    const statusClass = getDeliveryStatusBadge(detail.delivery_status);
+
+    const canResend = detail.delivery_status === 'sent' || detail.delivery_status === 'failed' || detail.delivery_status === 'delivered';
+
+    openModal(`Bundled Delivery #${id}`, `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Client Name</span><div style="font-weight:600;">${escapeHtml(detail.client_name)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Client Email</span><div>${escapeHtml(detail.client_email)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Agency</span><div>${escapeHtml(detail.agency_name || '—')}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Delivery Method</span><div><span class="badge badge-${detail.delivery_method === 'email' ? 'active' : 'pending'}">${escapeHtml(detail.delivery_method)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Status</span><div><span class="badge badge-${statusClass}">${escapeHtml(detail.delivery_status)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Sent At</span><div>${formatDate(detail.sent_at)}</div></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--text-muted);">Activation Key</span>
+        <div><code style="font-size:13px;background:#f3f4f6;padding:4px 10px;border-radius:4px;letter-spacing:0.5px;display:inline-block;margin-top:4px;">${escapeHtml(detail.activation_key)}</code></div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:#1e40af;margin-bottom:12px;">
+        <strong>Bundle Contents:</strong><br/>
+        1. RiteDoc Installer Download Link<br/>
+        2. Activation Key: <code>${escapeHtml(detail.activation_key)}</code>
+      </div>
+      ${detail.notes ? `<div style="margin-bottom:12px;"><span style="font-size:12px;color:var(--text-muted);">Notes</span><div style="font-size:13px;">${escapeHtml(detail.notes)}</div></div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:var(--text-muted);">
+        <div>Created: ${formatDate(detail.created_at)}</div>
+        <div>Updated: ${formatDate(detail.updated_at)}</div>
+      </div>
+    `, null);
+  } catch (e) {
+    showToast('Error loading delivery details: ' + e.message);
+  }
+}
+
+async function resendDelivery(id) {
+  const delivery = dashState.bundledDeliveries.find(d => d.id === id);
+  if (!delivery) return;
+
+  openModal(`Resend Delivery #${id}`, `
+    <div style="margin-bottom:16px;">
+      <p><strong>Client:</strong> ${escapeHtml(delivery.client_name)} (${escapeHtml(delivery.client_email)})</p>
+      <p><strong>Agency:</strong> ${escapeHtml(delivery.agency_name || '—')}</p>
+      <p><strong>Key:</strong> <code>${escapeHtml(delivery.activation_key)}</code></p>
+      <p><strong>Current Status:</strong> <span class="badge badge-${getDeliveryStatusBadge(delivery.delivery_status)}">${escapeHtml(delivery.delivery_status)}</span></p>
+    </div>
+    <div class="form-group">
+      <label>Delivery Method</label>
+      <select id="fResendMethod">
+        <option value="email" ${delivery.delivery_method === 'email' ? 'selected' : ''}>Email</option>
+        <option value="manual" ${delivery.delivery_method === 'manual' ? 'selected' : ''}>Manual</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="fResendNotes" placeholder="Reason for resend"></textarea>
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:#1e40af;margin-top:12px;">
+      This will resend the RiteDoc installer + activation key bundle to the client.
+    </div>
+  `, async () => {
+    const method = document.getElementById('fResendMethod').value;
+    const notes = document.getElementById('fResendNotes').value;
+
+    try {
+      await api.post(`/api/bundled-deliveries/${id}/resend`, {
+        delivery_method: method,
+        notes: notes || undefined,
+      });
+      showToast('Bundle resent to client');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+async function updateDeliveryStatus(id) {
+  const delivery = dashState.bundledDeliveries.find(d => d.id === id);
+  if (!delivery) return;
+
+  openModal(`Update Delivery Status #${id}`, `
+    <div style="margin-bottom:16px;">
+      <p><strong>Client:</strong> ${escapeHtml(delivery.client_name)} (${escapeHtml(delivery.client_email)})</p>
+      <p><strong>Current Status:</strong> <span class="badge badge-${getDeliveryStatusBadge(delivery.delivery_status)}">${escapeHtml(delivery.delivery_status)}</span></p>
+    </div>
+    <div class="form-group">
+      <label>New Status</label>
+      <select id="fStatusUpdate">
+        <option value="pending" ${delivery.delivery_status === 'pending' ? 'selected' : ''}>Pending</option>
+        <option value="sent" ${delivery.delivery_status === 'sent' ? 'selected' : ''}>Sent</option>
+        <option value="delivered" ${delivery.delivery_status === 'delivered' ? 'selected' : ''}>Delivered</option>
+        <option value="failed" ${delivery.delivery_status === 'failed' ? 'selected' : ''}>Failed</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="fStatusNotes" placeholder="Reason for status change"></textarea>
+    </div>
+  `, async () => {
+    const newStatus = document.getElementById('fStatusUpdate').value;
+    const notes = document.getElementById('fStatusNotes').value;
+
+    try {
+      await api.put(`/api/bundled-deliveries/${id}/status`, {
+        delivery_status: newStatus,
+        notes: notes || undefined,
+      });
+      showToast('Delivery status updated');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
 // ===== MODAL SYSTEM =====
 let modalSubmitHandler = null;
 
@@ -1729,6 +2067,7 @@ function openModal(title, bodyHtml, onSubmit) {
   document.getElementById('modalOverlay').classList.add('active');
 
   const submitBtn = document.getElementById('modalSubmit');
+  submitBtn.style.display = onSubmit ? '' : 'none';
   modalSubmitHandler = onSubmit;
   submitBtn.onclick = () => {
     if (modalSubmitHandler) modalSubmitHandler();

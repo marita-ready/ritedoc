@@ -145,6 +145,22 @@ CREATE TABLE IF NOT EXISTS client_assignments (
   updated_at DATETIME DEFAULT (datetime('now'))
 );
 
+-- ─── Bundled Deliveries (BIAB) ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS bundled_deliveries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agency_id INTEGER NOT NULL REFERENCES agencies(id),
+  client_assignment_id INTEGER NOT NULL REFERENCES client_assignments(id),
+  client_name TEXT NOT NULL,
+  client_email TEXT NOT NULL,
+  activation_key TEXT NOT NULL,
+  delivery_method TEXT NOT NULL DEFAULT 'email',   -- email, manual
+  delivery_status TEXT NOT NULL DEFAULT 'pending',  -- pending, sent, delivered, failed
+  sent_at DATETIME,
+  notes TEXT,
+  created_at DATETIME DEFAULT (datetime('now')),
+  updated_at DATETIME DEFAULT (datetime('now'))
+);
+
 -- ─── Indexes ─────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
 CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
@@ -166,6 +182,12 @@ CREATE INDEX IF NOT EXISTS idx_client_assignments_status ON client_assignments(s
 CREATE INDEX IF NOT EXISTS idx_client_assignments_email ON client_assignments(client_email);
 CREATE INDEX IF NOT EXISTS idx_client_assignments_key ON client_assignments(activation_key);
 CREATE INDEX IF NOT EXISTS idx_client_assignments_created ON client_assignments(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_bundled_deliveries_agency ON bundled_deliveries(agency_id);
+CREATE INDEX IF NOT EXISTS idx_bundled_deliveries_assignment ON bundled_deliveries(client_assignment_id);
+CREATE INDEX IF NOT EXISTS idx_bundled_deliveries_status ON bundled_deliveries(delivery_status);
+CREATE INDEX IF NOT EXISTS idx_bundled_deliveries_email ON bundled_deliveries(client_email);
+CREATE INDEX IF NOT EXISTS idx_bundled_deliveries_created ON bundled_deliveries(created_at);
 
 -- ─── Default Admin User ───────────────────────────────────────────────────────
 -- Password: ReadyCompliant2026! (SHA-256 hashed)

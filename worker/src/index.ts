@@ -1397,6 +1397,271 @@ app.put('/api/client-assignments/:id/revoke', authMiddleware, async (c) => {
   return c.json({ success: true });
 });
 
+// ─── BUNDLED DELIVERIES (BIAB) ───────────────────────────────────────────────
+
+/**
+ * GET /api/bundled-deliveries
+ * List bundled deliveries. Supports optional filters:
+ *   ?agency_id=N — filter by agency
+ *   ?delivery_status=pending|sent|delivered|failed — filter by status
+ * Admin sees all; agency view should pass agency_id.
+ */
+app.get('/api/bundled-deliveries', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const deliveryStatus = c.req.query('delivery_status');
+
+  let query = `
+    SELECT bd.*, a.agency_name
+    FROM bundled_deliveries bd
+    LEFT JOIN agencies a ON bd.agency_id = a.id
+  `;
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (agencyId) {
+    conditions.push('bd.agency_id = ?');
+    params.push(parseInt(agencyId));
+  }
+  if (deliveryStatus) {
+    conditions.push('bd.delivery_status = ?');
+    params.push(deliveryStatus);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  query += ' ORDER BY bd.created_at DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/bundled-deliveries/stats
+ * Get delivery stats. Optionally filter by ?agency_id=N.
+ */
+app.get('/api/bundled-deliveries/stats', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+
+  if (agencyId) {
+    const aid = parseInt(agencyId);
+    const [total, pending, sent, delivered, failed] = await Promise.all([
+      c.env.DB.prepare('SELECT COUNT(*) as count FROM bundled_deliveries WHERE agency_id = ?').bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE agency_id = ? AND delivery_status = 'pending'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE agency_id = ? AND delivery_status = 'sent'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE agency_id = ? AND delivery_status = 'delivered'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE agency_id = ? AND delivery_status = 'failed'").bind(aid).first<{ count: number }>(),
+    ]);
+
+    return c.json({
+      total: total?.count || 0,
+      pending: pending?.count || 0,
+      sent: sent?.count || 0,
+      delivered: delivered?.count || 0,
+      failed: failed?.count || 0,
+    });
+  }
+
+  const [total, pending, sent, delivered, failed] = await Promise.all([
+    c.env.DB.prepare('SELECT COUNT(*) as count FROM bundled_deliveries').first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE delivery_status = 'pending'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE delivery_status = 'sent'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE delivery_status = 'delivered'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM bundled_deliveries WHERE delivery_status = 'failed'").first<{ count: number }>(),
+  ]);
+
+  return c.json({
+    total: total?.count || 0,
+    pending: pending?.count || 0,
+    sent: sent?.count || 0,
+    delivered: delivered?.count || 0,
+    failed: failed?.count || 0,
+  });
+});
+
+/**
+ * GET /api/bundled-deliveries/:id
+ * Get a single bundled delivery by ID.
+ */
+app.get('/api/bundled-deliveries/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const delivery = await c.env.DB.prepare(
+    `SELECT bd.*, a.agency_name
+     FROM bundled_deliveries bd
+     LEFT JOIN agencies a ON bd.agency_id = a.id
+     WHERE bd.id = ?`
+  ).bind(id).first();
+
+  if (!delivery) {
+    return c.json({ error: 'Bundled delivery not found' }, 404);
+  }
+
+  return c.json(delivery);
+});
+
+/**
+ * POST /api/bundled-deliveries
+ * Create a new bundled delivery — agency sends RiteDoc installer + activation key to a client.
+ * Links to an existing client assignment.
+ * Body: { agency_id, client_assignment_id, delivery_method?, notes? }
+ */
+app.post('/api/bundled-deliveries', authMiddleware, async (c) => {
+  const body = await c.req.json<any>();
+  const { agency_id, client_assignment_id, delivery_method, notes } = body;
+
+  if (!agency_id) {
+    return c.json({ error: 'agency_id is required' }, 400);
+  }
+  if (!client_assignment_id) {
+    return c.json({ error: 'client_assignment_id is required' }, 400);
+  }
+
+  // Verify agency exists and is active
+  const agency = await c.env.DB.prepare(
+    'SELECT * FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string }>();
+
+  if (!agency) {
+    return c.json({ error: 'Agency not found or inactive' }, 404);
+  }
+
+  // Verify the client assignment exists and belongs to this agency
+  const assignment = await c.env.DB.prepare(
+    "SELECT * FROM client_assignments WHERE id = ? AND status = 'active'"
+  ).bind(client_assignment_id).first<{ id: number; agency_id: number; client_name: string; client_email: string; activation_key: string }>();
+
+  if (!assignment) {
+    return c.json({ error: 'Client assignment not found or not active' }, 404);
+  }
+
+  if (assignment.agency_id !== agency_id) {
+    return c.json({ error: 'Client assignment does not belong to this agency' }, 403);
+  }
+
+  const method = delivery_method === 'manual' ? 'manual' : 'email';
+
+  try {
+    const result = await c.env.DB.prepare(
+      `INSERT INTO bundled_deliveries (agency_id, client_assignment_id, client_name, client_email, activation_key, delivery_method, delivery_status, notes)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`
+    ).bind(
+      agency_id,
+      client_assignment_id,
+      assignment.client_name,
+      assignment.client_email,
+      assignment.activation_key,
+      method,
+      notes || null
+    ).run();
+
+    // If delivery method is email, mark as sent immediately (email integration placeholder)
+    if (method === 'email') {
+      await c.env.DB.prepare(
+        `UPDATE bundled_deliveries SET delivery_status = 'sent', sent_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+      ).bind(result.meta.last_row_id).run();
+    }
+
+    await logAction(c.env.DB, 'bundled_delivery_created', {
+      delivery_id: result.meta.last_row_id,
+      agency_id,
+      agency_name: agency.agency_name,
+      client_name: assignment.client_name,
+      client_email: assignment.client_email,
+      activation_key: assignment.activation_key,
+      delivery_method: method,
+    }, c.get('jwtPayload')?.email || 'admin');
+
+    return c.json({ success: true, id: result.meta.last_row_id }, 201);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400);
+  }
+});
+
+/**
+ * PUT /api/bundled-deliveries/:id/status
+ * Update the delivery status of a bundled delivery.
+ * Body: { delivery_status: 'pending'|'sent'|'delivered'|'failed', notes? }
+ */
+app.put('/api/bundled-deliveries/:id/status', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>();
+  const { delivery_status, notes } = body;
+
+  const validStatuses = ['pending', 'sent', 'delivered', 'failed'];
+  if (!delivery_status || !validStatuses.includes(delivery_status)) {
+    return c.json({ error: `delivery_status must be one of: ${validStatuses.join(', ')}` }, 400);
+  }
+
+  const delivery = await c.env.DB.prepare(
+    'SELECT * FROM bundled_deliveries WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; client_name: string; delivery_status: string }>();
+
+  if (!delivery) {
+    return c.json({ error: 'Bundled delivery not found' }, 404);
+  }
+
+  const sentAt = delivery_status === 'sent' && delivery.delivery_status !== 'sent'
+    ? ", sent_at = datetime('now')"
+    : '';
+
+  await c.env.DB.prepare(
+    `UPDATE bundled_deliveries SET delivery_status = ?, notes = COALESCE(?, notes),
+     updated_at = datetime('now')${sentAt} WHERE id = ?`
+  ).bind(delivery_status, notes || null, id).run();
+
+  await logAction(c.env.DB, 'bundled_delivery_status_updated', {
+    delivery_id: id,
+    agency_id: delivery.agency_id,
+    client_name: delivery.client_name,
+    old_status: delivery.delivery_status,
+    new_status: delivery_status,
+  }, c.get('jwtPayload')?.email || 'admin');
+
+  return c.json({ success: true });
+});
+
+/**
+ * POST /api/bundled-deliveries/:id/resend
+ * Resend a bundled delivery. Resets status to pending/sent.
+ * Body: { delivery_method?: 'email'|'manual', notes? }
+ */
+app.post('/api/bundled-deliveries/:id/resend', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+
+  const delivery = await c.env.DB.prepare(
+    'SELECT bd.*, a.agency_name FROM bundled_deliveries bd LEFT JOIN agencies a ON bd.agency_id = a.id WHERE bd.id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; agency_name: string; client_name: string; client_email: string; activation_key: string; delivery_method: string }>();
+
+  if (!delivery) {
+    return c.json({ error: 'Bundled delivery not found' }, 404);
+  }
+
+  const method = body.delivery_method === 'manual' ? 'manual' : (body.delivery_method === 'email' ? 'email' : delivery.delivery_method);
+  const newStatus = method === 'email' ? 'sent' : 'pending';
+
+  await c.env.DB.prepare(
+    `UPDATE bundled_deliveries SET delivery_method = ?, delivery_status = ?,
+     sent_at = datetime('now'), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`
+  ).bind(method, newStatus, body.notes || null, id).run();
+
+  await logAction(c.env.DB, 'bundled_delivery_resent', {
+    delivery_id: id,
+    agency_id: delivery.agency_id,
+    agency_name: delivery.agency_name,
+    client_name: delivery.client_name,
+    client_email: delivery.client_email,
+    activation_key: delivery.activation_key,
+    delivery_method: method,
+  }, c.get('jwtPayload')?.email || 'admin');
+
+  return c.json({ success: true, delivery_status: newStatus });
+});
+
 // ─── HEALTH ───────────────────────────────────────────────────────────────────
 app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
 app.get('/', (c) => c.json({ service: 'ReadyCompliant API', version: '1.0.0' }));

@@ -63,6 +63,10 @@
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         Client Assignments
       </button>
+      <button class="sidebar-btn" data-section="bundled-deliveries" onclick="showSection('bundled-deliveries')">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Bundled Deliveries
+      </button>
       <button class="sidebar-btn" data-section="automation" onclick="showSection('automation')">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
         Automation &amp; API
@@ -501,6 +505,102 @@
         </div>
       </section>
 
+      <!-- ===== BUNDLED DELIVERIES ===== -->
+      <section id="sec-bundled-deliveries" class="section">
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-label">Total Sent</div>
+            <div class="stat-value" id="statDeliveryTotal">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value" id="statDeliveryPending">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Sent</div>
+            <div class="stat-value" id="statDeliverySent">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Delivered</div>
+            <div class="stat-value" id="statDeliveryDelivered">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Failed</div>
+            <div class="stat-value" id="statDeliveryFailed">&mdash;</div>
+          </div>
+        </div>
+
+        <!-- Agency: Send Bundle -->
+        <div style="margin-bottom: 32px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">Send Bundle to Client</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">Send the RiteDoc installer download link + activation key as a bundled package to an assigned client.</p>
+          <div class="section-toolbar">
+            <select id="deliveryAgencyFilter" onchange="filterBundledDeliveries()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;min-width:200px;">
+              <option value="">All Agencies</option>
+            </select>
+            <div style="display:flex;gap:8px;">
+              <input type="text" class="search-input" id="deliverySearch" placeholder="Search deliveries..." oninput="searchBundledDeliveries()" />
+              <button class="btn-primary" onclick="showSendBundleModal()">+ Send Bundle</button>
+            </div>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table" id="bundledDeliveriesTable">
+              <thead>
+                <tr>
+                  <th>Client Name</th>
+                  <th>Email</th>
+                  <th>Activation Key</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Sent At</th>
+                  <th>Agency</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bundledDeliveriesBody">
+                <tr><td colspan="8" class="table-empty">Loading bundled deliveries...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin: All Deliveries Across Agencies -->
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">All Deliveries (Admin View)</h3>
+          <div class="section-toolbar">
+            <div class="filter-group">
+              <button class="filter-btn active" data-delivery-filter="all" onclick="filterDeliveriesByStatus('all')">All</button>
+              <button class="filter-btn" data-delivery-filter="pending" onclick="filterDeliveriesByStatus('pending')">Pending</button>
+              <button class="filter-btn" data-delivery-filter="sent" onclick="filterDeliveriesByStatus('sent')">Sent</button>
+              <button class="filter-btn" data-delivery-filter="delivered" onclick="filterDeliveriesByStatus('delivered')">Delivered</button>
+              <button class="filter-btn" data-delivery-filter="failed" onclick="filterDeliveriesByStatus('failed')">Failed</button>
+            </div>
+          </div>
+          <div class="data-table-wrapper">
+            <table class="data-table" id="adminDeliveriesTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Agency</th>
+                  <th>Client Name</th>
+                  <th>Email</th>
+                  <th>Activation Key</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Sent At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminDeliveriesBody">
+                <tr><td colspan="9" class="table-empty">Loading all deliveries...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== AUTOMATION & API ===== -->
       <section id="sec-automation" class="section">
         <div class="api-intro">
@@ -672,6 +772,52 @@
   -H 'Authorization: Bearer &lt;token&gt;' \
   -H 'Content-Type: application/json' \
   -d '{"reason":"Client no longer active","deactivate_key":false}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/bundled-deliveries</div>
+            <div class="api-endpoint-desc">Send a bundled delivery (installer + activation key) to an assigned client</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/bundled-deliveries' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"agency_id":1,"client_assignment_id":5,"delivery_method":"email"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/api/bundled-deliveries</div>
+            <div class="api-endpoint-desc">List bundled deliveries (optional ?agency_id= and ?delivery_status= filters)</div>
+            <pre class="api-example">curl 'https://api.readycompliant.com/api/bundled-deliveries?agency_id=1' \
+  -H 'Authorization: Bearer &lt;token&gt;'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method put">PUT</div>
+            <div class="api-path">/api/bundled-deliveries/:id/status</div>
+            <div class="api-endpoint-desc">Update the delivery status of a bundled delivery</div>
+            <pre class="api-example">curl -X PUT 'https://api.readycompliant.com/api/bundled-deliveries/1/status' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"delivery_status":"delivered"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/bundled-deliveries/:id/resend</div>
+            <div class="api-endpoint-desc">Resend a bundled delivery to the client</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/bundled-deliveries/1/resend' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"delivery_method":"email"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method get">GET</div>
+            <div class="api-path">/api/bundled-deliveries/stats</div>
+            <div class="api-endpoint-desc">Get bundled delivery stats (total, pending, sent, delivered, failed)</div>
+            <pre class="api-example">curl 'https://api.readycompliant.com/api/bundled-deliveries/stats' \
+  -H 'Authorization: Bearer &lt;token&gt;'</pre>
           </div>
 
           <div class="api-endpoint-card">
