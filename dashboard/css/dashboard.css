@@ -476,6 +476,12 @@ body {
 .badge-founders { background: var(--indigo-light); color: var(--indigo); border: 1px solid #c7d2fe; }
 .badge-standard { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
 .badge-biab { background: #faf5ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.badge-paused { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.badge-cancelled { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.badge-expired { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+.badge-enterprise { background: #fdf4ff; color: #a21caf; border: 1px solid #f0abfc; }
+.badge-monthly { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+.badge-annual { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
 
 /* ===== CARTRIDGE SECTION ===== */
 .cartridge-upload-card {

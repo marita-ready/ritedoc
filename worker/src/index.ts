@@ -291,13 +291,440 @@ app.put('/api/keys/:id/revoke', authMiddleware, async (c) => {
   return c.json({ success: true });
 });
 
-// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+// ─── SUBSCRIPTIONS (BIAB) ────────────────────────────────────────────────────
 
+/**
+ * POST /api/subscriptions
+ * Create a new subscription.
+ * Body: { agency_id, client_assignment_id?, client_name, client_email, plan_type?, amount, currency?, status?, billing_cycle?, start_date?, next_billing_date?, expiry_date?, stripe_subscription_id?, auto_renew?, notes? }
+ */
+app.post('/api/subscriptions', authMiddleware, async (c) => {
+  const body = await c.req.json<any>();
+  const {
+    agency_id, client_assignment_id, client_name, client_email,
+    plan_type, amount, currency, status, billing_cycle,
+    start_date, next_billing_date, expiry_date,
+    stripe_subscription_id, auto_renew, notes
+  } = body;
+
+  if (!agency_id) {
+    return c.json({ error: 'agency_id is required' }, 400);
+  }
+  if (!client_name || !client_name.trim()) {
+    return c.json({ error: 'client_name is required' }, 400);
+  }
+  if (!client_email || !client_email.trim()) {
+    return c.json({ error: 'client_email is required' }, 400);
+  }
+  if (amount === undefined || amount === null || isNaN(parseFloat(amount))) {
+    return c.json({ error: 'amount is required and must be a number' }, 400);
+  }
+
+  const validPlans = ['founders', 'standard', 'enterprise'];
+  const planVal = validPlans.includes(plan_type) ? plan_type : 'standard';
+
+  const validStatuses = ['active', 'paused', 'cancelled', 'expired'];
+  const statusVal = validStatuses.includes(status) ? status : 'active';
+
+  const validCycles = ['monthly', 'annual'];
+  const cycleVal = validCycles.includes(billing_cycle) ? billing_cycle : 'monthly';
+
+  // Verify agency exists
+  const agency = await c.env.DB.prepare(
+    'SELECT * FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string }>();
+
+  if (!agency) {
+    return c.json({ error: 'Agency not found or inactive' }, 404);
+  }
+
+  // Optionally verify client_assignment_id
+  if (client_assignment_id) {
+    const assignment = await c.env.DB.prepare(
+      'SELECT id FROM client_assignments WHERE id = ? AND agency_id = ?'
+    ).bind(client_assignment_id, agency_id).first();
+
+    if (!assignment) {
+      return c.json({ error: 'Client assignment not found or does not belong to this agency' }, 404);
+    }
+  }
+
+  const startVal = start_date || new Date().toISOString();
+  const autoRenewVal = auto_renew === false || auto_renew === 0 ? 0 : 1;
+
+  try {
+    const result = await c.env.DB.prepare(
+      `INSERT INTO subscriptions (agency_id, client_assignment_id, client_name, client_email, plan_type, amount, currency, status, billing_cycle, start_date, next_billing_date, expiry_date, stripe_subscription_id, auto_renew, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      agency_id,
+      client_assignment_id || null,
+      client_name.trim(),
+      client_email.trim().toLowerCase(),
+      planVal,
+      parseFloat(amount),
+      currency || 'AUD',
+      statusVal,
+      cycleVal,
+      startVal,
+      next_billing_date || null,
+      expiry_date || null,
+      stripe_subscription_id || null,
+      autoRenewVal,
+      notes || null
+    ).run();
+
+    await logAction(c.env.DB, 'subscription_created', {
+      subscription_id: result.meta.last_row_id,
+      agency_id,
+      agency_name: agency.agency_name,
+      client_name: client_name.trim(),
+      client_email: client_email.trim(),
+      plan_type: planVal,
+      amount: parseFloat(amount),
+      status: statusVal,
+    }, c.get('jwtPayload')?.email || 'admin');
+
+    return c.json({ success: true, id: result.meta.last_row_id }, 201);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400);
+  }
+});
+
+/**
+ * GET /api/subscriptions
+ * List subscriptions. Supports optional filters:
+ *   ?agency_id=N — filter by agency
+ *   ?status=active|paused|cancelled|expired — filter by status
+ *   ?plan_type=founders|standard|enterprise — filter by plan
+ * Admin sees all; agency view should pass agency_id.
+ */
 app.get('/api/subscriptions', authMiddleware, async (c) => {
-  const { results } = await c.env.DB.prepare(
-    'SELECT id, business_name, contact_name, email, subscription_tier, status, created_at FROM clients ORDER BY created_at DESC'
-  ).all();
+  const agencyId = c.req.query('agency_id');
+  const status = c.req.query('status');
+  const planType = c.req.query('plan_type');
+
+  let query = `
+    SELECT s.*, a.agency_name
+    FROM subscriptions s
+    LEFT JOIN agencies a ON s.agency_id = a.id
+  `;
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (agencyId) {
+    conditions.push('s.agency_id = ?');
+    params.push(parseInt(agencyId));
+  }
+  if (status) {
+    conditions.push('s.status = ?');
+    params.push(status);
+  }
+  if (planType) {
+    conditions.push('s.plan_type = ?');
+    params.push(planType);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  query += ' ORDER BY s.created_at DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
   return c.json(results);
+});
+
+/**
+ * GET /api/subscriptions/stats
+ * Get subscription stats. Optionally filter by ?agency_id=N.
+ * Returns counts by status + MRR (Monthly Recurring Revenue).
+ */
+app.get('/api/subscriptions/stats', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+
+  if (agencyId) {
+    const aid = parseInt(agencyId);
+    const [active, paused, cancelled, expired, mrr] = await Promise.all([
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE agency_id = ? AND status = 'active'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE agency_id = ? AND status = 'paused'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE agency_id = ? AND status = 'cancelled'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE agency_id = ? AND status = 'expired'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN billing_cycle = 'monthly' THEN amount WHEN billing_cycle = 'annual' THEN amount / 12.0 ELSE 0 END), 0) as mrr FROM subscriptions WHERE agency_id = ? AND status = 'active'").bind(aid).first<{ mrr: number }>(),
+    ]);
+
+    return c.json({
+      active: active?.count || 0,
+      paused: paused?.count || 0,
+      cancelled: cancelled?.count || 0,
+      expired: expired?.count || 0,
+      mrr: Math.round((mrr?.mrr || 0) * 100) / 100,
+    });
+  }
+
+  const [active, paused, cancelled, expired, mrr] = await Promise.all([
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'paused'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'cancelled'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'expired'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN billing_cycle = 'monthly' THEN amount WHEN billing_cycle = 'annual' THEN amount / 12.0 ELSE 0 END), 0) as mrr FROM subscriptions WHERE status = 'active'").first<{ mrr: number }>(),
+  ]);
+
+  return c.json({
+    active: active?.count || 0,
+    paused: paused?.count || 0,
+    cancelled: cancelled?.count || 0,
+    expired: expired?.count || 0,
+    mrr: Math.round((mrr?.mrr || 0) * 100) / 100,
+  });
+});
+
+/**
+ * GET /api/subscriptions/expiring-soon
+ * Get subscriptions expiring within the next 30 days.
+ * Optionally filter by ?agency_id=N and ?days=30.
+ */
+app.get('/api/subscriptions/expiring-soon', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const days = parseInt(c.req.query('days') || '30');
+
+  let query = `
+    SELECT s.*, a.agency_name
+    FROM subscriptions s
+    LEFT JOIN agencies a ON s.agency_id = a.id
+    WHERE s.expiry_date IS NOT NULL
+      AND s.expiry_date <= datetime('now', '+' || ? || ' days')
+      AND s.expiry_date >= datetime('now')
+      AND s.status IN ('active', 'paused')
+  `;
+  const params: any[] = [Math.min(days, 365)];
+
+  if (agencyId) {
+    query += ' AND s.agency_id = ?';
+    params.push(parseInt(agencyId));
+  }
+  query += ' ORDER BY s.expiry_date ASC';
+
+  const stmt = c.env.DB.prepare(query).bind(...params);
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/subscriptions/admin-overview
+ * Admin overview: all subscriptions across agencies, MRR totals, status breakdown.
+ */
+app.get('/api/subscriptions/admin-overview', authMiddleware, async (c) => {
+  // Platform-wide stats
+  const platformStats = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*) as total,
+      COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as active,
+      COALESCE(SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END), 0) as paused,
+      COALESCE(SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END), 0) as cancelled,
+      COALESCE(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END), 0) as expired,
+      COALESCE(SUM(CASE WHEN status = 'active' AND billing_cycle = 'monthly' THEN amount WHEN status = 'active' AND billing_cycle = 'annual' THEN amount / 12.0 ELSE 0 END), 0) as mrr
+    FROM subscriptions
+  `).first<{ total: number; active: number; paused: number; cancelled: number; expired: number; mrr: number }>();
+
+  // Per-agency breakdown
+  const { results: agencyBreakdown } = await c.env.DB.prepare(`
+    SELECT
+      s.agency_id,
+      a.agency_name,
+      a.is_active as agency_active,
+      COUNT(*) as total_subscriptions,
+      COALESCE(SUM(CASE WHEN s.status = 'active' THEN 1 ELSE 0 END), 0) as active,
+      COALESCE(SUM(CASE WHEN s.status = 'paused' THEN 1 ELSE 0 END), 0) as paused,
+      COALESCE(SUM(CASE WHEN s.status = 'cancelled' THEN 1 ELSE 0 END), 0) as cancelled,
+      COALESCE(SUM(CASE WHEN s.status = 'expired' THEN 1 ELSE 0 END), 0) as expired,
+      COALESCE(SUM(CASE WHEN s.status = 'active' AND s.billing_cycle = 'monthly' THEN s.amount WHEN s.status = 'active' AND s.billing_cycle = 'annual' THEN s.amount / 12.0 ELSE 0 END), 0) as mrr
+    FROM subscriptions s
+    LEFT JOIN agencies a ON s.agency_id = a.id
+    GROUP BY s.agency_id
+    ORDER BY mrr DESC
+  `).all();
+
+  // Expiring soon (next 30 days)
+  const { results: expiringSoon } = await c.env.DB.prepare(`
+    SELECT s.*, a.agency_name
+    FROM subscriptions s
+    LEFT JOIN agencies a ON s.agency_id = a.id
+    WHERE s.expiry_date IS NOT NULL
+      AND s.expiry_date <= datetime('now', '+30 days')
+      AND s.expiry_date >= datetime('now')
+      AND s.status IN ('active', 'paused')
+    ORDER BY s.expiry_date ASC
+    LIMIT 20
+  `).all();
+
+  // Recent subscriptions (last 20)
+  const { results: recentSubscriptions } = await c.env.DB.prepare(`
+    SELECT s.*, a.agency_name
+    FROM subscriptions s
+    LEFT JOIN agencies a ON s.agency_id = a.id
+    ORDER BY s.created_at DESC
+    LIMIT 20
+  `).all();
+
+  return c.json({
+    platform: {
+      total: platformStats?.total || 0,
+      active: platformStats?.active || 0,
+      paused: platformStats?.paused || 0,
+      cancelled: platformStats?.cancelled || 0,
+      expired: platformStats?.expired || 0,
+      mrr: Math.round((platformStats?.mrr || 0) * 100) / 100,
+    },
+    agencies: agencyBreakdown || [],
+    expiring_soon: expiringSoon || [],
+    recent: recentSubscriptions || [],
+  });
+});
+
+/**
+ * GET /api/subscriptions/:id
+ * Get a single subscription detail.
+ */
+app.get('/api/subscriptions/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const subscription = await c.env.DB.prepare(
+    `SELECT s.*, a.agency_name, ca.activation_key, ca.client_organisation
+     FROM subscriptions s
+     LEFT JOIN agencies a ON s.agency_id = a.id
+     LEFT JOIN client_assignments ca ON s.client_assignment_id = ca.id
+     WHERE s.id = ?`
+  ).bind(id).first();
+
+  if (!subscription) {
+    return c.json({ error: 'Subscription not found' }, 404);
+  }
+
+  return c.json(subscription);
+});
+
+/**
+ * PUT /api/subscriptions/:id
+ * Update a subscription (change status, plan, amount, etc.).
+ * Body: { plan_type?, amount?, currency?, status?, billing_cycle?, next_billing_date?, expiry_date?, stripe_subscription_id?, auto_renew?, notes? }
+ */
+app.put('/api/subscriptions/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>();
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const subscription = await c.env.DB.prepare(
+    'SELECT * FROM subscriptions WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; client_name: string; status: string; plan_type: string; amount: number }>(); 
+
+  if (!subscription) {
+    return c.json({ error: 'Subscription not found' }, 404);
+  }
+
+  const validPlans = ['founders', 'standard', 'enterprise'];
+  const validStatuses = ['active', 'paused', 'cancelled', 'expired'];
+  const validCycles = ['monthly', 'annual'];
+
+  const planVal = body.plan_type && validPlans.includes(body.plan_type) ? body.plan_type : subscription.plan_type;
+  const statusVal = body.status && validStatuses.includes(body.status) ? body.status : subscription.status;
+  const cycleVal = body.billing_cycle && validCycles.includes(body.billing_cycle) ? body.billing_cycle : undefined;
+  const amountVal = body.amount !== undefined && !isNaN(parseFloat(body.amount)) ? parseFloat(body.amount) : subscription.amount;
+  const autoRenewVal = body.auto_renew !== undefined ? (body.auto_renew ? 1 : 0) : undefined;
+
+  let updateFields = `plan_type = ?, amount = ?, status = ?, updated_at = datetime('now')`;
+  const updateParams: any[] = [planVal, amountVal, statusVal];
+
+  if (body.currency) {
+    updateFields += ', currency = ?';
+    updateParams.push(body.currency);
+  }
+  if (cycleVal) {
+    updateFields += ', billing_cycle = ?';
+    updateParams.push(cycleVal);
+  }
+  if (body.next_billing_date !== undefined) {
+    updateFields += ', next_billing_date = ?';
+    updateParams.push(body.next_billing_date || null);
+  }
+  if (body.expiry_date !== undefined) {
+    updateFields += ', expiry_date = ?';
+    updateParams.push(body.expiry_date || null);
+  }
+  if (body.stripe_subscription_id !== undefined) {
+    updateFields += ', stripe_subscription_id = ?';
+    updateParams.push(body.stripe_subscription_id || null);
+  }
+  if (autoRenewVal !== undefined) {
+    updateFields += ', auto_renew = ?';
+    updateParams.push(autoRenewVal);
+  }
+  if (body.notes !== undefined) {
+    updateFields += ', notes = ?';
+    updateParams.push(body.notes || null);
+  }
+
+  updateParams.push(id);
+
+  await c.env.DB.prepare(
+    `UPDATE subscriptions SET ${updateFields} WHERE id = ?`
+  ).bind(...updateParams).run();
+
+  await logAction(c.env.DB, 'subscription_updated', {
+    subscription_id: parseInt(id),
+    agency_id: subscription.agency_id,
+    client_name: subscription.client_name,
+    changes: {
+      plan_type: planVal !== subscription.plan_type ? { from: subscription.plan_type, to: planVal } : undefined,
+      status: statusVal !== subscription.status ? { from: subscription.status, to: statusVal } : undefined,
+      amount: amountVal !== subscription.amount ? { from: subscription.amount, to: amountVal } : undefined,
+    },
+  }, adminEmail);
+
+  return c.json({ success: true });
+});
+
+/**
+ * PUT /api/subscriptions/:id/cancel
+ * Cancel a subscription.
+ * Body: { reason? }
+ */
+app.put('/api/subscriptions/:id/cancel', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const subscription = await c.env.DB.prepare(
+    'SELECT * FROM subscriptions WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; client_name: string; client_email: string; status: string }>(); 
+
+  if (!subscription) {
+    return c.json({ error: 'Subscription not found' }, 404);
+  }
+
+  if (subscription.status === 'cancelled') {
+    return c.json({ error: 'Subscription is already cancelled' }, 400);
+  }
+
+  const cancelNote = body.reason ? `Cancelled: ${body.reason}` : 'Cancelled by admin';
+
+  await c.env.DB.prepare(
+    `UPDATE subscriptions SET status = 'cancelled', auto_renew = 0,
+     notes = CASE WHEN notes IS NOT NULL THEN notes || '\n' || ? ELSE ? END,
+     updated_at = datetime('now') WHERE id = ?`
+  ).bind(cancelNote, cancelNote, id).run();
+
+  await logAction(c.env.DB, 'subscription_cancelled', {
+    subscription_id: parseInt(id),
+    agency_id: subscription.agency_id,
+    client_name: subscription.client_name,
+    client_email: subscription.client_email,
+    reason: body.reason || null,
+  }, adminEmail);
+
+  return c.json({ success: true });
 });
 
 // ─── CARTRIDGES ───────────────────────────────────────────────────────────────

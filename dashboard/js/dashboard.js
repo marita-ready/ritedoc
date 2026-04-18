@@ -30,6 +30,8 @@ const dashState = {
   revenueTransactions: [],
   revenueAdminOverview: null,
   revenueMonthly: [],
+  subscriptions: [],
+  subscriptionAdminOverview: null,
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -189,6 +191,7 @@ function getSectionTitle(id) {
     'seat-requests': 'Wholesale Seat Requests',
     'client-assignments': 'Client Assignments',
     'bundled-deliveries': 'Bundled Deliveries',
+    subscriptions: 'Subscriptions',
     revenue: 'Revenue Tracking',
     automation: 'Automation & API',
   };
@@ -200,7 +203,7 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats, revenueTransactions, revenueAdminOverview, revenueMonthly] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats, revenueTransactions, revenueAdminOverview, revenueMonthly, subscriptions, subscriptionAdminOverview] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
@@ -214,6 +217,8 @@ async function loadAllData() {
       api.get('/api/revenue/transactions').catch(() => []),
       api.get('/api/revenue/admin-overview').catch(() => null),
       api.get('/api/revenue/monthly').catch(() => []),
+      api.get('/api/subscriptions').catch(() => []),
+      api.get('/api/subscriptions/admin-overview').catch(() => null),
     ]);
 
     dashState.clients = clients || [];
@@ -228,6 +233,8 @@ async function loadAllData() {
     dashState.revenueTransactions = revenueTransactions || [];
     dashState.revenueAdminOverview = revenueAdminOverview || null;
     dashState.revenueMonthly = revenueMonthly || [];
+    dashState.subscriptions = subscriptions || [];
+    dashState.subscriptionAdminOverview = subscriptionAdminOverview || null;
 
     renderOverview(stats);
     renderClients();
@@ -239,6 +246,7 @@ async function loadAllData() {
     renderSeatRequests(stats);
     renderClientAssignments();
     renderBundledDeliveries();
+    renderSubscriptions();
     renderRevenue();
 
   } catch (e) {
@@ -1696,6 +1704,514 @@ async function viewAssignmentDetail(id) {
   } catch (e) {
     showToast('Error loading assignment details: ' + e.message);
   }
+}
+
+// ===== SUBSCRIPTIONS =====
+
+function renderSubscriptions() {
+  // Compute stats from local data
+  const active = dashState.subscriptions.filter(s => s.status === 'active').length;
+  const paused = dashState.subscriptions.filter(s => s.status === 'paused').length;
+  const cancelled = dashState.subscriptions.filter(s => s.status === 'cancelled').length;
+  const expired = dashState.subscriptions.filter(s => s.status === 'expired').length;
+  const mrr = dashState.subscriptions
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => {
+      const amt = parseFloat(s.amount || 0);
+      return sum + (s.billing_cycle === 'annual' ? amt / 12 : amt);
+    }, 0);
+
+  document.getElementById('statSubActive').textContent = active;
+  document.getElementById('statSubPaused').textContent = paused;
+  document.getElementById('statSubCancelled').textContent = cancelled;
+  document.getElementById('statSubExpired').textContent = expired;
+  document.getElementById('statSubMRR').textContent = formatCurrency(mrr);
+
+  // Populate agency filter dropdown
+  const filterEl = document.getElementById('subAgencyFilter');
+  const currentVal = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Agencies</option>' +
+    dashState.agencies.map(a => `<option value="${a.id}" ${String(a.id) === currentVal ? 'selected' : ''}>${escapeHtml(a.agency_name)}</option>`).join('');
+
+  // Render main subscriptions table
+  renderSubscriptionsTable();
+  // Render admin overview
+  renderSubscriptionsAdminView();
+}
+
+function getSubscriptionStatusBadge(status) {
+  const map = {
+    active: 'active',
+    paused: 'paused',
+    cancelled: 'cancelled',
+    expired: 'expired',
+  };
+  return map[status] || 'pending';
+}
+
+function getSubscriptionPlanBadge(plan) {
+  const map = {
+    founders: 'founders',
+    standard: 'standard',
+    enterprise: 'enterprise',
+  };
+  return map[plan] || 'standard';
+}
+
+function renderSubscriptionsTable() {
+  const tbody = document.getElementById('subscriptionsBody');
+  const filterAgency = document.getElementById('subAgencyFilter').value;
+
+  let subs = dashState.subscriptions;
+  if (filterAgency) {
+    subs = subs.filter(s => s.agency_id === parseInt(filterAgency));
+  }
+
+  if (subs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="table-empty">No subscriptions found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = subs.map(s => {
+    const statusClass = getSubscriptionStatusBadge(s.status);
+    const planClass = getSubscriptionPlanBadge(s.plan_type);
+    const canCancel = s.status === 'active' || s.status === 'paused';
+    const actions = `<button class="btn-sm" onclick="viewSubscriptionDetail(${s.id})">View</button>` +
+      (canCancel ? ` <button class="btn-sm" style="color:var(--red);border-color:var(--red-border);margin-left:4px;" onclick="cancelSubscription(${s.id})">Cancel</button>` : '');
+
+    return `
+      <tr data-sub-status="${s.status}">
+        <td><strong>${escapeHtml(s.client_name || '\u2014')}</strong></td>
+        <td>${escapeHtml(s.client_email || '\u2014')}</td>
+        <td>${escapeHtml(s.agency_name || '\u2014')}</td>
+        <td><span class="badge badge-${planClass}">${escapeHtml(s.plan_type)}</span></td>
+        <td style="font-weight:600;">${formatCurrency(s.amount)} ${escapeHtml(s.currency || 'AUD')}</td>
+        <td><span class="badge badge-${s.billing_cycle === 'annual' ? 'annual' : 'monthly'}">${escapeHtml(s.billing_cycle)}</span></td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(s.status)}</span></td>
+        <td>${formatDate(s.expiry_date)}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderSubscriptionsAdminView() {
+  const overview = dashState.subscriptionAdminOverview;
+
+  // Platform summary cards
+  if (overview && overview.platform) {
+    document.getElementById('statPlatformSubActive').textContent = overview.platform.active;
+    document.getElementById('statPlatformSubMRR').textContent = formatCurrency(overview.platform.mrr);
+    document.getElementById('statPlatformSubTotal').textContent = overview.platform.total;
+    document.getElementById('statPlatformSubExpiring').textContent = (overview.expiring_soon || []).length;
+  } else {
+    document.getElementById('statPlatformSubActive').textContent = '0';
+    document.getElementById('statPlatformSubMRR').textContent = '$0.00';
+    document.getElementById('statPlatformSubTotal').textContent = '0';
+    document.getElementById('statPlatformSubExpiring').textContent = '0';
+  }
+
+  // Agencies by MRR table
+  const agenciesBody = document.getElementById('subAgenciesMRRBody');
+  const agencies = overview?.agencies || [];
+
+  if (agencies.length === 0) {
+    agenciesBody.innerHTML = '<tr><td colspan="7" class="table-empty">No agency subscription data yet</td></tr>';
+  } else {
+    agenciesBody.innerHTML = agencies.map((a, idx) => {
+      const statusBadge = a.agency_active ? 'active' : 'inactive';
+      return `
+        <tr>
+          <td style="font-weight:600;color:var(--text-muted);">#${idx + 1}</td>
+          <td><strong>${escapeHtml(a.agency_name || 'Unknown')}</strong></td>
+          <td style="color:var(--green);font-weight:600;">${a.active}</td>
+          <td>${a.paused}</td>
+          <td style="color:var(--red);">${a.cancelled}</td>
+          <td style="font-weight:700;color:var(--indigo);">${formatCurrency(a.mrr)}</td>
+          <td><span class="badge badge-${statusBadge}">${a.agency_active ? 'active' : 'inactive'}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Expiring soon table
+  const expiringBody = document.getElementById('subExpiringSoonBody');
+  const expiring = overview?.expiring_soon || [];
+
+  if (expiring.length === 0) {
+    expiringBody.innerHTML = '<tr><td colspan="8" class="table-empty">No subscriptions expiring soon</td></tr>';
+  } else {
+    expiringBody.innerHTML = expiring.map(s => {
+      const daysLeft = Math.ceil((new Date(s.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
+      const urgencyColor = daysLeft <= 7 ? 'var(--red)' : daysLeft <= 14 ? 'var(--orange)' : 'var(--text)';
+      return `
+        <tr>
+          <td><strong>${escapeHtml(s.client_name)}</strong></td>
+          <td>${escapeHtml(s.client_email)}</td>
+          <td>${escapeHtml(s.agency_name || '\u2014')}</td>
+          <td><span class="badge badge-${getSubscriptionPlanBadge(s.plan_type)}">${escapeHtml(s.plan_type)}</span></td>
+          <td style="font-weight:600;">${formatCurrency(s.amount)}</td>
+          <td style="color:${urgencyColor};font-weight:600;">${formatDate(s.expiry_date)} <span style="font-size:11px;">(${daysLeft}d)</span></td>
+          <td>${s.auto_renew ? '<span style="color:var(--green);">Yes</span>' : '<span style="color:var(--red);">No</span>'}</td>
+          <td><button class="btn-sm" onclick="viewSubscriptionDetail(${s.id})">View</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Recent subscriptions table
+  const recentBody = document.getElementById('subRecentBody');
+  const recent = overview?.recent || [];
+
+  if (recent.length === 0) {
+    recentBody.innerHTML = '<tr><td colspan="8" class="table-empty">No subscriptions yet</td></tr>';
+  } else {
+    recentBody.innerHTML = recent.map(s => {
+      const statusClass = getSubscriptionStatusBadge(s.status);
+      const planClass = getSubscriptionPlanBadge(s.plan_type);
+      return `
+        <tr>
+          <td style="font-size:12px;color:var(--text-muted);">#${s.id}</td>
+          <td><strong>${escapeHtml(s.client_name)}</strong></td>
+          <td>${escapeHtml(s.agency_name || '\u2014')}</td>
+          <td><span class="badge badge-${planClass}">${escapeHtml(s.plan_type)}</span></td>
+          <td style="font-weight:600;">${formatCurrency(s.amount)}</td>
+          <td><span class="badge badge-${statusClass}">${escapeHtml(s.status)}</span></td>
+          <td>${formatDate(s.created_at)}</td>
+          <td><button class="btn-sm" onclick="viewSubscriptionDetail(${s.id})">View</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+function filterSubscriptionsByAgency() {
+  renderSubscriptionsTable();
+
+  // Update stats for filtered agency
+  const agencyId = document.getElementById('subAgencyFilter').value;
+  let subs = dashState.subscriptions;
+  if (agencyId) {
+    subs = subs.filter(s => s.agency_id === parseInt(agencyId));
+  }
+
+  const active = subs.filter(s => s.status === 'active').length;
+  const paused = subs.filter(s => s.status === 'paused').length;
+  const cancelled = subs.filter(s => s.status === 'cancelled').length;
+  const expired = subs.filter(s => s.status === 'expired').length;
+  const mrr = subs
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => {
+      const amt = parseFloat(s.amount || 0);
+      return sum + (s.billing_cycle === 'annual' ? amt / 12 : amt);
+    }, 0);
+
+  document.getElementById('statSubActive').textContent = active;
+  document.getElementById('statSubPaused').textContent = paused;
+  document.getElementById('statSubCancelled').textContent = cancelled;
+  document.getElementById('statSubExpired').textContent = expired;
+  document.getElementById('statSubMRR').textContent = formatCurrency(mrr);
+}
+
+function filterSubscriptionsByStatus(status) {
+  document.querySelectorAll('[data-sub-filter]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-sub-filter="${status}"]`).classList.add('active');
+
+  const rows = document.querySelectorAll('#subscriptionsBody tr');
+  rows.forEach(row => {
+    if (status === 'all') {
+      row.style.display = '';
+    } else {
+      row.style.display = row.dataset.subStatus === status ? '' : 'none';
+    }
+  });
+}
+
+function searchSubscriptions() {
+  const q = document.getElementById('subSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('#subscriptionsBody tr');
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+async function viewSubscriptionDetail(id) {
+  try {
+    const detail = await api.get(`/api/subscriptions/${id}`);
+    const statusClass = getSubscriptionStatusBadge(detail.status);
+    const planClass = getSubscriptionPlanBadge(detail.plan_type);
+    const amountColor = detail.status === 'active' ? 'var(--green)' : 'var(--text-muted)';
+    const canCancel = detail.status === 'active' || detail.status === 'paused';
+
+    let footerActions = '';
+    if (canCancel) {
+      footerActions = `
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px;">
+          <button class="btn-sm" style="color:var(--red);border-color:var(--red-border);" onclick="closeModal();cancelSubscription(${detail.id})">Cancel Subscription</button>
+        </div>
+      `;
+    }
+
+    openModal(`Subscription #${id}`, `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Client Name</span><div style="font-weight:600;">${escapeHtml(detail.client_name)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Client Email</span><div>${escapeHtml(detail.client_email)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Agency</span><div>${escapeHtml(detail.agency_name || '\u2014')}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Plan Type</span><div><span class="badge badge-${planClass}">${escapeHtml(detail.plan_type)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Amount</span><div style="font-size:18px;font-weight:700;color:${amountColor};">${formatCurrency(detail.amount)} ${escapeHtml(detail.currency || 'AUD')}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Status</span><div><span class="badge badge-${statusClass}">${escapeHtml(detail.status)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Billing Cycle</span><div><span class="badge badge-${detail.billing_cycle === 'annual' ? 'annual' : 'monthly'}">${escapeHtml(detail.billing_cycle)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Auto-Renew</span><div>${detail.auto_renew ? '<span style="color:var(--green);font-weight:600;">Yes</span>' : '<span style="color:var(--red);font-weight:600;">No</span>'}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Start Date</span><div>${formatDate(detail.start_date)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Next Billing Date</span><div>${formatDate(detail.next_billing_date)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Expiry Date</span><div>${formatDate(detail.expiry_date)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Created</span><div>${formatDate(detail.created_at)}</div></div>
+      </div>
+      ${detail.client_organisation ? `<div style="margin-bottom:12px;"><span style="font-size:12px;color:var(--text-muted);">Organisation</span><div>${escapeHtml(detail.client_organisation)}</div></div>` : ''}
+      ${detail.activation_key ? `
+        <div style="margin-bottom:12px;">
+          <span style="font-size:12px;color:var(--text-muted);">Linked Activation Key</span><br/>
+          <code style="font-size:13px;background:#f3f4f6;padding:4px 10px;border-radius:4px;display:inline-block;margin-top:4px;letter-spacing:0.5px;">${escapeHtml(detail.activation_key)}</code>
+        </div>
+      ` : ''}
+      ${detail.stripe_subscription_id ? `
+        <div style="margin-bottom:12px;">
+          <span style="font-size:12px;color:var(--text-muted);">Stripe Subscription ID</span>
+          <div><code style="font-size:12px;background:#f3f4f6;padding:2px 8px;border-radius:4px;">${escapeHtml(detail.stripe_subscription_id)}</code></div>
+        </div>
+      ` : ''}
+      ${detail.notes ? `<div style="background:var(--bg);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-size:12px;color:var(--text-muted);">Notes</span><div style="font-size:13px;margin-top:4px;white-space:pre-wrap;">${escapeHtml(detail.notes)}</div></div>` : ''}
+      ${footerActions}
+    `, null);
+  } catch (e) {
+    showToast('Error loading subscription: ' + e.message);
+  }
+}
+
+async function cancelSubscription(id) {
+  const sub = dashState.subscriptions.find(s => s.id === id);
+  if (!sub) return;
+
+  openModal(`Cancel Subscription #${id}`, `
+    <div style="margin-bottom:16px;">
+      <p><strong>Client:</strong> ${escapeHtml(sub.client_name)} (${escapeHtml(sub.client_email)})</p>
+      <p><strong>Plan:</strong> ${escapeHtml(sub.plan_type)} — ${formatCurrency(sub.amount)} / ${escapeHtml(sub.billing_cycle)}</p>
+      <p><strong>Agency:</strong> ${escapeHtml(sub.agency_name || '\u2014')}</p>
+    </div>
+    <div class="form-group">
+      <label>Reason for Cancellation</label>
+      <textarea id="fCancelReason" placeholder="e.g., Client requested cancellation, non-payment, etc."></textarea>
+    </div>
+    <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:var(--red);margin-top:12px;">
+      This will set the subscription status to <strong>cancelled</strong> and disable auto-renew.
+    </div>
+  `, async () => {
+    const reason = document.getElementById('fCancelReason').value;
+
+    try {
+      await api.put(`/api/subscriptions/${id}/cancel`, { reason: reason || undefined });
+      showToast('Subscription cancelled');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+function showCreateSubscriptionModal() {
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)}</option>`)
+    .join('');
+
+  if (!agencyOptions) {
+    showToast('No active agencies found. Add an agency first.');
+    return;
+  }
+
+  // Pre-select agency if filter is set
+  const currentFilter = document.getElementById('subAgencyFilter').value;
+
+  openModal('Create Subscription', `
+    <div class="form-group">
+      <label>Agency *</label>
+      <select id="fSubAgency" onchange="updateSubClientAssignments()">${agencyOptions}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Client Name *</label>
+        <input type="text" id="fSubClientName" placeholder="Jane Doe" />
+      </div>
+      <div class="form-group">
+        <label>Client Email *</label>
+        <input type="email" id="fSubClientEmail" placeholder="jane@example.com" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Plan Type *</label>
+        <select id="fSubPlan">
+          <option value="founders">Founders</option>
+          <option value="standard" selected>Standard</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount (AUD) *</label>
+        <input type="number" id="fSubAmount" step="0.01" min="0" placeholder="99.00" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Currency</label>
+        <select id="fSubCurrency">
+          <option value="AUD" selected>AUD</option>
+          <option value="USD">USD</option>
+          <option value="NZD">NZD</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Billing Cycle</label>
+        <select id="fSubCycle">
+          <option value="monthly" selected>Monthly</option>
+          <option value="annual">Annual</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="fSubStartDate" value="${new Date().toISOString().split('T')[0]}" />
+      </div>
+      <div class="form-group">
+        <label>Expiry Date (optional)</label>
+        <input type="date" id="fSubExpiryDate" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Next Billing Date (optional)</label>
+        <input type="date" id="fSubNextBilling" />
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="fSubStatus">
+          <option value="active" selected>Active</option>
+          <option value="paused">Paused</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Linked Client Assignment (optional)</label>
+      <select id="fSubAssignment">
+        <option value="">None</option>
+      </select>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Link to an existing client assignment for this agency.</p>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Auto-Renew</label>
+        <select id="fSubAutoRenew">
+          <option value="1" selected>Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Stripe Subscription ID (optional)</label>
+        <input type="text" id="fSubStripeId" placeholder="sub_..." />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="fSubNotes" placeholder="Internal notes about this subscription"></textarea>
+    </div>
+  `, async () => {
+    const agencyId = parseInt(document.getElementById('fSubAgency').value);
+    const clientName = document.getElementById('fSubClientName').value;
+    const clientEmail = document.getElementById('fSubClientEmail').value;
+    const planType = document.getElementById('fSubPlan').value;
+    const amount = parseFloat(document.getElementById('fSubAmount').value);
+    const currency = document.getElementById('fSubCurrency').value;
+    const billingCycle = document.getElementById('fSubCycle').value;
+    const startDate = document.getElementById('fSubStartDate').value;
+    const expiryDate = document.getElementById('fSubExpiryDate').value;
+    const nextBilling = document.getElementById('fSubNextBilling').value;
+    const status = document.getElementById('fSubStatus').value;
+    const assignmentId = document.getElementById('fSubAssignment').value;
+    const autoRenew = document.getElementById('fSubAutoRenew').value === '1';
+    const stripeId = document.getElementById('fSubStripeId').value;
+    const notes = document.getElementById('fSubNotes').value;
+
+    if (!agencyId) { showToast('Please select an agency'); return; }
+    if (!clientName.trim()) { showToast('Client name is required'); return; }
+    if (!clientEmail.trim()) { showToast('Client email is required'); return; }
+    if (isNaN(amount) || amount < 0) { showToast('Please enter a valid amount'); return; }
+
+    try {
+      await api.post('/api/subscriptions', {
+        agency_id: agencyId,
+        client_name: clientName,
+        client_email: clientEmail,
+        plan_type: planType,
+        amount: amount,
+        currency: currency,
+        billing_cycle: billingCycle,
+        start_date: startDate || undefined,
+        expiry_date: expiryDate || undefined,
+        next_billing_date: nextBilling || undefined,
+        status: status,
+        client_assignment_id: assignmentId ? parseInt(assignmentId) : undefined,
+        auto_renew: autoRenew,
+        stripe_subscription_id: stripeId || undefined,
+        notes: notes || undefined,
+      });
+      showToast('Subscription created successfully');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+
+  // Pre-select agency if filter is active
+  if (currentFilter) {
+    document.getElementById('fSubAgency').value = currentFilter;
+  }
+
+  // Load client assignments for the selected agency
+  updateSubClientAssignments();
+}
+
+function updateSubClientAssignments() {
+  const agencyId = parseInt(document.getElementById('fSubAgency').value);
+  const assignSelect = document.getElementById('fSubAssignment');
+
+  const agencyAssignments = dashState.clientAssignments.filter(a =>
+    a.agency_id === agencyId
+  );
+
+  if (agencyAssignments.length === 0) {
+    assignSelect.innerHTML = '<option value="">No client assignments for this agency</option>';
+  } else {
+    assignSelect.innerHTML = '<option value="">None (no linked assignment)</option>' +
+      agencyAssignments.map(a => {
+        return `<option value="${a.id}">${escapeHtml(a.client_name)} (${escapeHtml(a.client_email)})</option>`;
+      }).join('');
+  }
+
+  // Auto-fill client name/email if an assignment is selected
+  assignSelect.addEventListener('change', () => {
+    const selectedId = parseInt(assignSelect.value);
+    if (selectedId) {
+      const assignment = agencyAssignments.find(a => a.id === selectedId);
+      if (assignment) {
+        document.getElementById('fSubClientName').value = assignment.client_name || '';
+        document.getElementById('fSubClientEmail').value = assignment.client_email || '';
+      }
+    }
+  });
 }
 
 // ===== AUTOMATION LOG =====
