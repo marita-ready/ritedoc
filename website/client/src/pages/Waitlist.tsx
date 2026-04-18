@@ -16,6 +16,7 @@ import {
 async function submitToWaitlist(firstName: string, email: string) {
   const res = await fetch("https://api.readycompliant.com", {
 
+
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
