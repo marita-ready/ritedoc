@@ -25,6 +25,7 @@ const dashState = {
   agencies: [],
   mobileCodes: [],
   seatRequests: [],
+  clientAssignments: [],
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -182,6 +183,7 @@ function getSectionTitle(id) {
     cartridges: 'Cartridge Management',
     agencies: 'BIAB Agencies',
     'seat-requests': 'Wholesale Seat Requests',
+    'client-assignments': 'Client Assignments',
     automation: 'Automation & API',
   };
   return titles[id] || id;
@@ -192,7 +194,7 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, stats] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, stats] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
@@ -200,6 +202,7 @@ async function loadAllData() {
       api.get('/api/agencies').catch(() => []),
       api.get('/api/mobile/codes').catch(() => []),
       api.get('/api/seat-requests').catch(() => []),
+      api.get('/api/client-assignments').catch(() => []),
       api.get('/api/stats/overview').catch(() => ({})),
     ]);
 
@@ -210,6 +213,7 @@ async function loadAllData() {
     dashState.agencies = agencies || [];
     dashState.mobileCodes = mobileCodes || [];
     dashState.seatRequests = seatRequests || [];
+    dashState.clientAssignments = clientAssignments || [];
 
     renderOverview(stats);
     renderClients();
@@ -219,6 +223,7 @@ async function loadAllData() {
     renderAgencies();
     renderMobileCodes(stats);
     renderSeatRequests(stats);
+    renderClientAssignments();
 
   } catch (e) {
     console.error('Failed to load data:', e);
@@ -1374,6 +1379,307 @@ async function viewSeatRequestDetail(id) {
 
 async function viewSeatRequestKeys(id) {
   await viewSeatRequestDetail(id);
+}
+
+// ===== CLIENT ASSIGNMENTS =====
+function renderClientAssignments() {
+  // Update stats
+  const total = dashState.clientAssignments.length;
+  const active = dashState.clientAssignments.filter(a => a.status === 'active').length;
+  const revoked = dashState.clientAssignments.filter(a => a.status === 'revoked').length;
+  const expired = dashState.clientAssignments.filter(a => a.status === 'expired').length;
+
+  document.getElementById('statAssignTotal').textContent = total;
+  document.getElementById('statAssignActive').textContent = active;
+  document.getElementById('statAssignRevoked').textContent = revoked;
+  document.getElementById('statAssignExpired').textContent = expired;
+
+  // Populate agency filter dropdown
+  const filterEl = document.getElementById('assignAgencyFilter');
+  const currentVal = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Agencies</option>' +
+    dashState.agencies.map(a => `<option value="${a.id}" ${String(a.id) === currentVal ? 'selected' : ''}>${escapeHtml(a.agency_name)}</option>`).join('');
+
+  // Render agency-filtered table
+  renderClientAssignmentsTable();
+  // Render admin table (all assignments)
+  renderAdminAssignmentsTable();
+}
+
+function renderClientAssignmentsTable() {
+  const tbody = document.getElementById('clientAssignmentsBody');
+  const filterAgency = document.getElementById('assignAgencyFilter').value;
+
+  let assignments = dashState.clientAssignments;
+  if (filterAgency) {
+    assignments = assignments.filter(a => a.agency_id === parseInt(filterAgency));
+  }
+
+  if (assignments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">No client assignments found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = assignments.map(a => {
+    const statusClass = a.status === 'active' ? 'active' : a.status === 'revoked' ? 'inactive' : 'pending';
+    const actions = a.status === 'active'
+      ? `<button class="btn-sm" onclick="viewAssignmentDetail(${a.id})">View</button>
+         <button class="btn-sm" style="color:var(--red);border-color:var(--red-border);margin-left:4px;" onclick="revokeAssignment(${a.id})">Revoke</button>`
+      : `<button class="btn-sm" onclick="viewAssignmentDetail(${a.id})">View</button>`;
+
+    return `
+      <tr data-assign-status="${a.status}">
+        <td><strong>${escapeHtml(a.client_name || '—')}</strong></td>
+        <td>${escapeHtml(a.client_email || '—')}</td>
+        <td>${escapeHtml(a.client_organisation || '—')}</td>
+        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 8px;border-radius:4px;letter-spacing:0.5px;">${escapeHtml(a.activation_key)}</code></td>
+        <td>${escapeHtml(a.agency_name || '—')}</td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(a.status)}</span></td>
+        <td>${formatDate(a.assigned_at)}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderAdminAssignmentsTable() {
+  const tbody = document.getElementById('adminAssignmentsBody');
+
+  if (dashState.clientAssignments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">No assignments found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = dashState.clientAssignments.map(a => {
+    const statusClass = a.status === 'active' ? 'active' : a.status === 'revoked' ? 'inactive' : 'pending';
+    const actions = a.status === 'active'
+      ? `<button class="btn-sm" onclick="viewAssignmentDetail(${a.id})">View</button>
+         <button class="btn-sm" style="color:var(--red);border-color:var(--red-border);margin-left:4px;" onclick="revokeAssignment(${a.id})">Revoke</button>`
+      : `<button class="btn-sm" onclick="viewAssignmentDetail(${a.id})">View</button>`;
+
+    return `
+      <tr data-assign-status="${a.status}">
+        <td style="font-size:12px;color:var(--text-muted);">#${a.id}</td>
+        <td><strong>${escapeHtml(a.agency_name || '—')}</strong></td>
+        <td>${escapeHtml(a.client_name || '—')}</td>
+        <td>${escapeHtml(a.client_email || '—')}</td>
+        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 8px;border-radius:4px;letter-spacing:0.5px;">${escapeHtml(a.activation_key)}</code></td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(a.status)}</span></td>
+        <td>${formatDate(a.assigned_at)}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterClientAssignments() {
+  renderClientAssignmentsTable();
+}
+
+function searchClientAssignments() {
+  const q = document.getElementById('assignSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('#clientAssignmentsBody tr');
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function filterAssignmentsByStatus(status) {
+  document.querySelectorAll('[data-assign-filter]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-assign-filter="${status}"]`).classList.add('active');
+
+  const rows = document.querySelectorAll('#adminAssignmentsBody tr');
+  rows.forEach(row => {
+    if (status === 'all') {
+      row.style.display = '';
+    } else {
+      row.style.display = row.dataset.assignStatus === status ? '' : 'none';
+    }
+  });
+}
+
+function showAssignLicenceModal() {
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)}</option>`)
+    .join('');
+
+  if (!agencyOptions) {
+    showToast('No active agencies found. Add an agency first.');
+    return;
+  }
+
+  openModal('Assign Licence to Client', `
+    <div class="form-group">
+      <label>Agency</label>
+      <select id="fAssignAgency" onchange="updateAvailableKeys()">${agencyOptions}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Client Name *</label>
+        <input type="text" id="fAssignName" placeholder="Full name" />
+      </div>
+      <div class="form-group">
+        <label>Client Email *</label>
+        <input type="email" id="fAssignEmail" placeholder="client@example.com" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Client Organisation (optional)</label>
+      <input type="text" id="fAssignOrg" placeholder="Company or organisation name" />
+    </div>
+    <div class="form-group">
+      <label>Activation Key *</label>
+      <select id="fAssignKey">
+        <option value="">Loading available keys...</option>
+      </select>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Only active, unassigned keys belonging to the selected agency are shown.</p>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="fAssignNotes" placeholder="Internal notes about this assignment"></textarea>
+    </div>
+  `, async () => {
+    const agencyId = parseInt(document.getElementById('fAssignAgency').value);
+    const clientName = document.getElementById('fAssignName').value;
+    const clientEmail = document.getElementById('fAssignEmail').value;
+    const clientOrg = document.getElementById('fAssignOrg').value;
+    const activationKey = document.getElementById('fAssignKey').value;
+    const notes = document.getElementById('fAssignNotes').value;
+
+    if (!clientName.trim()) { showToast('Client name is required'); return; }
+    if (!clientEmail.trim()) { showToast('Client email is required'); return; }
+    if (!activationKey) { showToast('Please select an activation key'); return; }
+
+    try {
+      await api.post('/api/client-assignments', {
+        agency_id: agencyId,
+        client_name: clientName,
+        client_email: clientEmail,
+        client_organisation: clientOrg || undefined,
+        activation_key: activationKey,
+        notes: notes || undefined,
+      });
+      showToast('Licence assigned to client');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+
+  // Trigger initial key load
+  updateAvailableKeys();
+}
+
+function updateAvailableKeys() {
+  const agencyId = parseInt(document.getElementById('fAssignAgency').value);
+  const keySelect = document.getElementById('fAssignKey');
+
+  // Get keys belonging to this agency that are active
+  const agencyKeys = dashState.keys.filter(k =>
+    k.is_active &&
+    k.agency_id === agencyId
+  );
+
+  // Filter out keys already assigned to an active client assignment
+  const assignedKeys = new Set(
+    dashState.clientAssignments
+      .filter(a => a.status === 'active')
+      .map(a => a.activation_key)
+  );
+
+  const availableKeys = agencyKeys.filter(k => !assignedKeys.has(k.key_code));
+
+  if (availableKeys.length === 0) {
+    keySelect.innerHTML = '<option value="">No available keys for this agency</option>';
+  } else {
+    keySelect.innerHTML = '<option value="">Select a key...</option>' +
+      availableKeys.map(k => {
+        const label = k.activated_at ? `${k.key_code} (activated)` : k.key_code;
+        return `<option value="${escapeAttr(k.key_code)}">${escapeHtml(label)}</option>`;
+      }).join('');
+  }
+}
+
+async function revokeAssignment(id) {
+  const assignment = dashState.clientAssignments.find(a => a.id === id);
+  if (!assignment) return;
+
+  openModal(`Revoke Assignment #${id}`, `
+    <div style="margin-bottom:16px;">
+      <p><strong>Client:</strong> ${escapeHtml(assignment.client_name)} (${escapeHtml(assignment.client_email)})</p>
+      <p><strong>Agency:</strong> ${escapeHtml(assignment.agency_name || '—')}</p>
+      <p><strong>Key:</strong> <code>${escapeHtml(assignment.activation_key)}</code></p>
+    </div>
+    <div class="form-group">
+      <label>Reason for Revocation (optional)</label>
+      <textarea id="fRevokeReason" placeholder="e.g., Client no longer active"></textarea>
+    </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="fRevokeDeactivateKey" />
+        Also deactivate the underlying activation key
+      </label>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">If checked, the key will be permanently deactivated and cannot be reassigned.</p>
+    </div>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:#dc2626;margin-top:12px;">
+      This will revoke the licence assignment for this client. The client will lose access.
+    </div>
+  `, async () => {
+    const reason = document.getElementById('fRevokeReason').value;
+    const deactivateKey = document.getElementById('fRevokeDeactivateKey').checked;
+
+    try {
+      await api.put(`/api/client-assignments/${id}/revoke`, {
+        reason: reason || undefined,
+        deactivate_key: deactivateKey,
+      });
+      showToast('Assignment revoked');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+async function viewAssignmentDetail(id) {
+  try {
+    const detail = await api.get(`/api/client-assignments/${id}`);
+    const statusClass = detail.status === 'active' ? 'active' : detail.status === 'revoked' ? 'inactive' : 'pending';
+
+    let revokeInfo = '';
+    if (detail.status === 'revoked') {
+      revokeInfo = `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius-sm);padding:10px 14px;margin-top:12px;">
+          <span style="font-size:12px;color:#dc2626;font-weight:600;">Revoked</span>
+          <div style="font-size:12px;color:#7f1d1d;margin-top:4px;">By: ${escapeHtml(detail.revoked_by || '—')}</div>
+          <div style="font-size:12px;color:#7f1d1d;">At: ${formatDate(detail.revoked_at)}</div>
+        </div>
+      `;
+    }
+
+    openModal(`Client Assignment #${id}`, `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Client Name</span><br/><strong>${escapeHtml(detail.client_name)}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Client Email</span><br/>${escapeHtml(detail.client_email)}</div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Organisation</span><br/>${escapeHtml(detail.client_organisation || '—')}</div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Status</span><br/><span class="badge badge-${statusClass}">${escapeHtml(detail.status)}</span></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Agency</span><br/><strong>${escapeHtml(detail.agency_name || '—')}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Assigned</span><br/>${formatDate(detail.assigned_at)}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--text-muted);">Activation Key</span><br/>
+        <code style="font-size:14px;background:#f3f4f6;padding:6px 12px;border-radius:6px;display:inline-block;margin-top:4px;letter-spacing:0.5px;">${escapeHtml(detail.activation_key)}</code>
+        <button class="btn-sm" onclick="copyToClipboard('${escapeAttr(detail.activation_key)}')" style="margin-left:8px;">Copy</button>
+      </div>
+      ${detail.notes ? `<div style="background:var(--bg);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-size:12px;color:var(--text-muted);">Notes</span><br/>${escapeHtml(detail.notes)}</div>` : ''}
+      ${revokeInfo}
+    `, () => { closeModal(); });
+  } catch (e) {
+    showToast('Error loading assignment details: ' + e.message);
+  }
 }
 
 // ===== AUTOMATION LOG =====

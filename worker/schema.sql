@@ -128,6 +128,23 @@ CREATE TABLE IF NOT EXISTS seat_requests (
   updated_at DATETIME DEFAULT (datetime('now'))
 );
 
+-- ─── Client Assignments (BIAB) ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS client_assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agency_id INTEGER NOT NULL REFERENCES agencies(id),
+  client_name TEXT NOT NULL,
+  client_email TEXT NOT NULL,
+  client_organisation TEXT,
+  activation_key TEXT NOT NULL,
+  assigned_at DATETIME DEFAULT (datetime('now')),
+  status TEXT NOT NULL DEFAULT 'active',  -- active, revoked, expired
+  notes TEXT,
+  revoked_at DATETIME,
+  revoked_by TEXT,
+  created_at DATETIME DEFAULT (datetime('now')),
+  updated_at DATETIME DEFAULT (datetime('now'))
+);
+
 -- ─── Indexes ─────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
 CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
@@ -144,6 +161,11 @@ CREATE INDEX IF NOT EXISTS idx_mobile_codes_status ON mobile_access_codes(status
 CREATE INDEX IF NOT EXISTS idx_seat_requests_agency ON seat_requests(agency_id);
 CREATE INDEX IF NOT EXISTS idx_seat_requests_status ON seat_requests(status);
 CREATE INDEX IF NOT EXISTS idx_seat_requests_created ON seat_requests(created_at);
+CREATE INDEX IF NOT EXISTS idx_client_assignments_agency ON client_assignments(agency_id);
+CREATE INDEX IF NOT EXISTS idx_client_assignments_status ON client_assignments(status);
+CREATE INDEX IF NOT EXISTS idx_client_assignments_email ON client_assignments(client_email);
+CREATE INDEX IF NOT EXISTS idx_client_assignments_key ON client_assignments(activation_key);
+CREATE INDEX IF NOT EXISTS idx_client_assignments_created ON client_assignments(created_at);
 
 -- ─── Default Admin User ───────────────────────────────────────────────────────
 -- Password: ReadyCompliant2026! (SHA-256 hashed)

@@ -1166,6 +1166,237 @@ app.put('/api/seat-requests/:id/reject', authMiddleware, async (c) => {
   return c.json({ success: true });
 });
 
+// ─── CLIENT ASSIGNMENTS (BIAB) ────────────────────────────────────────────────
+
+/**
+ * GET /api/client-assignments
+ * List client assignments. Supports optional filters:
+ *   ?agency_id=N — filter by agency
+ *   ?status=active|revoked|expired — filter by status
+ * Admin sees all; agency view should pass agency_id.
+ */
+app.get('/api/client-assignments', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const status = c.req.query('status');
+
+  let query = `
+    SELECT ca.*, a.agency_name
+    FROM client_assignments ca
+    LEFT JOIN agencies a ON ca.agency_id = a.id
+  `;
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (agencyId) {
+    conditions.push('ca.agency_id = ?');
+    params.push(parseInt(agencyId));
+  }
+  if (status) {
+    conditions.push('ca.status = ?');
+    params.push(status);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  query += ' ORDER BY ca.created_at DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/client-assignments/stats
+ * Get assignment stats. Optionally filter by ?agency_id=N.
+ */
+app.get('/api/client-assignments/stats', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+
+  if (agencyId) {
+    const aid = parseInt(agencyId);
+    const [total, active, revoked, expired] = await Promise.all([
+      c.env.DB.prepare('SELECT COUNT(*) as count FROM client_assignments WHERE agency_id = ?').bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM client_assignments WHERE agency_id = ? AND status = 'active'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM client_assignments WHERE agency_id = ? AND status = 'revoked'").bind(aid).first<{ count: number }>(),
+      c.env.DB.prepare("SELECT COUNT(*) as count FROM client_assignments WHERE agency_id = ? AND status = 'expired'").bind(aid).first<{ count: number }>(),
+    ]);
+
+    return c.json({
+      total: total?.count || 0,
+      active: active?.count || 0,
+      revoked: revoked?.count || 0,
+      expired: expired?.count || 0,
+    });
+  }
+
+  const [total, active, revoked, expired] = await Promise.all([
+    c.env.DB.prepare('SELECT COUNT(*) as count FROM client_assignments').first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM client_assignments WHERE status = 'active'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM client_assignments WHERE status = 'revoked'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM client_assignments WHERE status = 'expired'").first<{ count: number }>(),
+  ]);
+
+  return c.json({
+    total: total?.count || 0,
+    active: active?.count || 0,
+    revoked: revoked?.count || 0,
+    expired: expired?.count || 0,
+  });
+});
+
+/**
+ * GET /api/client-assignments/:id
+ * Get a single client assignment by ID.
+ */
+app.get('/api/client-assignments/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const assignment = await c.env.DB.prepare(
+    `SELECT ca.*, a.agency_name
+     FROM client_assignments ca
+     LEFT JOIN agencies a ON ca.agency_id = a.id
+     WHERE ca.id = ?`
+  ).bind(id).first();
+
+  if (!assignment) {
+    return c.json({ error: 'Client assignment not found' }, 404);
+  }
+
+  return c.json(assignment);
+});
+
+/**
+ * POST /api/client-assignments
+ * Create a new client assignment — agency assigns an activation key to a client.
+ * Body: { agency_id, client_name, client_email, client_organisation?, activation_key, notes? }
+ */
+app.post('/api/client-assignments', authMiddleware, async (c) => {
+  const body = await c.req.json<any>();
+  const { agency_id, client_name, client_email, client_organisation, activation_key, notes } = body;
+
+  if (!agency_id) {
+    return c.json({ error: 'agency_id is required' }, 400);
+  }
+  if (!client_name || !client_name.trim()) {
+    return c.json({ error: 'client_name is required' }, 400);
+  }
+  if (!client_email || !client_email.trim()) {
+    return c.json({ error: 'client_email is required' }, 400);
+  }
+  if (!activation_key || !activation_key.trim()) {
+    return c.json({ error: 'activation_key is required' }, 400);
+  }
+
+  // Verify agency exists and is active
+  const agency = await c.env.DB.prepare(
+    'SELECT * FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string }>(); 
+
+  if (!agency) {
+    return c.json({ error: 'Agency not found or inactive' }, 404);
+  }
+
+  // Verify the activation key exists, is active, and belongs to this agency
+  const key = await c.env.DB.prepare(
+    'SELECT * FROM activation_keys WHERE key_code = ? AND is_active = 1'
+  ).bind(activation_key.trim()).first<{ id: number; key_code: string; agency_id: number | null }>(); 
+
+  if (!key) {
+    return c.json({ error: 'Activation key not found or already deactivated' }, 404);
+  }
+
+  if (key.agency_id && key.agency_id !== agency_id) {
+    return c.json({ error: 'This activation key belongs to a different agency' }, 403);
+  }
+
+  // Check the key is not already assigned to another client
+  const existingAssignment = await c.env.DB.prepare(
+    "SELECT id FROM client_assignments WHERE activation_key = ? AND status = 'active'"
+  ).bind(activation_key.trim()).first();
+
+  if (existingAssignment) {
+    return c.json({ error: 'This activation key is already assigned to a client' }, 400);
+  }
+
+  try {
+    const result = await c.env.DB.prepare(
+      `INSERT INTO client_assignments (agency_id, client_name, client_email, client_organisation, activation_key, status, notes)
+       VALUES (?, ?, ?, ?, ?, 'active', ?)`
+    ).bind(
+      agency_id,
+      client_name.trim(),
+      client_email.trim().toLowerCase(),
+      client_organisation || null,
+      activation_key.trim(),
+      notes || null
+    ).run();
+
+    await logAction(c.env.DB, 'client_assignment_created', {
+      assignment_id: result.meta.last_row_id,
+      agency_id,
+      agency_name: agency.agency_name,
+      client_name: client_name.trim(),
+      client_email: client_email.trim(),
+      activation_key: activation_key.trim(),
+    }, c.get('jwtPayload')?.email || 'admin');
+
+    return c.json({ success: true, id: result.meta.last_row_id }, 201);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400);
+  }
+});
+
+/**
+ * PUT /api/client-assignments/:id/revoke
+ * Revoke a client assignment. Optionally deactivates the underlying activation key.
+ * Body: { deactivate_key?: boolean, reason?: string }
+ */
+app.put('/api/client-assignments/:id/revoke', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const assignment = await c.env.DB.prepare(
+    'SELECT * FROM client_assignments WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; activation_key: string; status: string; client_name: string; client_email: string }>(); 
+
+  if (!assignment) {
+    return c.json({ error: 'Client assignment not found' }, 404);
+  }
+
+  if (assignment.status !== 'active') {
+    return c.json({ error: `Assignment is already ${assignment.status}` }, 400);
+  }
+
+  // Revoke the assignment
+  await c.env.DB.prepare(
+    `UPDATE client_assignments SET status = 'revoked', revoked_at = datetime('now'),
+     revoked_by = ?, notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`
+  ).bind(adminEmail, body.reason || null, id).run();
+
+  // Optionally deactivate the underlying activation key
+  if (body.deactivate_key) {
+    await c.env.DB.prepare(
+      `UPDATE activation_keys SET is_active = 0, deactivated_at = datetime('now') WHERE key_code = ?`
+    ).bind(assignment.activation_key).run();
+  }
+
+  await logAction(c.env.DB, 'client_assignment_revoked', {
+    assignment_id: id,
+    agency_id: assignment.agency_id,
+    client_name: assignment.client_name,
+    client_email: assignment.client_email,
+    activation_key: assignment.activation_key,
+    deactivate_key: !!body.deactivate_key,
+    reason: body.reason || null,
+  }, adminEmail);
+
+  return c.json({ success: true });
+});
+
 // ─── HEALTH ───────────────────────────────────────────────────────────────────
 app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
 app.get('/', (c) => c.json({ service: 'ReadyCompliant API', version: '1.0.0' }));
