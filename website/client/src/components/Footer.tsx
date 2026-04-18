@@ -1,9 +1,16 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { MapPin, Mail } from "lucide-react";
 
 export default function Footer() {
+  const [location] = useLocation();
+
+  const isRiteDocPage = ["/ritedoc", "/waitlist", "/beta-founders"].includes(location);
+
+  const bgClass = isRiteDocPage ? "bg-[#2563EB]" : "bg-[#8BAF92]";
+  const borderClass = isRiteDocPage ? "border-[#1D4ED8]" : "border-[#7A9F82]";
+
   return (
-    <footer className="bg-[#8BAF92] text-white">
+    <footer className={`${bgClass} text-white`}>
       <div className="container py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
@@ -78,7 +85,7 @@ export default function Footer() {
         </div>
 
         {/* Disclaimer */}
-        <div className="border-t border-[#7A9F82] mt-12 pt-8">
+        <div className={`border-t ${borderClass} mt-12 pt-8`}>
           <p className="text-white/60 text-xs leading-relaxed mb-6">
             All documentation drafts are returned for your review and final approval. RiteDoc does not provide legal or compliance advice.
           </p>
