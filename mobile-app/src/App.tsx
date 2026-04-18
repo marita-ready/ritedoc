@@ -33,6 +33,10 @@ export type MainStackParamList = {
     originalText: string;
     rewrittenText: string;
   };
+  ViewSavedNote: {
+    originalText: string;
+    rewrittenText: string;
+  };
   SavedNotes: undefined;
   Settings: undefined;
 };
@@ -122,7 +126,39 @@ export default function App() {
 
           <Stack.Screen name="SavedNotes">
             {({ navigation }) => (
-              <SavedNotesScreen onGoBack={() => navigation.goBack()} />
+              <SavedNotesScreen
+                onGoBack={() => navigation.goBack()}
+                onWriteNote={() => {
+                  navigation.goBack();
+                  navigation.navigate('WriteNote');
+                }}
+                onViewNote={(originalText, rewrittenText) =>
+                  navigation.navigate('ViewSavedNote', {
+                    originalText,
+                    rewrittenText,
+                  })
+                }
+              />
+            )}
+          </Stack.Screen>
+
+          {/* Reuse RewriteResultScreen for viewing saved notes */}
+          <Stack.Screen name="ViewSavedNote">
+            {({ navigation, route }) => (
+              <RewriteResultScreen
+                originalText={route.params.originalText}
+                rewrittenText={route.params.rewrittenText}
+                onGoBack={() => navigation.goBack()}
+                onEditOriginal={() => {
+                  // Navigate to WriteNote with the original text
+                  navigation.popToTop();
+                  navigation.navigate('WriteNote');
+                }}
+                onWriteAnother={() => {
+                  navigation.popToTop();
+                  navigation.navigate('WriteNote');
+                }}
+              />
             )}
           </Stack.Screen>
 

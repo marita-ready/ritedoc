@@ -7,7 +7,7 @@
  *
  * Actions:
  * - Copy rewritten note to clipboard (primary)
- * - Save both versions locally (placeholder until SQLite is wired)
+ * - Save both versions locally via noteStorage service
  * - Edit the original note
  * - Write another note from scratch
  *
@@ -27,6 +27,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { saveNote } from '../services/noteStorage';
 
 const BRAND_BLUE = '#2563EB';
 const BRAND_BLUE_LIGHT = '#DBEAFE';
@@ -61,6 +62,7 @@ export default function RewriteResultScreen({
   const [viewMode, setViewMode] = useState<ViewMode>('comparison');
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   // ── Counts ──────────────────────────────────────────────────────────
   const originalWords = countWords(originalText);
@@ -82,29 +84,48 @@ export default function RewriteResultScreen({
     }
   }, [rewrittenText]);
 
-  const handleSave = useCallback(() => {
-    // Placeholder — will be wired to SQLite storage later
-    setSaveFeedback(true);
-    setTimeout(() => setSaveFeedback(false), 2000);
-    Alert.alert(
-      'Note Saved',
-      'Both versions have been saved locally. (Local storage will be fully wired in a future update.)'
-    );
-  }, []);
+  const handleSave = useCallback(async () => {
+    if (isSaved) {
+      Alert.alert(
+        'Already Saved',
+        'This note has already been saved to your device.'
+      );
+      return;
+    }
+
+    try {
+      await saveNote({
+        originalText,
+        rewrittenText,
+      });
+      setIsSaved(true);
+      setSaveFeedback(true);
+      setTimeout(() => setSaveFeedback(false), 2500);
+      Alert.alert(
+        'Note Saved',
+        'Both the original and rewritten versions have been saved to your device. You can view them in Saved Notes.'
+      );
+    } catch {
+      Alert.alert(
+        'Save Failed',
+        'Could not save the note. Please try again.'
+      );
+    }
+  }, [originalText, rewrittenText, isSaved]);
 
   const handleWriteAnother = useCallback(() => {
-    Alert.alert(
-      'Write Another Note?',
-      'This will start a fresh note. Make sure you\'ve copied or saved the rewritten note first.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Start Fresh',
-          onPress: onWriteAnother,
-        },
-      ]
-    );
-  }, [onWriteAnother]);
+    const message = isSaved
+      ? 'This will start a fresh note.'
+      : 'This will start a fresh note. Make sure you\'ve copied or saved the rewritten note first.';
+
+    Alert.alert('Write Another Note?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Start Fresh',
+        onPress: onWriteAnother,
+      },
+    ]);
+  }, [onWriteAnother, isSaved]);
 
   // ── Render: Tab bar ────────────────────────────────────────────────
   const renderTabBar = () => (
@@ -269,12 +290,20 @@ export default function RewriteResultScreen({
       {/* Secondary row: Save + Edit Original */}
       <View style={styles.secondaryRow}>
         <TouchableOpacity
-          style={styles.secondaryButtonFilled}
+          style={[
+            styles.secondaryButtonFilled,
+            isSaved && styles.secondaryButtonSaved,
+          ]}
           onPress={handleSave}
           activeOpacity={0.85}
         >
-          <Text style={styles.secondaryButtonFilledText}>
-            {saveFeedback ? '✓ Saved' : '💾 Save Note'}
+          <Text
+            style={[
+              styles.secondaryButtonFilledText,
+              isSaved && styles.secondaryButtonSavedText,
+            ]}
+          >
+            {saveFeedback ? '✓ Saved!' : isSaved ? '✓ Saved' : '💾 Save Note'}
           </Text>
         </TouchableOpacity>
 
@@ -654,6 +683,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: BRAND_BLUE,
+  },
+  secondaryButtonSaved: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  secondaryButtonSavedText: {
+    color: '#059669',
   },
   secondaryButtonOutline: {
     flex: 1,
