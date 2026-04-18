@@ -27,6 +27,9 @@ const dashState = {
   seatRequests: [],
   clientAssignments: [],
   bundledDeliveries: [],
+  revenueTransactions: [],
+  revenueAdminOverview: null,
+  revenueMonthly: [],
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -186,6 +189,7 @@ function getSectionTitle(id) {
     'seat-requests': 'Wholesale Seat Requests',
     'client-assignments': 'Client Assignments',
     'bundled-deliveries': 'Bundled Deliveries',
+    revenue: 'Revenue Tracking',
     automation: 'Automation & API',
   };
   return titles[id] || id;
@@ -196,7 +200,7 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, clientAssignments, bundledDeliveries, stats, revenueTransactions, revenueAdminOverview, revenueMonthly] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
@@ -207,6 +211,9 @@ async function loadAllData() {
       api.get('/api/client-assignments').catch(() => []),
       api.get('/api/bundled-deliveries').catch(() => []),
       api.get('/api/stats/overview').catch(() => ({})),
+      api.get('/api/revenue/transactions').catch(() => []),
+      api.get('/api/revenue/admin-overview').catch(() => null),
+      api.get('/api/revenue/monthly').catch(() => []),
     ]);
 
     dashState.clients = clients || [];
@@ -218,6 +225,9 @@ async function loadAllData() {
     dashState.seatRequests = seatRequests || [];
     dashState.clientAssignments = clientAssignments || [];
     dashState.bundledDeliveries = bundledDeliveries || [];
+    dashState.revenueTransactions = revenueTransactions || [];
+    dashState.revenueAdminOverview = revenueAdminOverview || null;
+    dashState.revenueMonthly = revenueMonthly || [];
 
     renderOverview(stats);
     renderClients();
@@ -229,6 +239,7 @@ async function loadAllData() {
     renderSeatRequests(stats);
     renderClientAssignments();
     renderBundledDeliveries();
+    renderRevenue();
 
   } catch (e) {
     console.error('Failed to load data:', e);
@@ -2056,6 +2067,438 @@ async function updateDeliveryStatus(id) {
       showToast('Error: ' + e.message);
     }
   });
+}
+
+// ===== REVENUE TRACKING =====
+
+function formatCurrency(amount, currency = 'AUD') {
+  if (amount === null || amount === undefined) return '$0.00';
+  const num = parseFloat(amount);
+  return '$' + num.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getTransactionTypeBadge(type) {
+  const map = {
+    'subscription': 'active',
+    'one-time': 'pending',
+    'refund': 'inactive',
+  };
+  return map[type] || 'pending';
+}
+
+function getTransactionStatusBadge(status) {
+  const map = {
+    'pending': 'pending',
+    'completed': 'active',
+    'refunded': 'inactive',
+  };
+  return map[status] || 'pending';
+}
+
+function renderRevenue() {
+  // Populate agency filter dropdown
+  const filterEl = document.getElementById('revenueAgencyFilter');
+  const currentVal = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Agencies</option>' +
+    dashState.agencies.map(a => `<option value="${a.id}" ${String(a.id) === currentVal ? 'selected' : ''}>${escapeHtml(a.agency_name)}</option>`).join('');
+
+  // Render agency-filtered view
+  renderRevenueAgencyView();
+  // Render admin overview
+  renderRevenueAdminView();
+  // Render monthly chart
+  renderRevenueMonthlyChart();
+  // Render transaction table
+  renderRevenueTransactionsTable();
+}
+
+function renderRevenueAgencyView() {
+  const agencyId = document.getElementById('revenueAgencyFilter').value;
+
+  if (agencyId) {
+    // Filter for specific agency
+    const agencyTxns = dashState.revenueTransactions.filter(t => t.agency_id === parseInt(agencyId));
+    const completedTxns = agencyTxns.filter(t => t.status === 'completed');
+    const totalRevenue = completedTxns.filter(t => t.transaction_type !== 'refund').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    const totalRefunds = completedTxns.filter(t => t.transaction_type === 'refund').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    document.getElementById('statRevenueTotalRevenue').textContent = formatCurrency(totalRevenue);
+    document.getElementById('statRevenueTotalRefunds').textContent = formatCurrency(totalRefunds);
+    document.getElementById('statRevenueNetRevenue').textContent = formatCurrency(totalRevenue - totalRefunds);
+    document.getElementById('statRevenueTotalTxns').textContent = agencyTxns.length;
+  } else {
+    // Show platform-wide from admin overview
+    const overview = dashState.revenueAdminOverview;
+    if (overview && overview.platform) {
+      document.getElementById('statRevenueTotalRevenue').textContent = formatCurrency(overview.platform.total_revenue);
+      document.getElementById('statRevenueTotalRefunds').textContent = formatCurrency(overview.platform.total_refunds);
+      document.getElementById('statRevenueNetRevenue').textContent = formatCurrency(overview.platform.net_revenue);
+      document.getElementById('statRevenueTotalTxns').textContent = overview.platform.total_transactions;
+    } else {
+      document.getElementById('statRevenueTotalRevenue').textContent = '$0.00';
+      document.getElementById('statRevenueTotalRefunds').textContent = '$0.00';
+      document.getElementById('statRevenueNetRevenue').textContent = '$0.00';
+      document.getElementById('statRevenueTotalTxns').textContent = '0';
+    }
+  }
+}
+
+function renderRevenueAdminView() {
+  const overview = dashState.revenueAdminOverview;
+
+  // Platform summary cards
+  if (overview && overview.platform) {
+    document.getElementById('statPlatformRevenue').textContent = formatCurrency(overview.platform.total_revenue);
+    document.getElementById('statPlatformRefunds').textContent = formatCurrency(overview.platform.total_refunds);
+    document.getElementById('statPlatformNetRevenue').textContent = formatCurrency(overview.platform.net_revenue);
+    document.getElementById('statPlatformTxns').textContent = overview.platform.total_transactions;
+  } else {
+    document.getElementById('statPlatformRevenue').textContent = '$0.00';
+    document.getElementById('statPlatformRefunds').textContent = '$0.00';
+    document.getElementById('statPlatformNetRevenue').textContent = '$0.00';
+    document.getElementById('statPlatformTxns').textContent = '0';
+  }
+
+  // Top agencies table
+  const topBody = document.getElementById('topAgenciesRevenueBody');
+  const agencies = overview?.agencies || [];
+
+  if (agencies.length === 0) {
+    topBody.innerHTML = '<tr><td colspan="7" class="table-empty">No agency revenue data yet</td></tr>';
+  } else {
+    topBody.innerHTML = agencies.map((a, idx) => {
+      const statusBadge = a.is_active ? 'active' : 'inactive';
+      return `
+        <tr>
+          <td style="font-weight:600;color:var(--text-muted);">#${idx + 1}</td>
+          <td><strong>${escapeHtml(a.agency_name || 'Unknown')}</strong></td>
+          <td style="color:var(--green);font-weight:600;">${formatCurrency(a.total_revenue)}</td>
+          <td style="color:var(--red);">${formatCurrency(a.total_refunds)}</td>
+          <td style="font-weight:700;">${formatCurrency(a.net_revenue)}</td>
+          <td>${a.total_transactions}</td>
+          <td><span class="badge badge-${statusBadge}">${a.is_active ? 'active' : 'inactive'}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Recent platform transactions
+  const recentBody = document.getElementById('recentPlatformTxnsBody');
+  const recentTxns = overview?.recent_transactions || [];
+
+  if (recentTxns.length === 0) {
+    recentBody.innerHTML = '<tr><td colspan="8" class="table-empty">No transactions yet</td></tr>';
+  } else {
+    recentBody.innerHTML = recentTxns.map(t => {
+      const typeClass = getTransactionTypeBadge(t.transaction_type);
+      const statusClass = getTransactionStatusBadge(t.status);
+      const amountColor = t.transaction_type === 'refund' ? 'var(--red)' : 'var(--green)';
+      return `
+        <tr>
+          <td style="font-size:12px;color:var(--text-muted);">#${t.id}</td>
+          <td>${formatDate(t.transaction_date)}</td>
+          <td><strong>${escapeHtml(t.agency_name || '\u2014')}</strong></td>
+          <td><span class="badge badge-${typeClass}">${escapeHtml(t.transaction_type)}</span></td>
+          <td style="font-weight:600;color:${amountColor};">${t.transaction_type === 'refund' ? '-' : ''}${formatCurrency(t.amount)}</td>
+          <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(t.description || '')}">${escapeHtml(truncate(t.description || '\u2014', 40))}</td>
+          <td><span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span></td>
+          <td><button class="btn-sm" onclick="viewTransactionDetail(${t.id})">View</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+function renderRevenueTransactionsTable() {
+  const tbody = document.getElementById('revenueTransactionsBody');
+  const agencyId = document.getElementById('revenueAgencyFilter').value;
+  const startDate = document.getElementById('revenueStartDate').value;
+  const endDate = document.getElementById('revenueEndDate').value;
+
+  let txns = dashState.revenueTransactions;
+
+  if (agencyId) {
+    txns = txns.filter(t => t.agency_id === parseInt(agencyId));
+  }
+  if (startDate) {
+    txns = txns.filter(t => t.transaction_date >= startDate);
+  }
+  if (endDate) {
+    txns = txns.filter(t => t.transaction_date <= endDate + 'T23:59:59');
+  }
+
+  if (txns.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">No transactions found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = txns.map(t => {
+    const typeClass = getTransactionTypeBadge(t.transaction_type);
+    const statusClass = getTransactionStatusBadge(t.status);
+    const amountColor = t.transaction_type === 'refund' ? 'var(--red)' : 'var(--green)';
+    return `
+      <tr>
+        <td>${formatDate(t.transaction_date)}</td>
+        <td><strong>${escapeHtml(t.agency_name || '\u2014')}</strong></td>
+        <td><span class="badge badge-${typeClass}">${escapeHtml(t.transaction_type)}</span></td>
+        <td style="font-weight:600;color:${amountColor};">${t.transaction_type === 'refund' ? '-' : ''}${formatCurrency(t.amount)}</td>
+        <td>${escapeHtml(t.currency || 'AUD')}</td>
+        <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(t.description || '')}">${escapeHtml(truncate(t.description || '\u2014', 40))}</td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span></td>
+        <td><button class="btn-sm" onclick="viewTransactionDetail(${t.id})">View</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderRevenueMonthlyChart() {
+  const container = document.getElementById('revenueMonthlyChart');
+  const agencyId = document.getElementById('revenueAgencyFilter').value;
+
+  let monthlyData = dashState.revenueMonthly;
+
+  // If filtered by agency, recalculate from transaction data
+  if (agencyId) {
+    const agencyTxns = dashState.revenueTransactions.filter(t => t.agency_id === parseInt(agencyId));
+    const monthMap = {};
+    agencyTxns.forEach(t => {
+      const month = (t.transaction_date || '').substring(0, 7);
+      if (!month) return;
+      if (!monthMap[month]) monthMap[month] = { month, revenue: 0, refunds: 0, transaction_count: 0 };
+      monthMap[month].transaction_count++;
+      if (t.status === 'completed') {
+        if (t.transaction_type === 'refund') {
+          monthMap[month].refunds += parseFloat(t.amount || 0);
+        } else {
+          monthMap[month].revenue += parseFloat(t.amount || 0);
+        }
+      }
+    });
+    monthlyData = Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month));
+  }
+
+  if (!monthlyData || monthlyData.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px 0;">No monthly revenue data available yet.<br>Record transactions to see the breakdown here.</div>';
+    return;
+  }
+
+  // Build a simple bar chart using CSS
+  const maxVal = Math.max(...monthlyData.map(m => Math.max(parseFloat(m.revenue || 0), parseFloat(m.refunds || 0))), 1);
+
+  let chartHtml = '<div style="display:flex;align-items:flex-end;gap:8px;height:160px;padding-bottom:4px;">';
+  monthlyData.forEach(m => {
+    const revHeight = Math.max(2, (parseFloat(m.revenue || 0) / maxVal) * 140);
+    const refHeight = Math.max(0, (parseFloat(m.refunds || 0) / maxVal) * 140);
+    const netRevenue = parseFloat(m.revenue || 0) - parseFloat(m.refunds || 0);
+    const label = m.month.substring(5); // MM
+    const monthNames = ['', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthLabel = monthNames[parseInt(label)] || label;
+
+    chartHtml += `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;" title="${m.month}: Revenue ${formatCurrency(m.revenue)}, Refunds ${formatCurrency(m.refunds)}, Net ${formatCurrency(netRevenue)}">
+        <div style="display:flex;align-items:flex-end;gap:2px;height:140px;">
+          <div style="width:14px;height:${revHeight}px;background:var(--green);border-radius:2px 2px 0 0;opacity:0.8;"></div>
+          ${refHeight > 0 ? `<div style="width:14px;height:${refHeight}px;background:var(--red);border-radius:2px 2px 0 0;opacity:0.7;"></div>` : ''}
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${monthLabel}</div>
+      </div>
+    `;
+  });
+  chartHtml += '</div>';
+
+  // Legend
+  chartHtml += `
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:11px;color:var(--text-muted);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;"></span>Revenue</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:4px;"></span>Refunds</span>
+    </div>
+  `;
+
+  // Summary row
+  const totalRev = monthlyData.reduce((s, m) => s + parseFloat(m.revenue || 0), 0);
+  const totalRef = monthlyData.reduce((s, m) => s + parseFloat(m.refunds || 0), 0);
+  const totalTxns = monthlyData.reduce((s, m) => s + (m.transaction_count || 0), 0);
+  chartHtml += `
+    <div style="display:flex;gap:24px;justify-content:center;margin-top:8px;font-size:12px;">
+      <span>Total Revenue: <strong style="color:var(--green);">${formatCurrency(totalRev)}</strong></span>
+      <span>Total Refunds: <strong style="color:var(--red);">${formatCurrency(totalRef)}</strong></span>
+      <span>Net: <strong>${formatCurrency(totalRev - totalRef)}</strong></span>
+      <span>Transactions: <strong>${totalTxns}</strong></span>
+    </div>
+  `;
+
+  container.innerHTML = chartHtml;
+}
+
+function filterRevenueByAgency() {
+  renderRevenueAgencyView();
+  renderRevenueTransactionsTable();
+  renderRevenueMonthlyChart();
+}
+
+function filterRevenueTransactions() {
+  renderRevenueTransactionsTable();
+}
+
+async function viewTransactionDetail(id) {
+  try {
+    const detail = await api.get(`/api/revenue/transactions/${id}`);
+    const typeClass = getTransactionTypeBadge(detail.transaction_type);
+    const statusClass = getTransactionStatusBadge(detail.status);
+    const amountColor = detail.transaction_type === 'refund' ? 'var(--red)' : 'var(--green)';
+
+    openModal(`Transaction #${id}`, `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Agency</span><div style="font-weight:600;">${escapeHtml(detail.agency_name || '\u2014')}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Transaction Type</span><div><span class="badge badge-${typeClass}">${escapeHtml(detail.transaction_type)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Amount</span><div style="font-size:18px;font-weight:700;color:${amountColor};">${detail.transaction_type === 'refund' ? '-' : ''}${formatCurrency(detail.amount)} ${escapeHtml(detail.currency || 'AUD')}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Status</span><div><span class="badge badge-${statusClass}">${escapeHtml(detail.status)}</span></div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Transaction Date</span><div>${formatDate(detail.transaction_date)}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Created At</span><div>${formatDate(detail.created_at)}</div></div>
+      </div>
+      ${detail.description ? `<div style="margin-bottom:12px;"><span style="font-size:12px;color:var(--text-muted);">Description</span><div style="background:#f9fafb;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-top:4px;">${escapeHtml(detail.description)}</div></div>` : ''}
+      ${detail.client_name ? `
+        <div style="margin-bottom:12px;">
+          <span style="font-size:12px;color:var(--text-muted);">Linked Client</span>
+          <div style="font-size:13px;margin-top:4px;">${escapeHtml(detail.client_name)} (${escapeHtml(detail.client_email || '')})</div>
+        </div>
+      ` : ''}
+      ${detail.stripe_payment_id ? `
+        <div style="margin-bottom:12px;">
+          <span style="font-size:12px;color:var(--text-muted);">Stripe Payment ID</span>
+          <div><code style="font-size:12px;background:#f3f4f6;padding:2px 8px;border-radius:4px;">${escapeHtml(detail.stripe_payment_id)}</code></div>
+        </div>
+      ` : ''}
+    `, null);
+  } catch (e) {
+    showToast('Error loading transaction: ' + e.message);
+  }
+}
+
+function showRecordTransactionModal() {
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)}</option>`)
+    .join('');
+
+  if (!agencyOptions) {
+    showToast('No active agencies found. Add an agency first.');
+    return;
+  }
+
+  // Pre-select agency if filter is set
+  const currentFilter = document.getElementById('revenueAgencyFilter').value;
+
+  openModal('Record Revenue Transaction', `
+    <div class="form-group">
+      <label>Agency *</label>
+      <select id="fTxnAgency" onchange="updateTxnClientAssignments()">${agencyOptions}</select>
+    </div>
+    <div class="form-group">
+      <label>Transaction Type *</label>
+      <select id="fTxnType">
+        <option value="subscription">Subscription</option>
+        <option value="one-time">One-time</option>
+        <option value="refund">Refund</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Amount (AUD) *</label>
+      <input type="number" id="fTxnAmount" step="0.01" min="0" placeholder="99.00" />
+    </div>
+    <div class="form-group">
+      <label>Currency</label>
+      <select id="fTxnCurrency">
+        <option value="AUD" selected>AUD</option>
+        <option value="USD">USD</option>
+        <option value="NZD">NZD</option>
+        <option value="GBP">GBP</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="fTxnDescription" placeholder="e.g. Monthly RiteDoc licence subscription"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Linked Client Assignment (optional)</label>
+      <select id="fTxnAssignment">
+        <option value="">None</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="fTxnStatus">
+        <option value="completed" selected>Completed</option>
+        <option value="pending">Pending</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Transaction Date</label>
+      <input type="date" id="fTxnDate" value="${new Date().toISOString().split('T')[0]}" />
+    </div>
+    <div class="form-group">
+      <label>Stripe Payment ID (optional)</label>
+      <input type="text" id="fTxnStripeId" placeholder="pi_..." />
+    </div>
+  `, async () => {
+    const agencyId = parseInt(document.getElementById('fTxnAgency').value);
+    const transactionType = document.getElementById('fTxnType').value;
+    const amount = parseFloat(document.getElementById('fTxnAmount').value);
+    const currency = document.getElementById('fTxnCurrency').value;
+    const description = document.getElementById('fTxnDescription').value;
+    const assignmentId = document.getElementById('fTxnAssignment').value;
+    const status = document.getElementById('fTxnStatus').value;
+    const txnDate = document.getElementById('fTxnDate').value;
+    const stripeId = document.getElementById('fTxnStripeId').value;
+
+    if (!agencyId) { showToast('Please select an agency'); return; }
+    if (isNaN(amount) || amount < 0) { showToast('Please enter a valid amount'); return; }
+
+    try {
+      await api.post('/api/revenue/transactions', {
+        agency_id: agencyId,
+        transaction_type: transactionType,
+        amount: amount,
+        currency: currency,
+        description: description || undefined,
+        client_assignment_id: assignmentId ? parseInt(assignmentId) : undefined,
+        status: status,
+        transaction_date: txnDate || undefined,
+        stripe_payment_id: stripeId || undefined,
+      });
+      showToast('Transaction recorded successfully');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+
+  // Pre-select agency if filter is active
+  if (currentFilter) {
+    document.getElementById('fTxnAgency').value = currentFilter;
+  }
+
+  // Load client assignments for the selected agency
+  updateTxnClientAssignments();
+}
+
+function updateTxnClientAssignments() {
+  const agencyId = parseInt(document.getElementById('fTxnAgency').value);
+  const assignSelect = document.getElementById('fTxnAssignment');
+
+  const agencyAssignments = dashState.clientAssignments.filter(a =>
+    a.agency_id === agencyId
+  );
+
+  if (agencyAssignments.length === 0) {
+    assignSelect.innerHTML = '<option value="">No client assignments for this agency</option>';
+  } else {
+    assignSelect.innerHTML = '<option value="">None (no linked client)</option>' +
+      agencyAssignments.map(a => {
+        return `<option value="${a.id}">${escapeHtml(a.client_name)} (${escapeHtml(a.client_email)})</option>`;
+      }).join('');
+  }
 }
 
 // ===== MODAL SYSTEM =====

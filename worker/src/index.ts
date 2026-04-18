@@ -117,6 +117,37 @@ async function logAction(db: D1Database, action: string, details: object, perfor
   ).bind(action, JSON.stringify(details), performedBy).run();
 }
 
+/**
+ * Refresh the agency_revenue_summary row for a given agency.
+ * Called after every revenue transaction insert/update.
+ */
+async function refreshRevenueSummary(db: D1Database, agencyId: number) {
+  const stats = await db.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN transaction_type IN ('subscription','one-time') AND status = 'completed' THEN amount ELSE 0 END), 0) as total_revenue,
+      COALESCE(SUM(CASE WHEN transaction_type = 'refund' AND status = 'completed' THEN amount ELSE 0 END), 0) as total_refunds,
+      COUNT(*) as total_transactions
+    FROM revenue_transactions
+    WHERE agency_id = ?
+  `).bind(agencyId).first<{ total_revenue: number; total_refunds: number; total_transactions: number }>();
+
+  const totalRevenue = stats?.total_revenue || 0;
+  const totalRefunds = stats?.total_refunds || 0;
+  const netRevenue = totalRevenue - totalRefunds;
+  const totalTransactions = stats?.total_transactions || 0;
+
+  await db.prepare(`
+    INSERT INTO agency_revenue_summary (agency_id, total_revenue, total_refunds, net_revenue, total_transactions, last_updated)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(agency_id) DO UPDATE SET
+      total_revenue = excluded.total_revenue,
+      total_refunds = excluded.total_refunds,
+      net_revenue = excluded.net_revenue,
+      total_transactions = excluded.total_transactions,
+      last_updated = datetime('now')
+  `).bind(agencyId, totalRevenue, totalRefunds, netRevenue, totalTransactions).run();
+}
+
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
 
 const authMiddleware = async (c: any, next: any) => {
@@ -1661,9 +1692,302 @@ app.post('/api/bundled-deliveries/:id/resend', authMiddleware, async (c) => {
 
   return c.json({ success: true, delivery_status: newStatus });
 });
+// ─── REVENUE TRACKING (BIAB) ─────────────────────────────────────────────────────
 
-// ─── HEALTH ───────────────────────────────────────────────────────────────────
-app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
+/**
+ * POST /api/revenue/transactions
+ * Record a new revenue transaction.
+ * Body: { agency_id, client_assignment_id?, transaction_type, amount, currency?, description?, stripe_payment_id?, status?, transaction_date? }
+ */
+app.post('/api/revenue/transactions', authMiddleware, async (c) => {
+  const body = await c.req.json<any>();
+  const {
+    agency_id, client_assignment_id, transaction_type, amount,
+    currency, description, stripe_payment_id, status, transaction_date
+  } = body;
+
+  if (!agency_id) {
+    return c.json({ error: 'agency_id is required' }, 400);
+  }
+  if (!transaction_type || !['subscription', 'one-time', 'refund'].includes(transaction_type)) {
+    return c.json({ error: 'transaction_type must be one of: subscription, one-time, refund' }, 400);
+  }
+  if (amount === undefined || amount === null || isNaN(parseFloat(amount))) {
+    return c.json({ error: 'amount is required and must be a number' }, 400);
+  }
+  if (parseFloat(amount) < 0) {
+    return c.json({ error: 'amount must be non-negative' }, 400);
+  }
+
+  // Verify agency exists
+  const agency = await c.env.DB.prepare(
+    'SELECT * FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string }>();
+
+  if (!agency) {
+    return c.json({ error: 'Agency not found or inactive' }, 404);
+  }
+
+  // Optionally verify client_assignment_id
+  if (client_assignment_id) {
+    const assignment = await c.env.DB.prepare(
+      'SELECT id FROM client_assignments WHERE id = ? AND agency_id = ?'
+    ).bind(client_assignment_id, agency_id).first();
+
+    if (!assignment) {
+      return c.json({ error: 'Client assignment not found or does not belong to this agency' }, 404);
+    }
+  }
+
+  const txnStatus = status && ['pending', 'completed', 'refunded'].includes(status) ? status : 'completed';
+  const txnDate = transaction_date || new Date().toISOString();
+
+  try {
+    const result = await c.env.DB.prepare(
+      `INSERT INTO revenue_transactions (agency_id, client_assignment_id, transaction_type, amount, currency, description, stripe_payment_id, status, transaction_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      agency_id,
+      client_assignment_id || null,
+      transaction_type,
+      parseFloat(amount),
+      currency || 'AUD',
+      description || null,
+      stripe_payment_id || null,
+      txnStatus,
+      txnDate
+    ).run();
+
+    // Refresh the summary
+    await refreshRevenueSummary(c.env.DB, agency_id);
+
+    await logAction(c.env.DB, 'revenue_transaction_created', {
+      transaction_id: result.meta.last_row_id,
+      agency_id,
+      agency_name: agency.agency_name,
+      transaction_type,
+      amount: parseFloat(amount),
+      currency: currency || 'AUD',
+      status: txnStatus,
+    }, c.get('jwtPayload')?.email || 'admin');
+
+    return c.json({ success: true, id: result.meta.last_row_id }, 201);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400);
+  }
+});
+
+/**
+ * GET /api/revenue/transactions
+ * List revenue transactions. Supports optional filters:
+ *   ?agency_id=N — filter by agency
+ *   ?transaction_type=subscription|one-time|refund
+ *   ?status=pending|completed|refunded
+ *   ?start_date=YYYY-MM-DD — filter from date (inclusive)
+ *   ?end_date=YYYY-MM-DD — filter to date (inclusive)
+ */
+app.get('/api/revenue/transactions', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const transactionType = c.req.query('transaction_type');
+  const txnStatus = c.req.query('status');
+  const startDate = c.req.query('start_date');
+  const endDate = c.req.query('end_date');
+
+  let query = `
+    SELECT rt.*, a.agency_name
+    FROM revenue_transactions rt
+    LEFT JOIN agencies a ON rt.agency_id = a.id
+  `;
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (agencyId) {
+    conditions.push('rt.agency_id = ?');
+    params.push(parseInt(agencyId));
+  }
+  if (transactionType) {
+    conditions.push('rt.transaction_type = ?');
+    params.push(transactionType);
+  }
+  if (txnStatus) {
+    conditions.push('rt.status = ?');
+    params.push(txnStatus);
+  }
+  if (startDate) {
+    conditions.push('rt.transaction_date >= ?');
+    params.push(startDate);
+  }
+  if (endDate) {
+    conditions.push('rt.transaction_date <= ?');
+    params.push(endDate + 'T23:59:59');
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  query += ' ORDER BY rt.transaction_date DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/revenue/transactions/:id
+ * Get a single transaction detail.
+ */
+app.get('/api/revenue/transactions/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const transaction = await c.env.DB.prepare(
+    `SELECT rt.*, a.agency_name, ca.client_name, ca.client_email
+     FROM revenue_transactions rt
+     LEFT JOIN agencies a ON rt.agency_id = a.id
+     LEFT JOIN client_assignments ca ON rt.client_assignment_id = ca.id
+     WHERE rt.id = ?`
+  ).bind(id).first();
+
+  if (!transaction) {
+    return c.json({ error: 'Transaction not found' }, 404);
+  }
+
+  return c.json(transaction);
+});
+
+/**
+ * GET /api/revenue/summary
+ * Get revenue summary/stats for a specific agency or all agencies.
+ *   ?agency_id=N — get summary for a specific agency
+ * Without agency_id returns platform-wide totals.
+ */
+app.get('/api/revenue/summary', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+
+  if (agencyId) {
+    const aid = parseInt(agencyId);
+    const summary = await c.env.DB.prepare(
+      'SELECT * FROM agency_revenue_summary WHERE agency_id = ?'
+    ).bind(aid).first();
+
+    if (!summary) {
+      return c.json({
+        agency_id: aid,
+        total_revenue: 0,
+        total_refunds: 0,
+        net_revenue: 0,
+        total_transactions: 0,
+        last_updated: null,
+      });
+    }
+
+    return c.json(summary);
+  }
+
+  // Platform-wide summary
+  const platformStats = await c.env.DB.prepare(`
+    SELECT
+      COALESCE(SUM(total_revenue), 0) as total_revenue,
+      COALESCE(SUM(total_refunds), 0) as total_refunds,
+      COALESCE(SUM(net_revenue), 0) as net_revenue,
+      COALESCE(SUM(total_transactions), 0) as total_transactions
+    FROM agency_revenue_summary
+  `).first<{ total_revenue: number; total_refunds: number; net_revenue: number; total_transactions: number }>();
+
+  return c.json({
+    total_revenue: platformStats?.total_revenue || 0,
+    total_refunds: platformStats?.total_refunds || 0,
+    net_revenue: platformStats?.net_revenue || 0,
+    total_transactions: platformStats?.total_transactions || 0,
+  });
+});
+
+/**
+ * GET /api/revenue/admin-overview
+ * Admin overview: all agencies revenue, top agencies, platform totals.
+ */
+app.get('/api/revenue/admin-overview', authMiddleware, async (c) => {
+  // Platform totals
+  const platformStats = await c.env.DB.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN transaction_type IN ('subscription','one-time') AND status = 'completed' THEN amount ELSE 0 END), 0) as total_revenue,
+      COALESCE(SUM(CASE WHEN transaction_type = 'refund' AND status = 'completed' THEN amount ELSE 0 END), 0) as total_refunds,
+      COUNT(*) as total_transactions
+    FROM revenue_transactions
+  `).first<{ total_revenue: number; total_refunds: number; total_transactions: number }>();
+
+  const totalRevenue = platformStats?.total_revenue || 0;
+  const totalRefunds = platformStats?.total_refunds || 0;
+
+  // All agencies with their summaries
+  const { results: agencySummaries } = await c.env.DB.prepare(`
+    SELECT ars.*, a.agency_name, a.is_active
+    FROM agency_revenue_summary ars
+    LEFT JOIN agencies a ON ars.agency_id = a.id
+    ORDER BY ars.net_revenue DESC
+  `).all();
+
+  // Recent transactions (last 20)
+  const { results: recentTransactions } = await c.env.DB.prepare(`
+    SELECT rt.*, a.agency_name
+    FROM revenue_transactions rt
+    LEFT JOIN agencies a ON rt.agency_id = a.id
+    ORDER BY rt.transaction_date DESC
+    LIMIT 20
+  `).all();
+
+  return c.json({
+    platform: {
+      total_revenue: totalRevenue,
+      total_refunds: totalRefunds,
+      net_revenue: totalRevenue - totalRefunds,
+      total_transactions: platformStats?.total_transactions || 0,
+    },
+    agencies: agencySummaries || [],
+    recent_transactions: recentTransactions || [],
+  });
+});
+
+/**
+ * GET /api/revenue/monthly
+ * Monthly revenue breakdown.
+ *   ?agency_id=N — filter by agency (optional)
+ *   ?months=12 — how many months to return (default 12)
+ */
+app.get('/api/revenue/monthly', authMiddleware, async (c) => {
+  const agencyId = c.req.query('agency_id');
+  const months = parseInt(c.req.query('months') || '12');
+
+  let query = `
+    SELECT
+      strftime('%Y-%m', transaction_date) as month,
+      COALESCE(SUM(CASE WHEN transaction_type IN ('subscription','one-time') AND status = 'completed' THEN amount ELSE 0 END), 0) as revenue,
+      COALESCE(SUM(CASE WHEN transaction_type = 'refund' AND status = 'completed' THEN amount ELSE 0 END), 0) as refunds,
+      COUNT(*) as transaction_count
+    FROM revenue_transactions
+  `;
+  const params: any[] = [];
+
+  if (agencyId) {
+    query += ' WHERE agency_id = ?';
+    params.push(parseInt(agencyId));
+  }
+
+  query += ` GROUP BY strftime('%Y-%m', transaction_date)
+             ORDER BY month DESC
+             LIMIT ?`;
+  params.push(Math.min(months, 36));
+
+  const stmt = c.env.DB.prepare(query).bind(...params);
+  const { results } = await stmt.all();
+
+  // Return in chronological order
+  return c.json((results || []).reverse());
+});
+
+// ─── HEALTH ─────────────────────────────────────────────────────────────────────
+app.get('/health',(c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
 app.get('/', (c) => c.json({ service: 'ReadyCompliant API', version: '1.0.0' }));
 
 // ─── Export ───────────────────────────────────────────────────────────────────
