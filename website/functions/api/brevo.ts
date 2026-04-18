@@ -16,7 +16,8 @@ export async function onRequestPost(context) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "api-key": "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",
+        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
+
       },
       body: JSON.stringify(body),
     });
