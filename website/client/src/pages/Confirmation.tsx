@@ -5,12 +5,15 @@
 import { Link } from "wouter";
 import Layout from "@/components/Layout";
 import { CheckCircle, ArrowRight, Lock } from "lucide-react";
+import SchemaMarkup, { productSchema, organisationSchema } from "@/components/SchemaMarkup";
 
 const STRIPE_LINK = "https://buy.stripe.com/cNibJ13wKdVc3AS9BqdIA00";
 
 export default function Confirmation() {
   return (
     <Layout>
+      {/* Product + Organisation schema for SEO/AEO */}
+      <SchemaMarkup schemas={[productSchema, organisationSchema]} />
       <section className="min-h-[70vh] flex items-center justify-center py-24 bg-white">
         <div className="max-w-xl mx-auto px-6 text-center">
           <div className="flex justify-center mb-6">

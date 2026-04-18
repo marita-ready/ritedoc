@@ -7,6 +7,7 @@ import { useState } from "react";
 import Layout from "@/components/Layout";
 import SectionReveal from "@/components/SectionReveal";
 import { MapPin, Mail, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
+import SchemaMarkup, { organisationSchema } from "@/components/SchemaMarkup";
 
 const BREVO_API_KEY = "BREVO_API_KEY_HERE"; // Replace with your actual API key
 // List ID 7 = "Website Contact Form" list (pre-created in Brevo)
@@ -81,6 +82,8 @@ export default function Contact() {
 
   return (
     <Layout>
+      {/* Organisation schema for SEO/AEO */}
+      <SchemaMarkup schemas={[organisationSchema]} />
       {/* ===== HERO ===== */}
       <section className="bg-white py-16 md:py-24">
         <div className="container">

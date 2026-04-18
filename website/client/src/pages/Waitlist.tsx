@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import Layout from "@/components/Layout";
 import { ShieldCheck, ArrowRight, CheckCircle, Loader2, Lock, Star } from "lucide-react";
+import SchemaMarkup, { productSchema, organisationSchema } from "@/components/SchemaMarkup";
 
 const BREVO_API_KEY = "BREVO_API_KEY_HERE";
 // List ID 3 = RiteDoc Waitlist list in Brevo
@@ -56,6 +57,8 @@ export default function Waitlist() {
 
   return (
     <Layout>
+      {/* Product + Organisation schema for SEO/AEO */}
+      <SchemaMarkup schemas={[productSchema, organisationSchema]} />
       {/* Hero */}
       <section className="pt-24 pb-10 bg-white">
         <div className="max-w-3xl mx-auto px-6 text-center">

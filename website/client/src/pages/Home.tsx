@@ -8,6 +8,7 @@
 
 import Layout from "@/components/Layout";
 import SectionReveal from "@/components/SectionReveal";
+import SchemaMarkup, { homeFaqSchema, productSchema } from "@/components/SchemaMarkup";
 import { Link } from "wouter";
 import {
   Shield,
@@ -28,6 +29,8 @@ const PRODUCT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x
 export default function Home() {
   return (
     <Layout>
+      {/* FAQ + Product schema for SEO/AEO */}
+      <SchemaMarkup schemas={[homeFaqSchema, productSchema]} />
       {/* ===== HERO SECTION ===== */}
       <section className="relative overflow-hidden bg-white">
         <div className="container py-16 md:py-24 lg:py-32">

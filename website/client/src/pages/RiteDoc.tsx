@@ -7,6 +7,7 @@
 
 import Layout from "@/components/Layout";
 import SectionReveal from "@/components/SectionReveal";
+import SchemaMarkup, { productSchema, ritedocFaqSchema } from "@/components/SchemaMarkup";
 import {
   ArrowRight,
   Shield,
@@ -38,6 +39,8 @@ const platforms = [
 export default function RiteDoc() {
   return (
     <Layout>
+      {/* Product + FAQ schema for SEO/AEO */}
+      <SchemaMarkup schemas={[productSchema, ritedocFaqSchema]} />
       {/* ===== HERO ===== */}
       <section className="bg-white py-16 md:py-24 lg:py-28">
         <div className="container">

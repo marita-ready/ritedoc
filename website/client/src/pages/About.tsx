@@ -10,6 +10,7 @@ import Layout from "@/components/Layout";
 import SectionReveal from "@/components/SectionReveal";
 import { Link } from "wouter";
 import { ArrowRight, MapPin, Heart, Target } from "lucide-react";
+import SchemaMarkup, { organisationSchema } from "@/components/SchemaMarkup";
 
 const MARITA_PHOTO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x8jEx5KEDKsd5jH6tTYGE/marita_photo_f64f8790.jpg";
 const MORNINGTON_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x8jEx5KEDKsd5jH6tTYGE/about-mornington-MbsSJcznJ25NYeHPupaCyd.webp";
@@ -17,6 +18,8 @@ const MORNINGTON_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367
 export default function About() {
   return (
     <Layout>
+      {/* Organisation schema for SEO/AEO */}
+      <SchemaMarkup schemas={[organisationSchema]} />
       {/* ===== HERO — User's exact words ===== */}
       <section className="bg-white py-16 md:py-24">
         <div className="container">

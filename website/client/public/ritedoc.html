@@ -11,6 +11,124 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <!-- Organisation Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "ReadyCompliant",
+    "url": "https://readycompliant.com",
+    "logo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9x8jEx5KEDKsd5jH6tTYGE/blue_gradient_logo_clean_f5c79469.png",
+    "description": "ReadyCompliant builds practical tools for NDIS providers and their admin teams. RiteDoc rewrites support worker progress notes into audit-prepared drafts — offline, on your device.",
+    "email": "hello@readycompliant.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Mornington",
+      "addressRegion": "Victoria",
+      "addressCountry": "AU"
+    },
+    "founder": {
+      "@type": "Person",
+      "name": "Marita Frith"
+    },
+    "sameAs": ["https://readycompliant.com"]
+  }
+  </script>
+  <!-- Product Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RiteDoc",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Windows",
+    "description": "RiteDoc is an offline Windows desktop application that rewrites raw NDIS support worker progress notes into audit-prepared drafts. It uses local AI to process notes securely on your device — no internet required.",
+    "url": "https://readycompliant.com/ritedoc",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Founders Pricing",
+        "price": "97.00",
+        "priceCurrency": "AUD",
+        "description": "Founders pricing — $97/month locked in forever. Limited to 17 seats.",
+        "availability": "https://schema.org/LimitedAvailability",
+        "url": "https://readycompliant.com/waitlist"
+      },
+      {
+        "@type": "Offer",
+        "name": "Standard Monthly",
+        "price": "197.00",
+        "priceCurrency": "AUD",
+        "description": "Standard monthly pricing after Founders seats close.",
+        "availability": "https://schema.org/PreOrder",
+        "url": "https://readycompliant.com/waitlist"
+      },
+      {
+        "@type": "Offer",
+        "name": "Standard Annual",
+        "price": "1497.00",
+        "priceCurrency": "AUD",
+        "description": "Standard annual pricing — save 36% compared to monthly.",
+        "availability": "https://schema.org/PreOrder",
+        "url": "https://readycompliant.com/waitlist"
+      }
+    ],
+    "author": {
+      "@type": "Organization",
+      "name": "ReadyCompliant",
+      "url": "https://readycompliant.com"
+    }
+  }
+  </script>
+  <!-- FAQ Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does RiteDoc work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Export a CSV from your NDIS platform, import it into RiteDoc, and the app rewrites the notes offline. Review each draft and copy it back using the one-click clipboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is participant data kept private?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. RiteDoc is 100% offline. No data ever leaves your device. Sensitive participant information stays within your organisation at all times."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does the traffic-light scoring system mean?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Green means the note is audit-ready. Orange means something is missing — RiteDoc prompts you to fill in the gaps. Red means an incident has been detected — required documentation is pre-filled for your review."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I cancel my RiteDoc subscription anytime?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Billing is monthly and you can cancel at any time. There are no lock-in contracts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are the minimum computer requirements for RiteDoc?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "At least 16GB of RAM, an Intel i7 or i5 processor, and Windows 10 or Windows 11."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <nav class="navbar" id="navbar"></nav>
