@@ -2,7 +2,8 @@ export async function onRequestPost(context) {
   try {
     const body = await context.request.json();
 
-    const apiKey = context.env.VITE_BREVO_API_KEY || context.env.BREVO_API_KEY;
+    const apiKey = (context.env.BREVO_API_KEY || context.env.VITE_BREVO_API_KEY || "").trim();
+
 
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "API key not configured" }), {
