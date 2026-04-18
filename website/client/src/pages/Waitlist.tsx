@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 async function submitToWaitlist(firstName: string, email: string) {
-  const res = await fetch("https://api.readycompliant.com", {
+  const res = await fetch("/api/brevo", {
 
 
     method: "POST",
