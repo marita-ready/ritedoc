@@ -55,6 +55,10 @@
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         BIAB Agencies
       </button>
+      <button class="sidebar-btn" data-section="seat-requests" onclick="showSection('seat-requests')">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Seat Requests
+      </button>
       <button class="sidebar-btn" data-section="automation" onclick="showSection('automation')">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
         Automation &amp; API
@@ -321,6 +325,89 @@
         </div>
       </section>
 
+      <!-- ===== WHOLESALE SEAT REQUESTS ===== -->
+      <section id="sec-seat-requests" class="section">
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-label">Pending Requests</div>
+            <div class="stat-value" id="statSeatPending">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Approved</div>
+            <div class="stat-value" id="statSeatApproved">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value" id="statSeatRejected">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Seats Approved</div>
+            <div class="stat-value" id="statSeatsTotal">&mdash;</div>
+          </div>
+        </div>
+
+        <!-- Admin Queue -->
+        <div style="margin-bottom: 32px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">Request Queue (Admin)</h3>
+          <div class="section-toolbar">
+            <div class="filter-group">
+              <button class="filter-btn active" data-seat-filter="all" onclick="filterSeatRequests('all')">All</button>
+              <button class="filter-btn" data-seat-filter="pending" onclick="filterSeatRequests('pending')">Pending</button>
+              <button class="filter-btn" data-seat-filter="approved" onclick="filterSeatRequests('approved')">Approved</button>
+              <button class="filter-btn" data-seat-filter="rejected" onclick="filterSeatRequests('rejected')">Rejected</button>
+            </div>
+            <button class="btn-primary" onclick="showNewSeatRequestModal()">+ New Seat Request</button>
+          </div>
+          <div class="data-table-wrapper">
+            <table class="data-table" id="seatRequestsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Agency</th>
+                  <th>Contact</th>
+                  <th>Seats</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Reviewed</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="seatRequestsBody">
+                <tr><td colspan="8" class="table-empty">Loading seat requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Agency Request History -->
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">Agency Request History</h3>
+          <div class="section-toolbar">
+            <select id="seatRequestAgencyFilter" onchange="filterSeatRequestsByAgency()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;min-width:200px;">
+              <option value="">All Agencies</option>
+            </select>
+          </div>
+          <div class="data-table-wrapper">
+            <table class="data-table" id="agencySeatHistoryTable">
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Seats Requested</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Admin Notes</th>
+                  <th>Keys</th>
+                </tr>
+              </thead>
+              <tbody id="agencySeatHistoryBody">
+                <tr><td colspan="6" class="table-empty">Select an agency to view request history</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== AUTOMATION & API ===== -->
       <section id="sec-automation" class="section">
         <div class="api-intro">
@@ -426,6 +513,36 @@
             <div class="api-endpoint-desc">List mobile access codes (optional ?agency_id= filter)</div>
             <pre class="api-example">curl 'https://api.readycompliant.com/api/mobile/codes?agency_id=1' \
   -H 'Authorization: Bearer &lt;token&gt;'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method post">POST</div>
+            <div class="api-path">/api/seat-requests</div>
+            <div class="api-endpoint-desc">Submit a wholesale seat request for an agency</div>
+            <pre class="api-example">curl -X POST 'https://api.readycompliant.com/api/seat-requests' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"agency_id":1,"seats_requested":10}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method put">PUT</div>
+            <div class="api-path">/api/seat-requests/:id/approve</div>
+            <div class="api-endpoint-desc">Approve a pending seat request (generates activation keys)</div>
+            <pre class="api-example">curl -X PUT 'https://api.readycompliant.com/api/seat-requests/1/approve' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"admin_notes":"Approved for Q2 rollout"}'</pre>
+          </div>
+
+          <div class="api-endpoint-card">
+            <div class="api-method put">PUT</div>
+            <div class="api-path">/api/seat-requests/:id/reject</div>
+            <div class="api-endpoint-desc">Reject a pending seat request</div>
+            <pre class="api-example">curl -X PUT 'https://api.readycompliant.com/api/seat-requests/1/reject' \
+  -H 'Authorization: Bearer &lt;token&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{"admin_notes":"Exceeds allocation limit"}'</pre>
           </div>
 
           <div class="api-endpoint-card">

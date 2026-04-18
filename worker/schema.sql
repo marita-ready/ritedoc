@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS activation_keys (
   hardware_fingerprint TEXT,
   activated_at DATETIME,
   deactivated_at DATETIME,
+  seat_request_id INTEGER REFERENCES seat_requests(id),
   created_at DATETIME DEFAULT (datetime('now'))
 );
 
@@ -110,6 +111,23 @@ CREATE TABLE IF NOT EXISTS mobile_access_codes (
   expires_at DATETIME                     -- optional expiry for unused codes
 );
 
+-- ─── Wholesale Seat Requests ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS seat_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agency_id INTEGER NOT NULL REFERENCES agencies(id),
+  agency_name TEXT NOT NULL,
+  contact_name TEXT,
+  contact_email TEXT,
+  contact_phone TEXT,
+  seats_requested INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending, approved, rejected
+  admin_notes TEXT,                        -- notes from admin on approval/rejection
+  reviewed_by TEXT,                        -- admin email who reviewed
+  reviewed_at DATETIME,
+  created_at DATETIME DEFAULT (datetime('now')),
+  updated_at DATETIME DEFAULT (datetime('now'))
+);
+
 -- ─── Indexes ─────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
 CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
@@ -123,6 +141,9 @@ CREATE INDEX IF NOT EXISTS idx_log_time ON automation_log(performed_at);
 CREATE INDEX IF NOT EXISTS idx_mobile_codes_code ON mobile_access_codes(code);
 CREATE INDEX IF NOT EXISTS idx_mobile_codes_agency ON mobile_access_codes(agency_id);
 CREATE INDEX IF NOT EXISTS idx_mobile_codes_status ON mobile_access_codes(status);
+CREATE INDEX IF NOT EXISTS idx_seat_requests_agency ON seat_requests(agency_id);
+CREATE INDEX IF NOT EXISTS idx_seat_requests_status ON seat_requests(status);
+CREATE INDEX IF NOT EXISTS idx_seat_requests_created ON seat_requests(created_at);
 
 -- ─── Default Admin User ───────────────────────────────────────────────────────
 -- Password: ReadyCompliant2026! (SHA-256 hashed)

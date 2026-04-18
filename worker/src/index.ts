@@ -423,7 +423,7 @@ app.put('/api/support/tickets/:id', authMiddleware, async (c) => {
 // ─── STATS ────────────────────────────────────────────────────────────────────
 
 app.get('/api/stats/overview', authMiddleware, async (c) => {
-  const [clientsTotal, clientsActive, keysActive, keysActivated, ticketsOpen, latestCartridge, agenciesCount, mobileCodesTotal, mobileCodesRedeemed, mobileCodesActive] = await Promise.all([
+  const [clientsTotal, clientsActive, keysActive, keysActivated, ticketsOpen, latestCartridge, agenciesCount, mobileCodesTotal, mobileCodesRedeemed, mobileCodesActive, pendingSeatRequests] = await Promise.all([
     c.env.DB.prepare('SELECT COUNT(*) as count FROM clients').first<{ count: number }>(),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM clients WHERE status = 'active'").first<{ count: number }>(),
     c.env.DB.prepare('SELECT COUNT(*) as count FROM activation_keys WHERE is_active = 1').first<{ count: number }>(),
@@ -434,6 +434,7 @@ app.get('/api/stats/overview', authMiddleware, async (c) => {
     c.env.DB.prepare('SELECT COUNT(*) as count FROM mobile_access_codes').first<{ count: number }>().catch(() => ({ count: 0 })),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE status = 'redeemed'").first<{ count: number }>().catch(() => ({ count: 0 })),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM mobile_access_codes WHERE status = 'active'").first<{ count: number }>().catch(() => ({ count: 0 })),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM seat_requests WHERE status = 'pending'").first<{ count: number }>().catch(() => ({ count: 0 })),
   ]);
 
   return c.json({
@@ -448,6 +449,7 @@ app.get('/api/stats/overview', authMiddleware, async (c) => {
     mobile_codes_redeemed: mobileCodesRedeemed?.count || 0,
     mobile_codes_active: mobileCodesActive?.count || 0,
     mrr: (clientsActive?.count || 0) * 99, // $99/month per active client
+    pending_seat_requests: pendingSeatRequests?.count || 0,
   });
 });
 
@@ -943,7 +945,229 @@ app.post('/api/mobile/verify-code', async (c) => {
   });
 });
 
-// ─── HEALTH ─────────────────────────────────────────────────────────────────────app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
+/// ─── WHOLESALE SEAT REQUESTS ───────────────────────────────────────────────────
+
+/**
+ * GET /api/seat-requests
+ * List all wholesale seat requests.
+ * Admin sees all; can filter by ?status=pending|approved|rejected and ?agency_id=N.
+ */
+app.get('/api/seat-requests', authMiddleware, async (c) => {
+  const status = c.req.query('status');
+  const agencyId = c.req.query('agency_id');
+
+  let query = 'SELECT * FROM seat_requests';
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (status) {
+    conditions.push('status = ?');
+    params.push(status);
+  }
+  if (agencyId) {
+    conditions.push('agency_id = ?');
+    params.push(parseInt(agencyId));
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  query += ' ORDER BY created_at DESC';
+
+  const stmt = params.length > 0
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+
+  const { results } = await stmt.all();
+  return c.json(results);
+});
+
+/**
+ * GET /api/seat-requests/stats
+ * Get summary stats for seat requests.
+ */
+app.get('/api/seat-requests/stats', authMiddleware, async (c) => {
+  const [pending, approved, rejected, totalSeatsApproved] = await Promise.all([
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM seat_requests WHERE status = 'pending'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM seat_requests WHERE status = 'approved'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM seat_requests WHERE status = 'rejected'").first<{ count: number }>(),
+    c.env.DB.prepare("SELECT COALESCE(SUM(seats_requested), 0) as total FROM seat_requests WHERE status = 'approved'").first<{ total: number }>(),
+  ]);
+
+  return c.json({
+    pending: pending?.count || 0,
+    approved: approved?.count || 0,
+    rejected: rejected?.count || 0,
+    total_seats_approved: totalSeatsApproved?.total || 0,
+  });
+});
+
+/**
+ * GET /api/seat-requests/:id
+ * Get a single seat request by ID, including any generated keys.
+ */
+app.get('/api/seat-requests/:id', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const request = await c.env.DB.prepare(
+    'SELECT * FROM seat_requests WHERE id = ?'
+  ).bind(id).first();
+
+  if (!request) {
+    return c.json({ error: 'Seat request not found' }, 404);
+  }
+
+  // Get any activation keys generated for this request
+  const { results: keys } = await c.env.DB.prepare(
+    'SELECT id, key_code, subscription_type, is_active, activated_at, created_at FROM activation_keys WHERE seat_request_id = ? ORDER BY created_at DESC'
+  ).bind(id).all();
+
+  return c.json({ ...request, keys: keys || [] });
+});
+
+/**
+ * POST /api/seat-requests
+ * Agency submits a new wholesale seat request.
+ * Body: { agency_id, seats_requested, contact_name?, contact_email?, contact_phone? }
+ */
+app.post('/api/seat-requests', authMiddleware, async (c) => {
+  const body = await c.req.json<any>();
+  const { agency_id, seats_requested, contact_name, contact_email, contact_phone } = body;
+
+  if (!agency_id) {
+    return c.json({ error: 'agency_id is required' }, 400);
+  }
+  if (!seats_requested || seats_requested < 1) {
+    return c.json({ error: 'seats_requested must be at least 1' }, 400);
+  }
+
+  const agency = await c.env.DB.prepare(
+    'SELECT * FROM agencies WHERE id = ? AND is_active = 1'
+  ).bind(agency_id).first<{ id: number; agency_name: string; contact_name: string; contact_email: string; contact_phone: string }>();
+
+  if (!agency) {
+    return c.json({ error: 'Agency not found or inactive' }, 404);
+  }
+
+  const result = await c.env.DB.prepare(
+    `INSERT INTO seat_requests (agency_id, agency_name, contact_name, contact_email, contact_phone, seats_requested, status)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending')`
+  ).bind(
+    agency_id,
+    agency.agency_name,
+    contact_name || agency.contact_name || null,
+    contact_email || agency.contact_email || null,
+    contact_phone || agency.contact_phone || null,
+    Math.min(seats_requested, 500)
+  ).run();
+
+  await logAction(c.env.DB, 'seat_request_created', {
+    request_id: result.meta.last_row_id,
+    agency_id,
+    agency_name: agency.agency_name,
+    seats_requested,
+  }, c.get('jwtPayload')?.email || 'agency');
+
+  return c.json({ success: true, id: result.meta.last_row_id }, 201);
+});
+
+/**
+ * PUT /api/seat-requests/:id/approve
+ * Admin approves a pending seat request.
+ * Generates activation keys and increases the agency's seats_purchased.
+ * Body: { admin_notes? }
+ */
+app.put('/api/seat-requests/:id/approve', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const request = await c.env.DB.prepare(
+    'SELECT * FROM seat_requests WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; agency_name: string; seats_requested: number; status: string }>();
+
+  if (!request) {
+    return c.json({ error: 'Seat request not found' }, 404);
+  }
+  if (request.status !== 'pending') {
+    return c.json({ error: `Request has already been ${request.status}` }, 400);
+  }
+
+  // Generate activation keys for the approved seats
+  const generatedKeys: string[] = [];
+  for (let i = 0; i < request.seats_requested; i++) {
+    const keyCode = generateKeyCode();
+    await c.env.DB.prepare(
+      'INSERT INTO activation_keys (key_code, agency_id, subscription_type, seat_request_id) VALUES (?, ?, ?, ?)'
+    ).bind(keyCode, request.agency_id, 'biab', id).run();
+    generatedKeys.push(keyCode);
+  }
+
+  // Update the seat request status
+  await c.env.DB.prepare(
+    `UPDATE seat_requests SET status = 'approved', admin_notes = ?, reviewed_by = ?,
+     reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+  ).bind(body.admin_notes || null, adminEmail, id).run();
+
+  // Increase the agency's seats_purchased count
+  await c.env.DB.prepare(
+    'UPDATE agencies SET seats_purchased = seats_purchased + ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).bind(request.seats_requested, request.agency_id).run();
+
+  await logAction(c.env.DB, 'seat_request_approved', {
+    request_id: id,
+    agency_id: request.agency_id,
+    agency_name: request.agency_name,
+    seats_approved: request.seats_requested,
+    keys_generated: generatedKeys.length,
+  }, adminEmail);
+
+  return c.json({
+    success: true,
+    keys: generatedKeys,
+    seats_approved: request.seats_requested,
+    agency_name: request.agency_name,
+  });
+});
+
+/**
+ * PUT /api/seat-requests/:id/reject
+ * Admin rejects a pending seat request.
+ * Body: { admin_notes? }
+ */
+app.put('/api/seat-requests/:id/reject', authMiddleware, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<any>().catch(() => ({}));
+  const adminEmail = c.get('jwtPayload')?.email || 'admin';
+
+  const request = await c.env.DB.prepare(
+    'SELECT * FROM seat_requests WHERE id = ?'
+  ).bind(id).first<{ id: number; agency_id: number; agency_name: string; seats_requested: number; status: string }>();
+
+  if (!request) {
+    return c.json({ error: 'Seat request not found' }, 404);
+  }
+  if (request.status !== 'pending') {
+    return c.json({ error: `Request has already been ${request.status}` }, 400);
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE seat_requests SET status = 'rejected', admin_notes = ?, reviewed_by = ?,
+     reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+  ).bind(body.admin_notes || null, adminEmail, id).run();
+
+  await logAction(c.env.DB, 'seat_request_rejected', {
+    request_id: id,
+    agency_id: request.agency_id,
+    agency_name: request.agency_name,
+    seats_requested: request.seats_requested,
+    reason: body.admin_notes || 'No reason provided',
+  }, adminEmail);
+
+  return c.json({ success: true });
+});
+
+// ─── HEALTH ───────────────────────────────────────────────────────────────────
+app.get('/health', (c) => c.json({ status: 'ok', service: 'readycompliant-api', timestamp: new Date().toISOString() }));
 app.get('/', (c) => c.json({ service: 'ReadyCompliant API', version: '1.0.0' }));
 
 // ─── Export ───────────────────────────────────────────────────────────────────

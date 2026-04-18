@@ -24,6 +24,7 @@ const dashState = {
   cartridgeVersions: [],
   agencies: [],
   mobileCodes: [],
+  seatRequests: [],
   automationLog: [],
   authToken: null,
   isAuthenticated: false,
@@ -180,6 +181,7 @@ function getSectionTitle(id) {
     support: 'Support Tickets',
     cartridges: 'Cartridge Management',
     agencies: 'BIAB Agencies',
+    'seat-requests': 'Wholesale Seat Requests',
     automation: 'Automation & API',
   };
   return titles[id] || id;
@@ -190,13 +192,14 @@ async function loadAllData() {
   if (!api) return;
 
   try {
-    const [clients, keys, tickets, versions, agencies, mobileCodes, stats] = await Promise.all([
+    const [clients, keys, tickets, versions, agencies, mobileCodes, seatRequests, stats] = await Promise.all([
       api.get('/api/clients').catch(() => []),
       api.get('/api/keys').catch(() => []),
       api.get('/api/support/tickets').catch(() => []),
       api.get('/api/cartridges/versions').catch(() => []),
       api.get('/api/agencies').catch(() => []),
       api.get('/api/mobile/codes').catch(() => []),
+      api.get('/api/seat-requests').catch(() => []),
       api.get('/api/stats/overview').catch(() => ({})),
     ]);
 
@@ -206,6 +209,7 @@ async function loadAllData() {
     dashState.cartridgeVersions = versions || [];
     dashState.agencies = agencies || [];
     dashState.mobileCodes = mobileCodes || [];
+    dashState.seatRequests = seatRequests || [];
 
     renderOverview(stats);
     renderClients();
@@ -214,6 +218,7 @@ async function loadAllData() {
     renderCartridgeVersions();
     renderAgencies();
     renderMobileCodes(stats);
+    renderSeatRequests(stats);
 
   } catch (e) {
     console.error('Failed to load data:', e);
@@ -1078,6 +1083,297 @@ function showGenerateMobileCodesForAgency(agencyId) {
       showToast('Error: ' + e.message);
     }
   });
+}
+
+// ===== WHOLESALE SEAT REQUESTS =====
+function renderSeatRequests(stats = {}) {
+  // Update stats cards
+  const pending = dashState.seatRequests.filter(r => r.status === 'pending').length;
+  const approved = dashState.seatRequests.filter(r => r.status === 'approved').length;
+  const rejected = dashState.seatRequests.filter(r => r.status === 'rejected').length;
+  const totalSeats = dashState.seatRequests.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.seats_requested || 0), 0);
+
+  document.getElementById('statSeatPending').textContent = stats.pending_seat_requests ?? pending;
+  document.getElementById('statSeatApproved').textContent = approved;
+  document.getElementById('statSeatRejected').textContent = rejected;
+  document.getElementById('statSeatsTotal').textContent = totalSeats;
+
+  // Populate agency filter dropdown
+  const filterEl = document.getElementById('seatRequestAgencyFilter');
+  const currentVal = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Agencies</option>' +
+    dashState.agencies.map(a => `<option value="${a.id}" ${String(a.id) === currentVal ? 'selected' : ''}>${escapeHtml(a.agency_name)}</option>`).join('');
+
+  // Render admin queue table
+  renderSeatRequestsTable();
+}
+
+function renderSeatRequestsTable() {
+  const tbody = document.getElementById('seatRequestsBody');
+  if (dashState.seatRequests.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">No seat requests found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = dashState.seatRequests.map(r => {
+    const statusClass = r.status === 'approved' ? 'active' : r.status === 'rejected' ? 'inactive' : 'pending';
+    const actions = r.status === 'pending'
+      ? `<button class="btn-sm" style="color:var(--green);border-color:var(--green-border);" onclick="approveSeatRequest(${r.id})">Approve</button>
+         <button class="btn-sm" style="color:var(--red);border-color:var(--red-border);margin-left:4px;" onclick="rejectSeatRequest(${r.id})">Reject</button>`
+      : `<button class="btn-sm" onclick="viewSeatRequestDetail(${r.id})">View</button>`;
+
+    return `
+      <tr data-seat-status="${r.status}">
+        <td style="font-size:12px;color:var(--text-muted);">#${r.id}</td>
+        <td><strong>${escapeHtml(r.agency_name || '—')}</strong></td>
+        <td>
+          <div style="font-size:12px;">${escapeHtml(r.contact_name || '—')}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(r.contact_email || '')}</div>
+        </td>
+        <td><strong>${r.seats_requested}</strong></td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(r.status)}</span></td>
+        <td>${formatDate(r.created_at)}</td>
+        <td>${r.reviewed_at ? formatDate(r.reviewed_at) : '—'}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterSeatRequests(status) {
+  document.querySelectorAll('[data-seat-filter]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-seat-filter="${status}"]`).classList.add('active');
+
+  const rows = document.querySelectorAll('#seatRequestsBody tr');
+  rows.forEach(row => {
+    if (status === 'all') {
+      row.style.display = '';
+    } else {
+      row.style.display = row.dataset.seatStatus === status ? '' : 'none';
+    }
+  });
+}
+
+async function filterSeatRequestsByAgency() {
+  const agencyId = document.getElementById('seatRequestAgencyFilter').value;
+  const tbody = document.getElementById('agencySeatHistoryBody');
+
+  if (!agencyId) {
+    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Select an agency to view request history</td></tr>';
+    return;
+  }
+
+  const agencyRequests = dashState.seatRequests.filter(r => r.agency_id === parseInt(agencyId));
+
+  if (agencyRequests.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No seat requests for this agency</td></tr>';
+    return;
+  }
+
+  // For each approved request, fetch keys
+  tbody.innerHTML = agencyRequests.map(r => {
+    const statusClass = r.status === 'approved' ? 'active' : r.status === 'rejected' ? 'inactive' : 'pending';
+    const keysCell = r.status === 'approved'
+      ? `<button class="btn-sm" onclick="viewSeatRequestKeys(${r.id})">View Keys</button>`
+      : '—';
+
+    return `
+      <tr>
+        <td style="font-size:12px;color:var(--text-muted);">#${r.id}</td>
+        <td>${r.seats_requested}</td>
+        <td><span class="badge badge-${statusClass}">${escapeHtml(r.status)}</span></td>
+        <td>${formatDate(r.created_at)}</td>
+        <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(r.admin_notes || '')}">${escapeHtml(r.admin_notes || '—')}</td>
+        <td>${keysCell}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function showNewSeatRequestModal() {
+  const agencyOptions = dashState.agencies
+    .filter(a => a.is_active)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.agency_name)} (${a.seats_purchased || 0} current seats)</option>`)
+    .join('');
+
+  if (!agencyOptions) {
+    showToast('No active agencies found. Add an agency first.');
+    return;
+  }
+
+  openModal('New Wholesale Seat Request', `
+    <div class="form-group">
+      <label>Agency</label>
+      <select id="fSeatAgency">${agencyOptions}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Number of Seats</label>
+        <input type="number" id="fSeatCount" value="5" min="1" max="500" />
+      </div>
+      <div class="form-group">
+        <label>Contact Name</label>
+        <input type="text" id="fSeatContact" placeholder="Auto-filled from agency" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Contact Email</label>
+        <input type="email" id="fSeatEmail" placeholder="Auto-filled from agency" />
+      </div>
+      <div class="form-group">
+        <label>Contact Phone</label>
+        <input type="text" id="fSeatPhone" placeholder="Optional" />
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">This request will be placed in the pending queue for admin review. On approval, activation keys will be generated automatically.</p>
+  `, async () => {
+    const agencyId = parseInt(document.getElementById('fSeatAgency').value);
+    const seatsRequested = parseInt(document.getElementById('fSeatCount').value) || 1;
+    const contactName = document.getElementById('fSeatContact').value;
+    const contactEmail = document.getElementById('fSeatEmail').value;
+    const contactPhone = document.getElementById('fSeatPhone').value;
+
+    try {
+      await api.post('/api/seat-requests', {
+        agency_id: agencyId,
+        seats_requested: seatsRequested,
+        contact_name: contactName || undefined,
+        contact_email: contactEmail || undefined,
+        contact_phone: contactPhone || undefined,
+      });
+      showToast('Seat request submitted');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+
+  // Auto-fill contact details when agency changes
+  const agencySelect = document.getElementById('fSeatAgency');
+  const fillContact = () => {
+    const agency = dashState.agencies.find(a => a.id === parseInt(agencySelect.value));
+    if (agency) {
+      document.getElementById('fSeatContact').value = agency.contact_name || '';
+      document.getElementById('fSeatEmail').value = agency.contact_email || agency.email || '';
+      document.getElementById('fSeatPhone').value = agency.contact_phone || '';
+    }
+  };
+  agencySelect.addEventListener('change', fillContact);
+  fillContact();
+}
+
+async function approveSeatRequest(id) {
+  const request = dashState.seatRequests.find(r => r.id === id);
+  if (!request) return;
+
+  openModal(`Approve Seat Request #${id}`, `
+    <div style="margin-bottom:16px;">
+      <p><strong>Agency:</strong> ${escapeHtml(request.agency_name)}</p>
+      <p><strong>Seats Requested:</strong> ${request.seats_requested}</p>
+      <p><strong>Contact:</strong> ${escapeHtml(request.contact_name || '—')} (${escapeHtml(request.contact_email || '—')})</p>
+    </div>
+    <div class="form-group">
+      <label>Admin Notes (optional)</label>
+      <textarea id="fApproveNotes" placeholder="e.g., Approved for Q2 rollout"></textarea>
+    </div>
+    <div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:var(--green);">
+      Approving will generate <strong>${request.seats_requested}</strong> activation key(s) and add them to the agency's seat count.
+    </div>
+  `, async () => {
+    const adminNotes = document.getElementById('fApproveNotes').value;
+
+    try {
+      const result = await api.put(`/api/seat-requests/${id}/approve`, { admin_notes: adminNotes || undefined });
+      closeModal();
+
+      if (result.keys && result.keys.length > 0) {
+        const keysHtml = result.keys.map(k => `<code style="display:block;font-size:14px;background:#f3f4f6;padding:8px 12px;border-radius:6px;margin:4px 0;letter-spacing:0.5px;">${k}</code>`).join('');
+        openModal('Seat Request Approved — Keys Generated', `
+          <p style="margin-bottom:12px;">Approved <strong>${result.seats_approved}</strong> seat(s) for <strong>${escapeHtml(result.agency_name)}</strong>.</p>
+          <p style="margin-bottom:12px;font-size:13px;color:var(--text-muted);">The following activation keys have been generated:</p>
+          <div style="max-height:300px;overflow-y:auto;">${keysHtml}</div>
+          <button class="btn-secondary" onclick="copyToClipboard('${result.keys.join('\n')}')" style="margin-top:12px;">Copy All Keys</button>
+        `, () => { closeModal(); });
+      } else {
+        showToast('Seat request approved');
+      }
+
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+async function rejectSeatRequest(id) {
+  const request = dashState.seatRequests.find(r => r.id === id);
+  if (!request) return;
+
+  openModal(`Reject Seat Request #${id}`, `
+    <div style="margin-bottom:16px;">
+      <p><strong>Agency:</strong> ${escapeHtml(request.agency_name)}</p>
+      <p><strong>Seats Requested:</strong> ${request.seats_requested}</p>
+    </div>
+    <div class="form-group">
+      <label>Reason for Rejection</label>
+      <textarea id="fRejectNotes" placeholder="e.g., Exceeds allocation limit, contact sales"></textarea>
+    </div>
+  `, async () => {
+    const adminNotes = document.getElementById('fRejectNotes').value;
+
+    try {
+      await api.put(`/api/seat-requests/${id}/reject`, { admin_notes: adminNotes || undefined });
+      showToast('Seat request rejected');
+      closeModal();
+      await loadAllData();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+async function viewSeatRequestDetail(id) {
+  try {
+    const detail = await api.get(`/api/seat-requests/${id}`);
+    const statusClass = detail.status === 'approved' ? 'active' : detail.status === 'rejected' ? 'inactive' : 'pending';
+
+    let keysHtml = '';
+    if (detail.keys && detail.keys.length > 0) {
+      keysHtml = `
+        <h4 style="font-size:13px;font-weight:700;margin:16px 0 8px;">Generated Activation Keys</h4>
+        <div style="max-height:200px;overflow-y:auto;">
+          ${detail.keys.map(k => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f9fafb;border-radius:4px;margin:3px 0;">
+              <code style="font-size:13px;letter-spacing:0.5px;">${escapeHtml(k.key_code)}</code>
+              <span class="badge badge-${k.is_active ? 'active' : 'inactive'}">${k.activated_at ? 'Activated' : k.is_active ? 'Active' : 'Inactive'}</span>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn-secondary" onclick="copyToClipboard('${detail.keys.map(k => k.key_code).join('\n')}')" style="margin-top:8px;">Copy All Keys</button>
+      `;
+    }
+
+    openModal(`Seat Request #${id}`, `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Agency</span><br/><strong>${escapeHtml(detail.agency_name)}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Status</span><br/><span class="badge badge-${statusClass}">${escapeHtml(detail.status)}</span></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Seats Requested</span><br/><strong>${detail.seats_requested}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Submitted</span><br/>${formatDate(detail.created_at)}</div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Contact</span><br/>${escapeHtml(detail.contact_name || '—')} (${escapeHtml(detail.contact_email || '—')})</div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Reviewed By</span><br/>${escapeHtml(detail.reviewed_by || '—')}</div>
+      </div>
+      ${detail.admin_notes ? `<div style="background:var(--bg);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-size:12px;color:var(--text-muted);">Admin Notes</span><br/>${escapeHtml(detail.admin_notes)}</div>` : ''}
+      ${keysHtml}
+    `, () => { closeModal(); });
+  } catch (e) {
+    showToast('Error loading request details: ' + e.message);
+  }
+}
+
+async function viewSeatRequestKeys(id) {
+  await viewSeatRequestDetail(id);
 }
 
 // ===== AUTOMATION LOG =====
