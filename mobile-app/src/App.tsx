@@ -6,7 +6,8 @@
  * - If not activated → show CodeEntryScreen (needs internet for one call)
  *
  * After activation, the user lands on the Home dashboard and can navigate
- * to Write Note, Saved Notes, and Settings screens via the stack navigator.
+ * to Write Note, Rewrite Result, Saved Notes, and Settings screens via
+ * the stack navigator.
  *
  * This mirrors the desktop app's offline licence activation model.
  */
@@ -20,6 +21,7 @@ import { isActivated } from './services/activation';
 import CodeEntryScreen from './screens/CodeEntryScreen';
 import HomeScreen from './screens/HomeScreen';
 import WriteNoteScreen from './screens/WriteNoteScreen';
+import RewriteResultScreen from './screens/RewriteResultScreen';
 import SavedNotesScreen from './screens/SavedNotesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
@@ -27,6 +29,10 @@ import SettingsScreen from './screens/SettingsScreen';
 export type MainStackParamList = {
   Home: undefined;
   WriteNote: undefined;
+  RewriteResult: {
+    originalText: string;
+    rewrittenText: string;
+  };
   SavedNotes: undefined;
   Settings: undefined;
 };
@@ -86,7 +92,31 @@ export default function App() {
 
           <Stack.Screen name="WriteNote">
             {({ navigation }) => (
-              <WriteNoteScreen onGoBack={() => navigation.goBack()} />
+              <WriteNoteScreen
+                onGoBack={() => navigation.goBack()}
+                onNavigateToResult={(originalText, rewrittenText) =>
+                  navigation.navigate('RewriteResult', {
+                    originalText,
+                    rewrittenText,
+                  })
+                }
+              />
+            )}
+          </Stack.Screen>
+
+          <Stack.Screen name="RewriteResult">
+            {({ navigation, route }) => (
+              <RewriteResultScreen
+                originalText={route.params.originalText}
+                rewrittenText={route.params.rewrittenText}
+                onGoBack={() => navigation.goBack()}
+                onEditOriginal={() => navigation.goBack()}
+                onWriteAnother={() => {
+                  // Pop back to Home, then push a fresh WriteNote
+                  navigation.popToTop();
+                  navigation.navigate('WriteNote');
+                }}
+              />
             )}
           </Stack.Screen>
 

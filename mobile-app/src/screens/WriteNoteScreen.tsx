@@ -5,11 +5,12 @@
  * progress notes and tap "Rewrite Note" to transform them into
  * professional NDIS-compliant notes via the on-device Gemma 2B model.
  *
+ * After a successful rewrite, navigates to the dedicated
+ * RewriteResultScreen for before/after comparison.
+ *
  * States:
  * 1. Editing — user types raw notes
- * 2. Loading model — model is being loaded into memory (first use)
- * 3. Rewriting — inference is running, tokens stream in
- * 4. Result — rewritten note displayed, ready to copy
+ * 2. Rewriting — model loading + inference running, tokens stream in
  *
  * Keyboard handling:
  * - KeyboardAvoidingView keeps the bottom toolbar visible above the keyboard
@@ -31,7 +32,6 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRewriter } from '../hooks/useRewriter';
@@ -39,23 +39,24 @@ import { useRewriter } from '../hooks/useRewriter';
 const BRAND_BLUE = '#2563EB';
 
 // ─── Screen modes ────────────────────────────────────────────────────
-type ScreenMode = 'editing' | 'rewriting' | 'result';
+type ScreenMode = 'editing' | 'rewriting';
 
 interface Props {
   onGoBack: () => void;
+  onNavigateToResult: (originalText: string, rewrittenText: string) => void;
 }
 
-export default function WriteNoteScreen({ onGoBack }: Props) {
+export default function WriteNoteScreen({
+  onGoBack,
+  onNavigateToResult,
+}: Props) {
   const [noteText, setNoteText] = useState('');
   const [screenMode, setScreenMode] = useState<ScreenMode>('editing');
-  const [rewrittenText, setRewrittenText] = useState('');
-  const [copyFeedback, setCopyFeedback] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   const {
     rewrite,
     isModelLoading,
-    isRewriting,
     streamedText,
     error,
     clearError,
@@ -82,7 +83,6 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
           style: 'destructive',
           onPress: () => {
             setNoteText('');
-            setRewrittenText('');
             setScreenMode('editing');
             clearError();
             inputRef.current?.focus();
@@ -103,45 +103,19 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
 
     Keyboard.dismiss();
     setScreenMode('rewriting');
-    setRewrittenText('');
     clearError();
 
     const result = await rewrite(noteText);
 
     if (result) {
-      setRewrittenText(result.text);
-      setScreenMode('result');
+      // Navigate to the dedicated comparison screen
+      setScreenMode('editing');
+      onNavigateToResult(noteText, result.text);
     } else {
       // Error occurred — go back to editing mode
       setScreenMode('editing');
     }
-  }, [noteText, rewrite, clearError]);
-
-  const handleCopy = useCallback(async () => {
-    if (!rewrittenText) return;
-
-    try {
-      await Clipboard.setStringAsync(rewrittenText);
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 2000);
-    } catch {
-      Alert.alert('Copy Failed', 'Could not copy text to clipboard.');
-    }
-  }, [rewrittenText]);
-
-  const handleEditAgain = useCallback(() => {
-    setScreenMode('editing');
-    setRewrittenText('');
-    clearError();
-  }, [clearError]);
-
-  const handleUseRewritten = useCallback(() => {
-    // Replace the raw note with the rewritten version
-    setNoteText(rewrittenText);
-    setRewrittenText('');
-    setScreenMode('editing');
-    clearError();
-  }, [rewrittenText, clearError]);
+  }, [noteText, rewrite, clearError, onNavigateToResult]);
 
   const handleBack = useCallback(() => {
     if (screenMode === 'rewriting') {
@@ -196,60 +170,6 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
           </Text>
         </View>
       )}
-    </View>
-  );
-
-  // ── Render: Result state ───────────────────────────────────────────
-  const renderResultState = () => (
-    <View style={styles.resultContainer}>
-      {/* Result header */}
-      <View style={styles.resultHeader}>
-        <View style={styles.resultBadge}>
-          <Text style={styles.resultBadgeText}>✓ Rewritten</Text>
-        </View>
-      </View>
-
-      {/* Rewritten note */}
-      <ScrollView
-        style={styles.resultScroll}
-        contentContainerStyle={styles.resultScrollContent}
-        nestedScrollEnabled
-      >
-        <Text style={styles.resultText} selectable>
-          {rewrittenText}
-        </Text>
-      </ScrollView>
-
-      {/* Action buttons */}
-      <View style={styles.resultActions}>
-        <TouchableOpacity
-          style={styles.copyButton}
-          onPress={handleCopy}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.copyButtonText}>
-            {copyFeedback ? '✓ Copied!' : '📋 Copy to Clipboard'}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.resultSecondaryActions}>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleEditAgain}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.secondaryButtonText}>Edit Original</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleUseRewritten}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.secondaryButtonText}>Use as Base</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </View>
   );
 
@@ -371,9 +291,7 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
                   ← Back
                 </Text>
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>
-                {screenMode === 'result' ? 'Rewritten Note' : 'New Note'}
-              </Text>
+              <Text style={styles.headerTitle}>New Note</Text>
               <TouchableOpacity
                 onPress={handleClear}
                 style={styles.clearButton}
@@ -393,9 +311,9 @@ export default function WriteNoteScreen({ onGoBack }: Props) {
             </View>
 
             {/* Content based on screen mode */}
-            {screenMode === 'rewriting' && renderRewritingState()}
-            {screenMode === 'result' && renderResultState()}
-            {screenMode === 'editing' && renderEditingState()}
+            {screenMode === 'rewriting'
+              ? renderRewritingState()
+              : renderEditingState()}
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -651,90 +569,5 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     lineHeight: 20,
-  },
-
-  // ── Result state ───────────────────────────────────────────────────
-
-  resultContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  resultHeader: {
-    marginBottom: 12,
-  },
-  resultBadge: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  resultBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  resultScroll: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  resultScrollContent: {
-    padding: 18,
-  },
-  resultText: {
-    fontSize: 16,
-    color: '#111827',
-    lineHeight: 25,
-  },
-  resultActions: {
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
-  },
-  copyButton: {
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginBottom: 10,
-  },
-  copyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  resultSecondaryActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
   },
 });
