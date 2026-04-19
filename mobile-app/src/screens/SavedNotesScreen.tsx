@@ -3,13 +3,17 @@
  *
  * Displays all locally saved notes in a scrollable list, sorted by
  * most recent first. Supports search/filter, pull-to-refresh,
- * swipe-to-delete, and an empty state with a CTA to write the first note.
+ * share/copy actions on each card, and an empty state with a CTA
+ * to write the first note.
  *
  * Tapping a note navigates to the RewriteResultScreen to view the
  * full before/after comparison.
+ *
+ * Long-pressing a note opens an action menu with copy, share, and
+ * delete options.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,15 +24,19 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  Animated,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   loadAllNotes,
   deleteNote,
-  searchNotes,
   type SavedNote,
 } from '../services/noteStorage';
+import {
+  copyToClipboard,
+  shareNote,
+} from '../services/noteExport';
 
 const BRAND_BLUE = '#2563EB';
 
@@ -85,6 +93,37 @@ export default function SavedNotesScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // ── Toast animation ─────────────────────────────────────────────────
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback(
+    (message: string) => {
+      setToastMessage(message);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      toastTimeoutRef.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => setToastMessage(null));
+      }, 2000);
+    },
+    [toastOpacity]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
 
   // ── Load notes on mount ─────────────────────────────────────────────
   useEffect(() => {
@@ -124,28 +163,26 @@ export default function SavedNotesScreen({
     setIsRefreshing(false);
   }, [loadNotes]);
 
-  const handleDelete = useCallback(
-    (note: SavedNote) => {
-      Alert.alert(
-        'Delete Note',
-        `Are you sure you want to delete this note from ${formatDate(note.createdAt)}? This cannot be undone.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              const success = await deleteNote(note.id);
-              if (success) {
-                setNotes((prev) => prev.filter((n) => n.id !== note.id));
-              }
-            },
+  const handleDelete = useCallback((note: SavedNote) => {
+    Alert.alert(
+      'Delete Note',
+      `Are you sure you want to delete this note from ${formatDate(note.createdAt)}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteNote(note.id);
+            if (success) {
+              setNotes((prev) => prev.filter((n) => n.id !== note.id));
+              showToast('Note deleted');
+            }
           },
-        ]
-      );
-    },
-    []
-  );
+        },
+      ]
+    );
+  }, [showToast]);
 
   const handleViewNote = useCallback(
     (note: SavedNote) => {
@@ -154,9 +191,94 @@ export default function SavedNotesScreen({
     [onViewNote]
   );
 
+  /** Copy rewritten note from a card */
+  const handleQuickCopy = useCallback(
+    async (note: SavedNote) => {
+      const result = await copyToClipboard(
+        { originalText: note.originalText, rewrittenText: note.rewrittenText },
+        'rewritten'
+      );
+      if (result.success) {
+        showToast('Rewritten note copied!');
+      }
+    },
+    [showToast]
+  );
+
+  /** Share rewritten note from a card */
+  const handleQuickShare = useCallback(async (note: SavedNote) => {
+    await shareNote(
+      { originalText: note.originalText, rewrittenText: note.rewrittenText },
+      'rewritten'
+    );
+  }, []);
+
+  /** Long-press action menu with full options */
+  const handleLongPress = useCallback(
+    (note: SavedNote) => {
+      const texts = {
+        originalText: note.originalText,
+        rewrittenText: note.rewrittenText,
+      };
+
+      Alert.alert('Note Actions', formatDate(note.createdAt), [
+        {
+          text: 'Copy Rewritten Note',
+          onPress: async () => {
+            const result = await copyToClipboard(texts, 'rewritten');
+            if (result.success) showToast('Rewritten note copied!');
+          },
+        },
+        {
+          text: 'Copy Original Note',
+          onPress: async () => {
+            const result = await copyToClipboard(texts, 'original');
+            if (result.success) showToast('Original note copied!');
+          },
+        },
+        {
+          text: 'Copy Both Notes',
+          onPress: async () => {
+            const result = await copyToClipboard(texts, 'both');
+            if (result.success) showToast('Both notes copied!');
+          },
+        },
+        {
+          text: 'Share Rewritten Note',
+          onPress: () => shareNote(texts, 'rewritten'),
+        },
+        {
+          text: 'Share Both Notes',
+          onPress: () => shareNote(texts, 'both'),
+        },
+        {
+          text: 'Delete Note',
+          style: 'destructive',
+          onPress: () => handleDelete(note),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    },
+    [showToast, handleDelete]
+  );
+
+  // ── Render: Toast ──────────────────────────────────────────────────
+  const renderToast = () => {
+    if (!toastMessage) return null;
+    return (
+      <Animated.View
+        style={[styles.toastContainer, { opacity: toastOpacity }]}
+        pointerEvents="none"
+      >
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>✓ {toastMessage}</Text>
+        </View>
+      </Animated.View>
+    );
+  };
+
   // ── Render: Empty state ─────────────────────────────────────────────
   const renderEmptyState = () => {
-    // If searching and no results
     if (searchQuery.trim()) {
       return (
         <View style={styles.emptyContainer}>
@@ -179,7 +301,6 @@ export default function SavedNotesScreen({
       );
     }
 
-    // No notes at all
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconContainer}>
@@ -208,10 +329,10 @@ export default function SavedNotesScreen({
     <TouchableOpacity
       style={styles.noteCard}
       onPress={() => handleViewNote(item)}
-      onLongPress={() => handleDelete(item)}
+      onLongPress={() => handleLongPress(item)}
       activeOpacity={0.7}
     >
-      {/* Top row: date + word count */}
+      {/* Top row: date + action buttons */}
       <View style={styles.noteCardHeader}>
         <View style={styles.noteCardDateRow}>
           <Text style={styles.noteCardRelativeTime}>
@@ -221,13 +342,29 @@ export default function SavedNotesScreen({
             {formatDate(item.createdAt)}
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.noteCardDeleteButton}
-          onPress={() => handleDelete(item)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.noteCardDeleteText}>✕</Text>
-        </TouchableOpacity>
+        <View style={styles.noteCardActions}>
+          <TouchableOpacity
+            style={styles.noteCardActionButton}
+            onPress={() => handleQuickCopy(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={styles.noteCardActionIcon}>📋</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.noteCardActionButton}
+            onPress={() => handleQuickShare(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={styles.noteCardActionIcon}>↗</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.noteCardActionButton}
+            onPress={() => handleDelete(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={styles.noteCardDeleteIcon}>✕</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Preview of rewritten note */}
@@ -318,7 +455,8 @@ export default function SavedNotesScreen({
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading notes...</Text>
         </View>
-      ) : notes.length === 0 || (searchQuery.trim() && filteredNotes.length === 0) ? (
+      ) : notes.length === 0 ||
+        (searchQuery.trim() && filteredNotes.length === 0) ? (
         renderEmptyState()
       ) : (
         <FlatList
@@ -339,12 +477,15 @@ export default function SavedNotesScreen({
           ListFooterComponent={() => (
             <View style={styles.listFooter}>
               <Text style={styles.listFooterText}>
-                Long-press a note to delete it
+                Long-press a note for more options
               </Text>
             </View>
           )}
         />
       )}
+
+      {/* Floating toast */}
+      {renderToast()}
     </SafeAreaView>
   );
 }
@@ -384,6 +525,32 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     minWidth: 60,
+  },
+
+  // ── Toast ──────────────────────────────────────────────────────────
+  toastContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  toast: {
+    backgroundColor: '#065F46',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 
   // ── Search bar ─────────────────────────────────────────────────────
@@ -547,12 +714,20 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontWeight: '500',
   },
-  noteCardDeleteButton: {
-    padding: 4,
+  noteCardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginLeft: 8,
     marginTop: -2,
   },
-  noteCardDeleteText: {
+  noteCardActionButton: {
+    padding: 4,
+  },
+  noteCardActionIcon: {
+    fontSize: 15,
+  },
+  noteCardDeleteIcon: {
     fontSize: 16,
     color: '#D1D5DB',
     fontWeight: '600',

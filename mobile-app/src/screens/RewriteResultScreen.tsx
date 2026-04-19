@@ -6,7 +6,8 @@
  * a stacked "Before / After" view and a "Rewritten Only" view.
  *
  * Actions:
- * - Copy rewritten note to clipboard (primary)
+ * - Copy rewritten note / original / both to clipboard
+ * - Share via native share sheet (rewritten only or both)
  * - Save both versions locally via noteStorage service
  * - Edit the original note
  * - Write another note from scratch
@@ -14,7 +15,7 @@
  * Receives both texts via navigation params.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,11 +24,16 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Animated,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveNote } from '../services/noteStorage';
+import {
+  copyToClipboard,
+  showCopyOptions,
+  showShareOptions,
+} from '../services/noteExport';
 
 const BRAND_BLUE = '#2563EB';
 const BRAND_BLUE_LIGHT = '#DBEAFE';
@@ -60,9 +66,45 @@ export default function RewriteResultScreen({
   onGoBack,
 }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('comparison');
-  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+
+  // ── Toast animation ─────────────────────────────────────────────────
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback(
+    (message: string) => {
+      setCopyFeedback(message);
+      // Clear any existing timeout
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      // Animate in
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      // Animate out after delay
+      toastTimeoutRef.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => setCopyFeedback(null));
+      }, 2000);
+    },
+    [toastOpacity]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
+
+  const noteTexts = { originalText, rewrittenText };
 
   // ── Counts ──────────────────────────────────────────────────────────
   const originalWords = countWords(originalText);
@@ -74,15 +116,32 @@ export default function RewriteResultScreen({
     wordDiff === 0 ? 'same' : wordDiff > 0 ? `+${wordDiff}` : `${wordDiff}`;
 
   // ── Handlers ────────────────────────────────────────────────────────
-  const handleCopy = useCallback(async () => {
-    try {
-      await Clipboard.setStringAsync(rewrittenText);
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 2000);
-    } catch {
+
+  /** Quick copy — copies rewritten note directly (primary action) */
+  const handleQuickCopy = useCallback(async () => {
+    const result = await copyToClipboard(noteTexts, 'rewritten');
+    if (result.success) {
+      showToast('Rewritten note copied!');
+    } else {
       Alert.alert('Copy Failed', 'Could not copy text to clipboard.');
     }
-  }, [rewrittenText]);
+  }, [noteTexts, showToast]);
+
+  /** Expanded copy — shows options for which text to copy */
+  const handleCopyOptions = useCallback(() => {
+    showCopyOptions(noteTexts, (result) => {
+      if (result.success) {
+        showToast(`${result.label} copied!`);
+      } else {
+        Alert.alert('Copy Failed', 'Could not copy text to clipboard.');
+      }
+    });
+  }, [noteTexts, showToast]);
+
+  /** Share — shows options for which text to share */
+  const handleShare = useCallback(() => {
+    showShareOptions(noteTexts);
+  }, [noteTexts]);
 
   const handleSave = useCallback(async () => {
     if (isSaved) {
@@ -94,10 +153,7 @@ export default function RewriteResultScreen({
     }
 
     try {
-      await saveNote({
-        originalText,
-        rewrittenText,
-      });
+      await saveNote({ originalText, rewrittenText });
       setIsSaved(true);
       setSaveFeedback(true);
       setTimeout(() => setSaveFeedback(false), 2500);
@@ -116,16 +172,28 @@ export default function RewriteResultScreen({
   const handleWriteAnother = useCallback(() => {
     const message = isSaved
       ? 'This will start a fresh note.'
-      : 'This will start a fresh note. Make sure you\'ve copied or saved the rewritten note first.';
+      : "This will start a fresh note. Make sure you've copied or saved the rewritten note first.";
 
     Alert.alert('Write Another Note?', message, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Start Fresh',
-        onPress: onWriteAnother,
-      },
+      { text: 'Start Fresh', onPress: onWriteAnother },
     ]);
   }, [onWriteAnother, isSaved]);
+
+  // ── Render: Toast ──────────────────────────────────────────────────
+  const renderToast = () => {
+    if (!copyFeedback) return null;
+    return (
+      <Animated.View
+        style={[styles.toastContainer, { opacity: toastOpacity }]}
+        pointerEvents="none"
+      >
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>✓ {copyFeedback}</Text>
+        </View>
+      </Animated.View>
+    );
+  };
 
   // ── Render: Tab bar ────────────────────────────────────────────────
   const renderTabBar = () => (
@@ -181,10 +249,7 @@ export default function RewriteResultScreen({
       <View style={styles.wordComparisonItem}>
         <Text style={styles.wordComparisonLabel}>Diff</Text>
         <Text
-          style={[
-            styles.wordComparisonValue,
-            styles.wordComparisonDiff,
-          ]}
+          style={[styles.wordComparisonValue, styles.wordComparisonDiff]}
         >
           {wordDiffLabel}
         </Text>
@@ -205,9 +270,7 @@ export default function RewriteResultScreen({
           <View style={styles.noteLabelBadgeOriginal}>
             <Text style={styles.noteLabelBadgeTextOriginal}>Your Raw Note</Text>
           </View>
-          <Text style={styles.noteCharCount}>
-            {originalChars} chars
-          </Text>
+          <Text style={styles.noteCharCount}>{originalChars} chars</Text>
         </View>
         <View style={styles.noteCardOriginal}>
           <Text style={styles.noteCardText} selectable>
@@ -233,9 +296,7 @@ export default function RewriteResultScreen({
               Audit-Ready Draft
             </Text>
           </View>
-          <Text style={styles.noteCharCount}>
-            {rewrittenChars} chars
-          </Text>
+          <Text style={styles.noteCharCount}>{rewrittenChars} chars</Text>
         </View>
         <View style={styles.noteCardRewritten}>
           <Text style={styles.noteCardText} selectable>
@@ -276,16 +337,30 @@ export default function RewriteResultScreen({
   // ── Render: Action buttons ─────────────────────────────────────────
   const renderActions = () => (
     <View style={styles.actionsContainer}>
-      {/* Primary: Copy */}
-      <TouchableOpacity
-        style={styles.primaryButton}
-        onPress={handleCopy}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.primaryButtonText}>
-          {copyFeedback ? '✓ Copied to Clipboard!' : '📋 Copy Rewritten Note'}
-        </Text>
-      </TouchableOpacity>
+      {/* Primary row: Quick Copy + Share */}
+      <View style={styles.primaryRow}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={handleQuickCopy}
+          onLongPress={handleCopyOptions}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.primaryButtonText}>📋 Copy Rewritten</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={handleShare}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.shareButtonText}>↗ Share</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Copy options hint */}
+      <Text style={styles.copyHint}>
+        Long-press Copy for more options
+      </Text>
 
       {/* Secondary row: Save + Edit Original */}
       <View style={styles.secondaryRow}>
@@ -303,7 +378,11 @@ export default function RewriteResultScreen({
               isSaved && styles.secondaryButtonSavedText,
             ]}
           >
-            {saveFeedback ? '✓ Saved!' : isSaved ? '✓ Saved' : '💾 Save Note'}
+            {saveFeedback
+              ? '✓ Saved!'
+              : isSaved
+                ? '✓ Saved'
+                : '💾 Save Note'}
           </Text>
         </TouchableOpacity>
 
@@ -344,7 +423,13 @@ export default function RewriteResultScreen({
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Note Comparison</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          onPress={handleShare}
+          style={styles.headerShareButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.headerShareText}>↗ Share</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Success banner */}
@@ -371,6 +456,9 @@ export default function RewriteResultScreen({
 
       {/* Action buttons */}
       {renderActions()}
+
+      {/* Floating toast */}
+      {renderToast()}
     </SafeAreaView>
   );
 }
@@ -408,8 +496,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  headerSpacer: {
+  headerShareButton: {
+    paddingVertical: 4,
+    paddingLeft: 8,
     minWidth: 60,
+    alignItems: 'flex-end',
+  },
+  headerShareText: {
+    fontSize: 15,
+    color: BRAND_BLUE,
+    fontWeight: '600',
+  },
+
+  // ── Toast ──────────────────────────────────────────────────────────
+  toastContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  toast: {
+    backgroundColor: '#065F46',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 
   // ── Success banner ─────────────────────────────────────────────────
@@ -648,7 +770,12 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
+  primaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   primaryButton: {
+    flex: 1,
     backgroundColor: BRAND_BLUE,
     borderRadius: 14,
     paddingVertical: 15,
@@ -665,10 +792,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  shareButton: {
+    backgroundColor: '#F0F4FF',
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BRAND_BLUE_LIGHT,
+  },
+  shareButtonText: {
+    color: BRAND_BLUE,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  copyHint: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 4,
+  },
   secondaryRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 10,
+    marginTop: 6,
   },
   secondaryButtonFilled: {
     flex: 1,
