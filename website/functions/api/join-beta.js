@@ -1,12 +1,23 @@
 export async function onRequestPost(context) {
   try {
-    const { env } = context;
+    const { request, env } = context;
+    const body = await request.json();
 
     const apiKey = env.BREVO_API_KEY;
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: "API key not configured" }),
         { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    const email = body.email;
+    const name = body.name || body.firstName || "";
+
+    if (!email) {
+      return new Response(
+        JSON.stringify({ error: "Email is required", receivedBody: body }),
+        { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
 
@@ -17,9 +28,9 @@ export async function onRequestPost(context) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email: "test123@example.com",
+        email: email,
         attributes: {
-          FIRSTNAME: "Test"
+          FIRSTNAME: name
         },
         updateEnabled: true
       })
@@ -49,4 +60,3 @@ export async function onRequestOptions() {
     }
   });
 }
-
