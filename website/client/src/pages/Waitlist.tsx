@@ -11,10 +11,17 @@ import {
 
 
 async function submitToBrevoWaitlist(firstName: string, email: string) {
-  const res = await fetch("https://api.brevo.com/v3/contacts", {
+  const res = await fetch("/api/join-beta", {
     method: "POST",
-    headers: {
-      "api-key": BREVO_API_KEY,
-      "Content-Type": "application/json",
-      "Origin": "https://app.b
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      name: firstName,
+    }),
+  });
+  if (!res.ok && res.status !== 400) {
+    throw new Error("Failed to add to waitlist");
+  }
+}
+
 
