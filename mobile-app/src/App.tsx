@@ -19,6 +19,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { isActivated } from './services/activation';
 import CodeEntryScreen from './screens/CodeEntryScreen';
+import OfflineBanner from './components/OfflineBanner';
 import HomeScreen from './screens/HomeScreen';
 import WriteNoteScreen from './screens/WriteNoteScreen';
 import RewriteResultScreen from './screens/RewriteResultScreen';
@@ -85,6 +86,7 @@ export default function App() {
   if (appState === 'not_activated') {
     return (
       <SafeAreaProvider>
+        <OfflineBanner />
         <CodeEntryScreen onActivated={() => setAppState('activated')} />
       </SafeAreaProvider>
     );
@@ -93,6 +95,7 @@ export default function App() {
   // ── Activated → main app with navigation ────────────────────────────
   return (
     <SafeAreaProvider>
+      <OfflineBanner />
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
