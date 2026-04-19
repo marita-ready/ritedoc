@@ -36,8 +36,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRewriter } from '../hooks/useRewriter';
 import ErrorBanner from '../components/ErrorBanner';
-
-const BRAND_BLUE = '#2563EB';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 // ─── Screen modes ────────────────────────────────────────────────────
 type ScreenMode = 'editing' | 'rewriting';
@@ -75,9 +74,7 @@ export default function WriteNoteScreen({
 
   // ── Derived counts ──────────────────────────────────────────────────
   const charCount = noteText.length;
-  const wordCount = noteText.trim()
-    ? noteText.trim().split(/\s+/).length
-    : 0;
+  const wordCount = noteText.trim() ? noteText.trim().split(/\s+/).length : 0;
   const hasText = noteText.trim().length > 0;
 
   // ── Handlers ────────────────────────────────────────────────────────
@@ -119,20 +116,15 @@ export default function WriteNoteScreen({
     const result = await rewrite(noteText);
 
     if (result) {
-      // Navigate to the dedicated comparison screen
       setScreenMode('editing');
       onNavigateToResult(noteText, result.text, editNoteId);
     } else {
-      // Error occurred — go back to editing mode
       setScreenMode('editing');
     }
-  }, [noteText, rewrite, clearError, onNavigateToResult]);
+  }, [noteText, rewrite, clearError, onNavigateToResult, editNoteId]);
 
   const handleBack = useCallback(() => {
-    if (screenMode === 'rewriting') {
-      // Don't allow back during rewriting
-      return;
-    }
+    if (screenMode === 'rewriting') return;
 
     if (noteText.trim()) {
       Alert.alert(
@@ -140,11 +132,7 @@ export default function WriteNoteScreen({
         'You have unsaved text. Are you sure you want to go back?',
         [
           { text: 'Keep Editing', style: 'cancel' },
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: onGoBack,
-          },
+          { text: 'Discard', style: 'destructive', onPress: onGoBack },
         ]
       );
     } else {
@@ -156,7 +144,7 @@ export default function WriteNoteScreen({
   const renderRewritingState = () => (
     <View style={styles.rewritingContainer}>
       <View style={styles.rewritingHeader}>
-        <ActivityIndicator size="small" color={BRAND_BLUE} />
+        <ActivityIndicator size="small" color={Colors.primary} />
         <Text style={styles.rewritingTitle}>
           {isModelLoading ? 'Loading AI Model...' : 'Rewriting Note...'}
         </Text>
@@ -167,7 +155,6 @@ export default function WriteNoteScreen({
           : 'Transforming your notes into a professional progress note.'}
       </Text>
 
-      {/* Streaming preview */}
       {streamedText ? (
         <ScrollView style={styles.streamPreview} nestedScrollEnabled>
           <Text style={styles.streamPreviewText}>{streamedText}</Text>
@@ -202,7 +189,7 @@ export default function WriteNoteScreen({
             '• Reminded about medication at 10am\n' +
             '• Went for a 20 min walk together'
           }
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={Colors.textTertiary}
           multiline
           textAlignVertical="top"
           autoCorrect
@@ -219,8 +206,16 @@ export default function WriteNoteScreen({
       <ErrorBanner
         message={error}
         onDismiss={clearError}
-        actionLabel={error && (error.toLowerCase().includes('model') || error.toLowerCase().includes('load')) ? 'Retry' : undefined}
-        onAction={error && (error.toLowerCase().includes('model') || error.toLowerCase().includes('load')) ? handleRewrite : undefined}
+        actionLabel={
+          error && (error.toLowerCase().includes('model') || error.toLowerCase().includes('load'))
+            ? 'Retry'
+            : undefined
+        }
+        onAction={
+          error && (error.toLowerCase().includes('model') || error.toLowerCase().includes('load'))
+            ? handleRewrite
+            : undefined
+        }
       />
 
       {/* Stats Bar */}
@@ -228,16 +223,12 @@ export default function WriteNoteScreen({
         <View style={styles.statsLeft}>
           <View style={styles.statBadge}>
             <Text style={styles.statValue}>{wordCount}</Text>
-            <Text style={styles.statLabel}>
-              {wordCount === 1 ? ' word' : ' words'}
-            </Text>
+            <Text style={styles.statLabel}>{wordCount === 1 ? ' word' : ' words'}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBadge}>
             <Text style={styles.statValue}>{charCount}</Text>
-            <Text style={styles.statLabel}>
-              {charCount === 1 ? ' char' : ' chars'}
-            </Text>
+            <Text style={styles.statLabel}>{charCount === 1 ? ' char' : ' chars'}</Text>
           </View>
         </View>
         {hasText && (
@@ -251,10 +242,7 @@ export default function WriteNoteScreen({
       {/* Bottom Action */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[
-            styles.rewriteButton,
-            !hasText && styles.rewriteButtonDisabled,
-          ]}
+          style={[styles.rewriteButton, !hasText && styles.rewriteButtonDisabled]}
           onPress={handleRewrite}
           activeOpacity={0.85}
           disabled={!hasText}
@@ -285,14 +273,14 @@ export default function WriteNoteScreen({
             <View style={styles.header}>
               <TouchableOpacity
                 onPress={handleBack}
-                style={styles.backButton}
+                style={styles.navButton}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 disabled={screenMode === 'rewriting'}
               >
                 <Text
                   style={[
-                    styles.backButtonText,
-                    screenMode === 'rewriting' && styles.backButtonDisabled,
+                    styles.navButtonText,
+                    screenMode === 'rewriting' && styles.navButtonDisabled,
                   ]}
                 >
                   ← Back
@@ -303,15 +291,14 @@ export default function WriteNoteScreen({
               </Text>
               <TouchableOpacity
                 onPress={handleClear}
-                style={styles.clearButton}
+                style={styles.navButton}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 disabled={!hasText || screenMode === 'rewriting'}
               >
                 <Text
                   style={[
                     styles.clearButtonText,
-                    (!hasText || screenMode === 'rewriting') &&
-                      styles.clearButtonTextDisabled,
+                    (!hasText || screenMode === 'rewriting') && styles.navButtonDisabled,
                   ]}
                 >
                   Clear
@@ -334,7 +321,7 @@ export default function WriteNoteScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -343,75 +330,62 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Header
+  // ── Header ───────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
-  backButton: {
+  navButton: {
     paddingVertical: 4,
-    paddingRight: 8,
+    paddingHorizontal: Spacing.xs,
     minWidth: 60,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: BRAND_BLUE,
-    fontWeight: '600',
+  navButtonText: {
+    fontSize: Typography.size.bodyLg,
+    color: Colors.primary,
+    fontWeight: Typography.weight.semibold,
   },
-  backButtonDisabled: {
-    color: '#D1D5DB',
+  navButtonDisabled: {
+    color: Colors.textMuted,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  clearButton: {
-    paddingVertical: 4,
-    paddingLeft: 8,
-    minWidth: 60,
-    alignItems: 'flex-end',
+    fontSize: Typography.size.title,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
   },
   clearButtonText: {
-    fontSize: 15,
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-  clearButtonTextDisabled: {
-    color: '#D1D5DB',
+    fontSize: Typography.size.body,
+    color: Colors.error,
+    fontWeight: Typography.weight.semibold,
+    textAlign: 'right',
   },
 
-  // ── Editing state ──────────────────────────────────────────────────
+  // ── Editing state ─────────────────────────────────────────────────────
 
-  // Text Input
   inputWrapper: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.base,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: Colors.border,
+    ...Shadows.xs,
   },
   textInput: {
     flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 18,
-    fontSize: 16,
-    color: '#111827',
-    lineHeight: 24,
+    paddingHorizontal: Spacing.base + 2,
+    paddingTop: Spacing.base + 2,
+    paddingBottom: Spacing.base + 2,
+    fontSize: Typography.size.bodyLg,
+    color: Colors.textPrimary,
+    lineHeight: Typography.lineHeight.relaxed,
   },
 
   // Stats Bar
@@ -419,8 +393,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
   },
   statsLeft: {
     flexDirection: 'row',
@@ -431,20 +405,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: Typography.size.base,
+    fontWeight: Typography.weight.bold,
     color: '#374151',
   },
   statLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
+    fontWeight: Typography.weight.medium,
   },
   statDivider: {
     width: 1,
     height: 14,
-    backgroundColor: '#D1D5DB',
-    marginHorizontal: 12,
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing.md,
   },
   readyIndicator: {
     flexDirection: 'row',
@@ -454,108 +428,103 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#10B981',
-    marginRight: 6,
+    backgroundColor: Colors.statusGreen,
+    marginRight: Spacing.xs + 2,
   },
   readyText: {
-    fontSize: 12,
-    color: '#059669',
-    fontWeight: '600',
+    fontSize: Typography.size.xs,
+    color: Colors.success,
+    fontWeight: Typography.weight.semibold,
   },
 
   // Bottom Action Bar
   bottomBar: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.xs,
+    paddingBottom: Platform.OS === 'ios' ? Spacing.sm : Spacing.base,
   },
   rewriteButton: {
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 14,
-    paddingVertical: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: Radii.xl,
+    paddingVertical: Spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Shadows.primaryButton,
   },
   rewriteButtonDisabled: {
-    backgroundColor: '#93C5FD',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: Colors.disabled,
+    ...(Platform.OS === 'ios' ? { shadowOpacity: 0 } : { elevation: 0 }),
   },
   rewriteButtonIcon: {
     fontSize: 18,
-    marginRight: 8,
+    marginRight: Spacing.sm,
   },
   rewriteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: Colors.white,
+    fontSize: Typography.size.title,
+    fontWeight: Typography.weight.bold,
+    letterSpacing: Typography.tracking.wide,
   },
   rewriteHint: {
     textAlign: 'center',
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginTop: 8,
-    lineHeight: 16,
+    color: Colors.textTertiary,
+    fontSize: Typography.size.xs,
+    marginTop: Spacing.sm,
+    lineHeight: Typography.lineHeight.tight,
   },
 
-  // ── Rewriting state ────────────────────────────────────────────────
+  // ── Rewriting state ───────────────────────────────────────────────────
 
   rewritingContainer: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.xl,
   },
   rewritingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   rewritingTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: BRAND_BLUE,
-    marginLeft: 10,
+    fontSize: Typography.size.title,
+    fontWeight: Typography.weight.bold,
+    color: Colors.primary,
+    marginLeft: Spacing.sm + 2,
   },
   rewritingSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-    marginBottom: 20,
+    fontSize: Typography.size.md,
+    color: Colors.textSecondary,
+    lineHeight: Typography.lineHeight.snug,
+    marginBottom: Spacing.lg,
   },
   streamPreview: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
-    padding: 18,
+    borderColor: Colors.primaryLight,
+    padding: Spacing.base + 2,
   },
   streamPreviewText: {
-    fontSize: 15,
-    color: '#111827',
-    lineHeight: 23,
+    fontSize: Typography.size.body,
+    color: Colors.textPrimary,
+    lineHeight: Typography.lineHeight.relaxed - 1,
   },
   streamPreviewPlaceholder: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 18,
+    borderColor: Colors.border,
+    padding: Spacing.base + 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   streamPreviewPlaceholderText: {
-    fontSize: 14,
-    color: '#9CA3AF',
+    fontSize: Typography.size.md,
+    color: Colors.textTertiary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: Typography.lineHeight.snug,
   },
 });

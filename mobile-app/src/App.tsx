@@ -42,6 +42,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { isActivated } from './services/activation';
+import { Colors, Typography, Spacing, Radii, Shadows } from './theme';
 import CodeEntryScreen from './screens/CodeEntryScreen';
 import OfflineBanner from './components/OfflineBanner';
 import AppErrorBoundary from './components/AppErrorBoundary';
@@ -58,8 +59,6 @@ import SettingsScreen from './screens/SettingsScreen';
 
 // Keep the native splash screen visible until we explicitly hide it
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
-const BRAND_BLUE = '#2563EB';
 
 // ─── Navigation types ────────────────────────────────────────────────
 
@@ -150,21 +149,21 @@ function MainTabs({ setAppState }: { setAppState: (s: AppState) => void }) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: BRAND_BLUE,
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: Colors.tabActive,
+        tabBarInactiveTintColor: Colors.tabInactive,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: Typography.size.xs,
+          fontWeight: Typography.weight.semibold,
           marginBottom: Platform.OS === 'ios' ? 0 : 4,
         },
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: Colors.tabBackground,
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: Colors.tabBorder,
           height: Platform.OS === 'ios' ? 88 : 64,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingTop: Spacing.xs + 2,
+          paddingBottom: Platform.OS === 'ios' ? 28 : Spacing.sm,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.06,
@@ -287,7 +286,7 @@ function AppContent() {
           </View>
           <ActivityIndicator
             size="large"
-            color={BRAND_BLUE}
+            color={Colors.primary}
             style={styles.loadingSpinner}
           />
           <Text style={styles.loadingMessage}>Starting up…</Text>
@@ -408,10 +407,10 @@ const tabStyles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: BRAND_BLUE,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: BRAND_BLUE,
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -426,16 +425,16 @@ const tabStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: BRAND_BLUE,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: Spacing.xxl,
   },
   loadingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 40,
-    paddingHorizontal: 40,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xxl + 4,
+    paddingVertical: Spacing.xxxl,
+    paddingHorizontal: Spacing.xxxl,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -447,30 +446,31 @@ const styles = StyleSheet.create({
   loadingLogo: {
     width: 56,
     height: 56,
-    borderRadius: 14,
-    backgroundColor: BRAND_BLUE,
+    borderRadius: Radii.xl,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: Spacing.xl,
+    ...Shadows.logoBadge,
   },
   loadingLogoText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    fontSize: Typography.size.heading,
+    fontWeight: Typography.weight.extrabold,
+    color: Colors.white,
+    letterSpacing: Typography.tracking.wider,
   },
   loadingSpinner: {
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   loadingMessage: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   loadingSubMessage: {
-    fontSize: 13,
-    color: '#9CA3AF',
+    fontSize: Typography.size.base,
+    color: Colors.textTertiary,
     textAlign: 'center',
   },
 });

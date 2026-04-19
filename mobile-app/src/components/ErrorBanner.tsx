@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 interface Props {
   /** The error message to display. Pass null/undefined to hide. */
@@ -94,62 +95,58 @@ export default function ErrorBanner({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
-    paddingTop: 6,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs + 2,
     zIndex: 1000,
   },
   banner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.errorLight,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderColor: Colors.errorBorder,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Shadows.sm,
   },
   icon: {
-    fontSize: 15,
-    color: '#DC2626',
-    marginRight: 10,
+    fontSize: Typography.size.body,
+    color: Colors.error,
+    marginRight: Spacing.sm + 2,
     flexShrink: 0,
   },
   message: {
     flex: 1,
-    fontSize: 13,
-    color: '#DC2626',
-    fontWeight: '600',
-    lineHeight: 18,
+    fontSize: Typography.size.base,
+    color: Colors.error,
+    fontWeight: Typography.weight.semibold,
+    lineHeight: Typography.lineHeight.tight,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: Spacing.sm,
     flexShrink: 0,
   },
   actionButton: {
-    backgroundColor: '#DC2626',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginRight: 8,
+    backgroundColor: Colors.error,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: Spacing.xs,
+    marginRight: Spacing.sm,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    color: Colors.white,
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.bold,
   },
   dismissButton: {
     padding: 2,
   },
   dismissText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    fontWeight: '600',
+    fontSize: Typography.size.md,
+    color: Colors.textTertiary,
+    fontWeight: Typography.weight.semibold,
   },
 });

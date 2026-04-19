@@ -43,9 +43,9 @@ import {
   getCartridgeVersion,
   getActiveCartridge,
 } from '../services/cartridgeConfig';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 // ─── Constants ───────────────────────────────────────────────────────
-const BRAND_BLUE = '#2563EB';
 const READYCOMPLIANT_URL = 'https://readycompliant.com';
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -76,11 +76,12 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
   useEffect(() => {
     loadActivation().then(setActivation);
     loadModelInfo();
-    getNotificationPermissionStatus().then(status => {
+    getNotificationPermissionStatus().then((status) => {
       setNotificationStatus(status.charAt(0).toUpperCase() + status.slice(1));
     });
-    // Load the active cartridge version (may differ from default if updated)
-    getActiveCartridge().then((c) => setCartridgeVersion(c.version)).catch(() => {});
+    getActiveCartridge()
+      .then((c) => setCartridgeVersion(c.version))
+      .catch(() => {});
   }, []);
 
   // ── Subscribe to model status changes ──────────────────────────
@@ -129,11 +130,11 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
 
   const modelStatusColor = (status: ModelStatus): string => {
     switch (status) {
-      case 'ready':     return '#059669';
+      case 'ready':     return Colors.success;
       case 'loading':
-      case 'inferring': return '#D97706';
-      case 'error':     return '#DC2626';
-      default:          return modelInfo.available ? '#2563EB' : '#9CA3AF';
+      case 'inferring': return Colors.warning;
+      case 'error':     return Colors.error;
+      default:          return modelInfo.available ? Colors.primary : Colors.textTertiary;
     }
   };
 
@@ -156,11 +157,9 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
           onPress: async () => {
             setClearingCache(true);
             try {
-              // Release model from memory if loaded (it can be reloaded on next use)
               if (modelManager.isReady) {
                 await modelManager.release();
               }
-              // Reload model info to reflect new state
               await loadModelInfo();
             } catch (error) {
               console.warn('[Settings] Cache clear error:', error);
@@ -211,9 +210,7 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
     <View style={[styles.infoRow, isLast && styles.infoRowLast]}>
       <Text style={styles.infoLabel}>{label}</Text>
       {typeof value === 'string' ? (
-        <Text style={mono ? styles.infoValueMono : styles.infoValue}>
-          {value}
-        </Text>
+        <Text style={mono ? styles.infoValueMono : styles.infoValue}>{value}</Text>
       ) : (
         value
       )}
@@ -243,12 +240,10 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
         {/* ── About ─────────────────────────────────────────────── */}
         <View style={styles.section}>
           {renderSectionHeader('About')}
           <View style={styles.card}>
-            {/* Branding header inside card */}
             <View style={styles.brandRow}>
               <View style={styles.brandBadge}>
                 <Text style={styles.brandBadgeText}>RD</Text>
@@ -303,12 +298,7 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
             {renderInfoRow('File', MODEL_FILENAME, false, true)}
             {renderInfoRow(
               'Status',
-              <Text
-                style={[
-                  styles.infoValue,
-                  { color: modelStatusColor(modelInfo.status) },
-                ]}
-              >
+              <Text style={[styles.infoValue, { color: modelStatusColor(modelInfo.status) }]}>
                 {modelStatusLabel(modelInfo.status)}
               </Text>
             )}
@@ -330,9 +320,7 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
           <View style={styles.privacyCard}>
             <Text style={styles.privacyIcon}>🔒</Text>
             <View style={styles.privacyTextBlock}>
-              <Text style={styles.privacyTitle}>
-                100% On-Device Processing
-              </Text>
+              <Text style={styles.privacyTitle}>100% On-Device Processing</Text>
               <Text style={styles.privacyBody}>
                 All note rewriting happens locally on your device using an
                 on-device AI model. Nothing is sent to the cloud. Your notes
@@ -377,7 +365,6 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
           </Text>
         </View>
 
-        {/* Bottom padding */}
         <View style={styles.bottomPad} />
       </ScrollView>
     </SafeAreaView>
@@ -388,7 +375,7 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.background,
   },
 
   // ── Header ──────────────────────────────────────────────────────
@@ -396,26 +383,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
   backButton: {
     paddingVertical: 4,
-    paddingRight: 12,
+    paddingRight: Spacing.md,
     minWidth: 60,
   },
   backButtonText: {
-    fontSize: 16,
-    color: BRAND_BLUE,
-    fontWeight: '600',
+    fontSize: Typography.size.bodyLg,
+    color: Colors.primary,
+    fontWeight: Typography.weight.semibold,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: Typography.size.title,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
   },
   headerSpacer: {
     minWidth: 60,
@@ -426,81 +413,81 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 8,
+    paddingTop: Spacing.sm,
   },
 
   // ── Sections ────────────────────────────────────────────────────
   section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontSize: Typography.size.xs,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 10,
+    letterSpacing: Typography.tracking.widest,
+    marginBottom: Spacing.sm + 2,
   },
   sectionTitleDanger: {
-    color: '#DC2626',
+    color: Colors.error,
   },
   sectionNote: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 8,
-    lineHeight: 18,
-    paddingHorizontal: 4,
+    fontSize: Typography.size.base,
+    color: Colors.textTertiary,
+    marginTop: Spacing.sm,
+    lineHeight: Typography.lineHeight.normal,
+    paddingHorizontal: Spacing.xs,
   },
 
   // ── Card ────────────────────────────────────────────────────────
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.border,
     overflow: 'hidden',
+    ...Shadows.sm,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 0,
+    backgroundColor: Colors.borderLight,
   },
 
   // ── Brand row inside About card ──────────────────────────────────
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
   },
   brandBadge: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: BRAND_BLUE,
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: Spacing.md,
   },
   brandBadgeText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.extrabold,
+    color: Colors.white,
     letterSpacing: 0.5,
   },
   brandTextBlock: {
     flex: 1,
   },
   brandAppName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#111827',
-    letterSpacing: -0.3,
+    fontSize: Typography.size.display,
+    fontWeight: Typography.weight.extrabold,
+    color: Colors.textPrimary,
+    letterSpacing: Typography.tracking.tight,
   },
   brandTagline: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
 
@@ -509,42 +496,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
     paddingVertical: 13,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: Colors.borderLight,
   },
   infoRowLast: {
     borderBottomWidth: 0,
   },
   infoLabel: {
-    fontSize: 15,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: Typography.size.body,
+    color: Colors.textSecondary,
+    fontWeight: Typography.weight.medium,
     flex: 1,
   },
   infoValue: {
-    fontSize: 15,
-    color: '#111827',
-    fontWeight: '600',
+    fontSize: Typography.size.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.weight.semibold,
     textAlign: 'right',
     flexShrink: 1,
-    marginLeft: 12,
+    marginLeft: Spacing.md,
   },
   infoValueMono: {
-    fontSize: 13,
-    color: '#111827',
-    fontWeight: '600',
+    fontSize: Typography.size.base,
+    color: Colors.textPrimary,
+    fontWeight: Typography.weight.semibold,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     letterSpacing: 0.5,
     textAlign: 'right',
     flexShrink: 1,
-    marginLeft: 12,
+    marginLeft: Spacing.md,
   },
   linkText: {
-    fontSize: 15,
-    color: BRAND_BLUE,
-    fontWeight: '600',
+    fontSize: Typography.size.body,
+    color: Colors.primary,
+    fontWeight: Typography.weight.semibold,
     textDecorationLine: 'underline',
   },
 
@@ -552,95 +539,96 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    backgroundColor: Colors.successLight,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: Colors.successBorder,
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
-    marginRight: 6,
+    backgroundColor: Colors.statusGreen,
+    marginRight: Spacing.xs + 2,
   },
   statusText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#059669',
+    fontSize: Typography.size.base,
+    fontWeight: Typography.weight.bold,
+    color: Colors.success,
   },
 
   // ── Privacy card ─────────────────────────────────────────────────
   privacyCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 14,
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    padding: 16,
+    borderColor: Colors.infoBorder,
+    padding: Spacing.base,
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   privacyIcon: {
     fontSize: 22,
-    marginRight: 14,
+    marginRight: Spacing.md,
     marginTop: 1,
   },
   privacyTextBlock: {
     flex: 1,
   },
   privacyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1D4ED8',
-    marginBottom: 6,
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.bold,
+    color: Colors.primaryDark,
+    marginBottom: Spacing.xs + 2,
   },
   privacyBody: {
-    fontSize: 14,
-    color: '#1E40AF',
-    lineHeight: 20,
+    fontSize: Typography.size.md,
+    color: Colors.primaryDark,
+    lineHeight: Typography.lineHeight.normal,
   },
 
   // ── Action buttons ───────────────────────────────────────────────
   actionButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.border,
+    ...Shadows.xs,
   },
   actionButtonDisabled: {
     opacity: 0.5,
   },
   actionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.textPrimary,
   },
   actionHint: {
-    fontSize: 13,
-    color: '#9CA3AF',
+    fontSize: Typography.size.base,
+    color: Colors.textTertiary,
     textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 18,
-    paddingHorizontal: 4,
+    marginTop: Spacing.sm,
+    lineHeight: Typography.lineHeight.normal,
+    paddingHorizontal: Spacing.xs,
   },
 
   // ── Danger zone ──────────────────────────────────────────────────
   dangerButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#FCA5A5',
+    borderColor: Colors.errorLight,
   },
   dangerButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#DC2626',
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.bold,
+    color: Colors.error,
   },
 
   // ── Bottom padding ───────────────────────────────────────────────

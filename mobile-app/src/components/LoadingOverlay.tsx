@@ -13,8 +13,7 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-
-const BRAND_BLUE = '#2563EB';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 interface Props {
   /** Whether the overlay is visible */
@@ -38,7 +37,7 @@ export default function LoadingOverlay({
   const content = (
     <View style={styles.container}>
       <View style={styles.card}>
-        <ActivityIndicator size="large" color={BRAND_BLUE} />
+        <ActivityIndicator size="large" color={Colors.primary} />
         {message ? (
           <Text style={styles.message}>{message}</Text>
         ) : null}
@@ -71,35 +70,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: Spacing.xxl,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 28,
-    paddingHorizontal: 32,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xxl,
+    paddingVertical: Spacing.xl + 4,
+    paddingHorizontal: Spacing.xxl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    ...Shadows.lg,
     minWidth: 200,
     maxWidth: 300,
   },
   message: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
     textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 22,
+    marginTop: Spacing.base,
+    lineHeight: Typography.lineHeight.normal,
   },
   subMessage: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
+    marginTop: Spacing.xs + 2,
+    lineHeight: Typography.lineHeight.tight,
   },
 });

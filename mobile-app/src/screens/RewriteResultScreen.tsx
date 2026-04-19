@@ -34,9 +34,7 @@ import {
   showCopyOptions,
   showShareOptions,
 } from '../services/noteExport';
-
-const BRAND_BLUE = '#2563EB';
-const BRAND_BLUE_LIGHT = '#DBEAFE';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 // ─── View modes ──────────────────────────────────────────────────────
 type ViewMode = 'comparison' | 'rewritten';
@@ -47,19 +45,11 @@ interface Props {
   onEditOriginal: () => void;
   onWriteAnother: () => void;
   onGoBack: () => void;
-  /**
-   * When set, the Save button will UPDATE this existing note instead of
-   * creating a new one. Passed when coming from an edit flow.
-   */
   editNoteId?: string;
-  /**
-   * When true, the screen is viewing a previously saved note.
-   * Changes the Edit Original button label to "Edit & Re-rewrite".
-   */
   isViewingSaved?: boolean;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────
 function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
@@ -80,7 +70,6 @@ export default function RewriteResultScreen({
   const [viewMode, setViewMode] = useState<ViewMode>('comparison');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState(false);
-  // If viewing a saved note (isViewingSaved), it's already saved
   const [isSaved, setIsSaved] = useState(isViewingSaved);
 
   // ── Toast animation ─────────────────────────────────────────────────
@@ -90,15 +79,12 @@ export default function RewriteResultScreen({
   const showToast = useCallback(
     (message: string) => {
       setCopyFeedback(message);
-      // Clear any existing timeout
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-      // Animate in
       Animated.timing(toastOpacity, {
         toValue: 1,
         duration: 200,
         useNativeDriver: true,
       }).start();
-      // Animate out after delay
       toastTimeoutRef.current = setTimeout(() => {
         Animated.timing(toastOpacity, {
           toValue: 0,
@@ -110,7 +96,6 @@ export default function RewriteResultScreen({
     [toastOpacity]
   );
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -130,7 +115,6 @@ export default function RewriteResultScreen({
 
   // ── Handlers ────────────────────────────────────────────────────────
 
-  /** Quick copy — copies rewritten note directly (primary action) */
   const handleQuickCopy = useCallback(async () => {
     const result = await copyToClipboard(noteTexts, 'rewritten');
     if (result.success) {
@@ -140,7 +124,6 @@ export default function RewriteResultScreen({
     }
   }, [noteTexts, showToast]);
 
-  /** Expanded copy — shows options for which text to copy */
   const handleCopyOptions = useCallback(() => {
     showCopyOptions(noteTexts, (result) => {
       if (result.success) {
@@ -151,27 +134,19 @@ export default function RewriteResultScreen({
     });
   }, [noteTexts, showToast]);
 
-  /** Share — shows options for which text to share */
   const handleShare = useCallback(() => {
     showShareOptions(noteTexts);
   }, [noteTexts]);
 
   const handleSave = useCallback(async () => {
     if (isSaved && !editNoteId) {
-      Alert.alert(
-        'Already Saved',
-        'This note has already been saved to your device.'
-      );
+      Alert.alert('Already Saved', 'This note has already been saved to your device.');
       return;
     }
 
     try {
       if (editNoteId) {
-        // Update the existing saved note
-        const updated = await updateNote(editNoteId, {
-          originalText,
-          rewrittenText,
-        });
+        const updated = await updateNote(editNoteId, { originalText, rewrittenText });
         if (!updated) {
           Alert.alert(
             'Update Failed',
@@ -182,26 +157,19 @@ export default function RewriteResultScreen({
         setIsSaved(true);
         setSaveFeedback(true);
         setTimeout(() => setSaveFeedback(false), 2500);
-        Alert.alert(
-          'Note Updated',
-          'The saved note has been updated with the new rewritten version.'
-        );
+        Alert.alert('Note Updated', 'The saved note has been updated with the new rewritten version.');
       } else {
-        // Save as a new note
         await saveNote({ originalText, rewrittenText });
         setIsSaved(true);
         setSaveFeedback(true);
         setTimeout(() => setSaveFeedback(false), 2500);
         Alert.alert(
           'Note Saved',
-          'Both the original and rewritten versions have been saved to your device. You can view them in Saved Notes.'
+          'Both the original and rewritten versions have been saved to your device.'
         );
       }
     } catch {
-      Alert.alert(
-        'Save Failed',
-        'Could not save the note. Please try again.'
-      );
+      Alert.alert('Save Failed', 'Could not save the note. Please try again.');
     }
   }, [originalText, rewrittenText, isSaved, editNoteId]);
 
@@ -239,12 +207,7 @@ export default function RewriteResultScreen({
         onPress={() => setViewMode('comparison')}
         activeOpacity={0.7}
       >
-        <Text
-          style={[
-            styles.tabText,
-            viewMode === 'comparison' && styles.tabTextActive,
-          ]}
-        >
+        <Text style={[styles.tabText, viewMode === 'comparison' && styles.tabTextActive]}>
           Before / After
         </Text>
       </TouchableOpacity>
@@ -253,12 +216,7 @@ export default function RewriteResultScreen({
         onPress={() => setViewMode('rewritten')}
         activeOpacity={0.7}
       >
-        <Text
-          style={[
-            styles.tabText,
-            viewMode === 'rewritten' && styles.tabTextActive,
-          ]}
-        >
+        <Text style={[styles.tabText, viewMode === 'rewritten' && styles.tabTextActive]}>
           Rewritten Only
         </Text>
       </TouchableOpacity>
@@ -284,9 +242,7 @@ export default function RewriteResultScreen({
       <View style={styles.wordComparisonDivider} />
       <View style={styles.wordComparisonItem}>
         <Text style={styles.wordComparisonLabel}>Diff</Text>
-        <Text
-          style={[styles.wordComparisonValue, styles.wordComparisonDiff]}
-        >
+        <Text style={[styles.wordComparisonValue, styles.wordComparisonDiff]}>
           {wordDiffLabel}
         </Text>
       </View>
@@ -328,9 +284,7 @@ export default function RewriteResultScreen({
       <View style={styles.noteSection}>
         <View style={styles.noteLabelRow}>
           <View style={styles.noteLabelBadgeRewritten}>
-            <Text style={styles.noteLabelBadgeTextRewritten}>
-              Audit-Ready Draft
-            </Text>
+            <Text style={styles.noteLabelBadgeTextRewritten}>Audit-Ready Draft</Text>
           </View>
           <Text style={styles.noteCharCount}>{rewrittenChars} chars</Text>
         </View>
@@ -353,9 +307,7 @@ export default function RewriteResultScreen({
       <View style={styles.noteSection}>
         <View style={styles.noteLabelRow}>
           <View style={styles.noteLabelBadgeRewritten}>
-            <Text style={styles.noteLabelBadgeTextRewritten}>
-              Audit-Ready Draft
-            </Text>
+            <Text style={styles.noteLabelBadgeTextRewritten}>Audit-Ready Draft</Text>
           </View>
           <Text style={styles.noteCharCount}>
             {rewrittenWords} words · {rewrittenChars} chars
@@ -393,10 +345,7 @@ export default function RewriteResultScreen({
         </TouchableOpacity>
       </View>
 
-      {/* Copy options hint */}
-      <Text style={styles.copyHint}>
-        Long-press Copy for more options
-      </Text>
+      <Text style={styles.copyHint}>Long-press Copy for more options</Text>
 
       {/* Secondary row: Save + Edit Original */}
       <View style={styles.secondaryRow}>
@@ -415,7 +364,9 @@ export default function RewriteResultScreen({
             ]}
           >
             {saveFeedback
-              ? (editNoteId ? '✓ Updated!' : '✓ Saved!')
+              ? editNoteId
+                ? '✓ Updated!'
+                : '✓ Saved!'
               : isSaved && !editNoteId
                 ? '✓ Saved'
                 : editNoteId
@@ -477,11 +428,15 @@ export default function RewriteResultScreen({
         <Text style={styles.successIcon}>{isViewingSaved ? '📋' : '✓'}</Text>
         <View style={styles.successTextContainer}>
           <Text style={styles.successTitle}>
-            {isViewingSaved ? 'Saved Note' : editNoteId ? 'Note Re-rewritten' : 'Note Rewritten Successfully'}
+            {isViewingSaved
+              ? 'Saved Note'
+              : editNoteId
+                ? 'Note Re-rewritten'
+                : 'Note Rewritten Successfully'}
           </Text>
           <Text style={styles.successSubtitle}>
             {isViewingSaved
-              ? 'Tap “Edit & Re-rewrite” to modify and re-run the AI rewrite.'
+              ? 'Tap "Edit & Re-rewrite" to modify and re-run the AI rewrite.'
               : 'Review the comparison below, then copy or save.'}
           </Text>
         </View>
@@ -494,9 +449,7 @@ export default function RewriteResultScreen({
       {renderWordComparison()}
 
       {/* Content area */}
-      {viewMode === 'comparison'
-        ? renderComparisonView()
-        : renderRewrittenOnlyView()}
+      {viewMode === 'comparison' ? renderComparisonView() : renderRewrittenOnlyView()}
 
       {/* Action buttons */}
       {renderActions()}
@@ -511,7 +464,7 @@ export default function RewriteResultScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.background,
   },
 
   // ── Header ─────────────────────────────────────────────────────────
@@ -519,37 +472,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
   backButton: {
     paddingVertical: 4,
-    paddingRight: 8,
+    paddingRight: Spacing.sm,
     minWidth: 60,
   },
   backButtonText: {
-    fontSize: 16,
-    color: BRAND_BLUE,
-    fontWeight: '600',
+    fontSize: Typography.size.bodyLg,
+    color: Colors.primary,
+    fontWeight: Typography.weight.semibold,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: Typography.size.title,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
   },
   headerShareButton: {
     paddingVertical: 4,
-    paddingLeft: 8,
+    paddingLeft: Spacing.sm,
     minWidth: 60,
     alignItems: 'flex-end',
   },
   headerShareText: {
-    fontSize: 15,
-    color: BRAND_BLUE,
-    fontWeight: '600',
+    fontSize: Typography.size.body,
+    color: Colors.primary,
+    fontWeight: Typography.weight.semibold,
   },
 
   // ── Toast ──────────────────────────────────────────────────────────
@@ -562,44 +515,44 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   toast: {
-    backgroundColor: '#065F46',
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: Colors.successDark,
+    borderRadius: Radii.base,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    ...Shadows.md,
   },
   toastText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+    color: Colors.white,
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.semibold,
   },
 
-  // ── Success banner ─────────────────────────────────────────────────
+  // ── Success / info banner ──────────────────────────────────────────
   successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: Colors.successLight,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.md,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: Colors.successBorder,
+  },
+  savedBanner: {
+    backgroundColor: Colors.primaryFaint,
+    borderColor: Colors.infoBorder,
   },
   successIcon: {
     fontSize: 20,
-    color: '#059669',
-    fontWeight: '700',
-    marginRight: 12,
+    color: Colors.success,
+    fontWeight: Typography.weight.bold,
+    marginRight: Spacing.md,
     width: 28,
     height: 28,
     lineHeight: 28,
     textAlign: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: Colors.successFaint,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -607,53 +560,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   successTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#065F46',
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.bold,
+    color: Colors.successDark,
     marginBottom: 2,
   },
   successSubtitle: {
-    fontSize: 13,
-    color: '#047857',
-    lineHeight: 18,
-  },
-
-  /** Override for the info banner when viewing a saved note */
-  savedBanner: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
+    fontSize: Typography.size.base,
+    color: Colors.success,
+    lineHeight: Typography.lineHeight.tight,
   },
 
   // ── Tab bar ──────────────────────────────────────────────────────
   tabBar: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 14,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.borderLight,
+    borderRadius: Radii.base,
     padding: 3,
   },
   tab: {
     flex: 1,
     paddingVertical: 9,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: Radii.sm + 2,
   },
   tabActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: Colors.surface,
+    ...Shadows.xs,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontSize: Typography.size.md,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.textSecondary,
   },
   tabTextActive: {
-    color: BRAND_BLUE,
+    color: Colors.primary,
   },
 
   // ── Word count comparison bar ──────────────────────────────────────
@@ -661,257 +604,253 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.base,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.border,
   },
   wordComparisonItem: {
     flex: 1,
     alignItems: 'center',
   },
   wordComparisonLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#9CA3AF',
+    fontSize: Typography.size.xs,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: Typography.tracking.wider,
     marginBottom: 2,
   },
   wordComparisonValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#374151',
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
   },
   wordComparisonDiff: {
-    color: BRAND_BLUE,
+    color: Colors.primary,
   },
   wordComparisonDivider: {
     width: 1,
     height: 28,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.border,
   },
 
   // ── Scroll area ────────────────────────────────────────────────────
   scrollArea: {
     flex: 1,
-    marginTop: 12,
+    marginTop: Spacing.md,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.sm,
   },
 
   // ── Note sections ──────────────────────────────────────────────────
   noteSection: {
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
   },
   noteLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   noteLabelBadgeOriginal: {
     backgroundColor: '#FEF3C7',
-    borderRadius: 6,
-    paddingHorizontal: 10,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
   noteLabelBadgeTextOriginal: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.bold,
     color: '#92400E',
   },
   noteLabelBadgeRewritten: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 6,
-    paddingHorizontal: 10,
+    backgroundColor: Colors.successLight,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: Colors.successBorder,
   },
   noteLabelBadgeTextRewritten: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#065F46',
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.bold,
+    color: Colors.successDark,
   },
   noteCharCount: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '500',
+    fontSize: Typography.size.sm,
+    color: Colors.textTertiary,
+    fontWeight: Typography.weight.medium,
   },
 
   // ── Note cards ─────────────────────────────────────────────────────
   noteCardOriginal: {
     backgroundColor: '#FFFBEB',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: Radii.lg,
+    padding: Spacing.base,
     borderWidth: 1,
     borderColor: '#FDE68A',
     minHeight: 80,
   },
   noteCardRewritten: {
     backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: Radii.lg,
+    padding: Spacing.base,
     borderWidth: 1,
     borderColor: '#BBF7D0',
     minHeight: 80,
   },
   noteCardRewrittenFull: {
     backgroundColor: '#F0FDF4',
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: Radii.xl,
+    padding: Spacing.lg,
     borderWidth: 1,
     borderColor: '#BBF7D0',
     minHeight: 160,
   },
   noteCardText: {
-    fontSize: 15,
-    color: '#1F2937',
-    lineHeight: 23,
+    fontSize: Typography.size.body,
+    color: Colors.textPrimary,
+    lineHeight: Typography.lineHeight.relaxed - 1,
   },
   noteCardTextLarge: {
-    fontSize: 16,
-    color: '#1F2937',
-    lineHeight: 26,
+    fontSize: Typography.size.bodyLg,
+    color: Colors.textPrimary,
+    lineHeight: Typography.lineHeight.relaxed,
   },
 
   // ── Arrow separator ────────────────────────────────────────────────
   arrowSeparator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
-    paddingHorizontal: 4,
+    marginVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
   },
   arrowLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.border,
   },
   arrowBadge: {
-    backgroundColor: BRAND_BLUE_LIGHT,
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 5,
-    marginHorizontal: 10,
+    marginHorizontal: Spacing.sm + 2,
     borderWidth: 1,
-    borderColor: '#93C5FD',
+    borderColor: Colors.infoBorder,
   },
   arrowBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: BRAND_BLUE,
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.bold,
+    color: Colors.primary,
   },
 
   // ── Action buttons ─────────────────────────────────────────────────
   actionsContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.sm + 2,
+    paddingBottom: Platform.OS === 'ios' ? Spacing.sm : Spacing.base,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
   primaryRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: Spacing.sm + 2,
   },
   primaryButton: {
     flex: 1,
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    borderRadius: Radii.xl,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Shadows.primaryButton,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.white,
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.bold,
   },
   shareButton: {
-    backgroundColor: '#F0F4FF',
-    borderRadius: 14,
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radii.xl,
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BRAND_BLUE_LIGHT,
+    borderColor: Colors.infoBorder,
   },
   shareButtonText: {
-    color: BRAND_BLUE,
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.primary,
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.bold,
   },
   copyHint: {
-    fontSize: 11,
-    color: '#9CA3AF',
+    fontSize: Typography.size.xs,
+    color: Colors.textTertiary,
     textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 4,
+    marginTop: Spacing.xs + 2,
+    marginBottom: Spacing.xs,
   },
   secondaryRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 6,
+    gap: Spacing.sm + 2,
+    marginTop: Spacing.xs + 2,
   },
   secondaryButtonFilled: {
     flex: 1,
-    backgroundColor: '#F0F4FF',
-    borderRadius: 12,
-    paddingVertical: 12,
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: BRAND_BLUE_LIGHT,
+    borderColor: Colors.infoBorder,
   },
   secondaryButtonFilledText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND_BLUE,
+    fontSize: Typography.size.md,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.primary,
   },
   secondaryButtonSaved: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
+    backgroundColor: Colors.successLight,
+    borderColor: Colors.successBorder,
   },
   secondaryButtonSavedText: {
-    color: '#059669',
+    color: Colors.success,
   },
   secondaryButtonOutline: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.border,
   },
   secondaryButtonOutlineText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: Typography.size.md,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.textPrimary,
   },
   tertiaryButton: {
-    marginTop: 10,
-    paddingVertical: 10,
+    marginTop: Spacing.sm + 2,
+    paddingVertical: Spacing.sm + 2,
     alignItems: 'center',
   },
   tertiaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontSize: Typography.size.md,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.textSecondary,
   },
 });

@@ -13,8 +13,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-
-const BRAND_BLUE = '#2563EB';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 interface Props {
   children: React.ReactNode;
@@ -39,7 +38,6 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log for debugging — in production this would go to a crash reporter
     console.error('[RiteDoc] Unhandled error:', error);
     console.error('[RiteDoc] Component stack:', info.componentStack);
   }
@@ -53,7 +51,7 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
       return (
         <View style={styles.container}>
           <ScrollView contentContainerStyle={styles.content}>
-            {/* Logo */}
+            {/* RD Logo Badge */}
             <View style={styles.logoBadge}>
               <Text style={styles.logoText}>RD</Text>
             </View>
@@ -90,69 +88,66 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4FF',
+    backgroundColor: Colors.primaryFaint,
   },
   content: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 48,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.section,
   },
   logoBadge: {
     width: 56,
     height: 56,
-    borderRadius: 14,
-    backgroundColor: BRAND_BLUE,
+    borderRadius: Radii.xl,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: Spacing.xl,
+    ...Shadows.logoBadge,
   },
   logoText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    fontSize: Typography.size.heading,
+    fontWeight: Typography.weight.extrabold,
+    color: Colors.white,
+    letterSpacing: Typography.tracking.wider,
   },
   errorIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
+    fontSize: Typography.size.display,
+    fontWeight: Typography.weight.extrabold,
+    color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   body: {
-    fontSize: 15,
-    color: '#6B7280',
+    fontSize: Typography.size.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
+    lineHeight: Typography.lineHeight.normal,
+    marginBottom: Spacing.xxl,
   },
   button: {
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
-    marginBottom: 20,
+    backgroundColor: Colors.primary,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xxxl,
+    marginBottom: Spacing.lg,
+    ...Shadows.primaryButton,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.white,
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.bold,
   },
   hint: {
-    fontSize: 13,
-    color: '#9CA3AF',
+    fontSize: Typography.size.base,
+    color: Colors.textTertiary,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: Typography.lineHeight.tight,
   },
 });

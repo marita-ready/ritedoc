@@ -16,14 +16,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { loadActivation, ActivationData } from '../services/activation';
-
-const BRAND_BLUE = '#2563EB';
-const BRAND_BLUE_DARK = '#1D4ED8';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 interface Props {
   onNavigate: (screen: 'WriteNote' | 'SavedNotes' | 'Settings') => void;
@@ -58,8 +55,8 @@ export default function HomeScreen({ onNavigate }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>RD</Text>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoBadgeText}>RD</Text>
             </View>
             <View>
               <Text style={styles.appName}>RiteDoc</Text>
@@ -72,13 +69,11 @@ export default function HomeScreen({ onNavigate }: Props) {
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>Welcome to RiteDoc</Text>
           {activation?.agencyName ? (
-            <Text style={styles.welcomeSubtitle}>
-              {activation.agencyName}
-            </Text>
+            <Text style={styles.welcomeSubtitle}>{activation.agencyName}</Text>
           ) : null}
         </View>
 
-        {/* Status Indicator */}
+        {/* Status Card */}
         <View style={styles.statusCard}>
           <View style={styles.statusRow}>
             <View style={styles.statusDot} />
@@ -96,8 +91,8 @@ export default function HomeScreen({ onNavigate }: Props) {
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        {/* Section Label */}
+        <Text style={styles.sectionLabel}>Quick Actions</Text>
 
         {/* Primary Action — Write New Note */}
         <TouchableOpacity
@@ -105,7 +100,7 @@ export default function HomeScreen({ onNavigate }: Props) {
           onPress={() => onNavigate('WriteNote')}
           activeOpacity={0.85}
         >
-          <View style={styles.primaryActionIcon}>
+          <View style={styles.primaryActionIconWrap}>
             <Text style={styles.primaryActionIconText}>✏️</Text>
           </View>
           <View style={styles.primaryActionContent}>
@@ -121,37 +116,34 @@ export default function HomeScreen({ onNavigate }: Props) {
         <View style={styles.secondaryActionsRow}>
           <TouchableOpacity
             style={styles.secondaryActionButton}
-            onPress={() => onNavigate('SavedNotes')}
+            onPress={() => onNavigate('Settings')}
             activeOpacity={0.85}
           >
-            <View style={styles.secondaryActionIcon}>
-              <Text style={styles.secondaryActionIconText}>📋</Text>
+            <View style={styles.secondaryActionIconWrap}>
+              <Text style={styles.secondaryActionIconText}>⚙️</Text>
             </View>
-            <Text style={styles.secondaryActionTitle}>Saved Notes</Text>
-            <Text style={styles.secondaryActionSubtitle}>
-              View &amp; manage
-            </Text>
+            <Text style={styles.secondaryActionTitle}>Settings</Text>
+            <Text style={styles.secondaryActionSubtitle}>App preferences</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryActionButton}
-            onPress={() => onNavigate('Settings')}
+            onPress={() => onNavigate('SavedNotes')}
             activeOpacity={0.85}
           >
-            <View style={styles.secondaryActionIcon}>
-              <Text style={styles.secondaryActionIconText}>⚙️</Text>
+            <View style={styles.secondaryActionIconWrap}>
+              <Text style={styles.secondaryActionIconText}>📋</Text>
             </View>
-            <Text style={styles.secondaryActionTitle}>Settings</Text>
-            <Text style={styles.secondaryActionSubtitle}>
-              App preferences
-            </Text>
+            <Text style={styles.secondaryActionTitle}>Note History</Text>
+            <Text style={styles.secondaryActionSubtitle}>View past notes</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Footer Info */}
-        <View style={styles.footerInfo}>
-          <Text style={styles.footerInfoText}>
-            This app works fully offline. Your notes are stored securely on this device.
+        {/* Footer Privacy Banner */}
+        <View style={styles.privacyBanner}>
+          <Text style={styles.privacyIcon}>🔒</Text>
+          <Text style={styles.privacyText}>
+            All note rewriting happens on this device. Nothing is sent to the cloud.
           </Text>
         </View>
       </ScrollView>
@@ -162,91 +154,83 @@ export default function HomeScreen({ onNavigate }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.background,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 40,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxxl,
   },
 
-  // Header
+  // ── Header ───────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
+    marginBottom: Spacing.xxl,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  logoContainer: {
+  logoBadge: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: BRAND_BLUE,
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
+    marginRight: Spacing.md,
+    ...Shadows.logoBadge,
   },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  logoBadgeText: {
+    color: Colors.white,
+    fontSize: Typography.size.title,
+    fontWeight: Typography.weight.extrabold,
+    letterSpacing: Typography.tracking.wide,
   },
   appName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: 0.3,
+    fontSize: Typography.size.heading,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
+    letterSpacing: Typography.tracking.wide,
   },
   tagline: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: Typography.size.sm,
+    color: Colors.textSecondary,
     marginTop: 1,
-    letterSpacing: 0.2,
+    letterSpacing: Typography.tracking.wide,
   },
 
-  // Welcome
+  // ── Welcome ──────────────────────────────────────────────────────────
   welcomeSection: {
-    marginBottom: 24,
+    marginBottom: Spacing.xl,
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
-    letterSpacing: -0.3,
-    marginBottom: 4,
+    fontSize: Typography.size.hero,
+    fontWeight: Typography.weight.extrabold,
+    color: Colors.textPrimary,
+    letterSpacing: Typography.tracking.tight,
+    marginBottom: Spacing.xs,
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: Typography.size.bodyLg,
+    color: Colors.textSecondary,
+    fontWeight: Typography.weight.medium,
   },
 
-  // Status Card
+  // ── Status Card ──────────────────────────────────────────────────────
   statusCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 18,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
+    padding: Spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
+    marginBottom: Spacing.xxl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: Colors.border,
+    ...Shadows.xs,
   },
   statusRow: {
     flexDirection: 'row',
@@ -257,73 +241,64 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#10B981',
-    marginRight: 12,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: Colors.statusGreen,
+    marginRight: Spacing.md,
   },
   statusTextContainer: {
     flex: 1,
   },
   statusTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
   },
   statusSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: Colors.successLight,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: Colors.successBorder,
   },
   statusBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#059669',
+    fontSize: Typography.size.base,
+    fontWeight: Typography.weight.bold,
+    color: Colors.success,
   },
 
-  // Section Title
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 16,
+  // ── Section Label ────────────────────────────────────────────────────
+  sectionLabel: {
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: Typography.tracking.wider,
+    marginBottom: Spacing.md,
   },
 
-  // Primary Action Button
+  // ── Primary Action Button ────────────────────────────────────────────
   primaryActionButton: {
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 14,
-    padding: 20,
+    backgroundColor: Colors.primary,
+    borderRadius: Radii.xl,
+    padding: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    marginBottom: Spacing.md,
+    ...Shadows.primaryButton,
   },
-  primaryActionIcon: {
+  primaryActionIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: Radii.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: Spacing.base,
   },
   primaryActionIconText: {
     fontSize: 22,
@@ -332,79 +307,82 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   primaryActionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: Typography.size.subtitle,
+    fontWeight: Typography.weight.bold,
+    color: Colors.white,
     marginBottom: 2,
   },
   primaryActionSubtitle: {
-    fontSize: 14,
+    fontSize: Typography.size.md,
     color: 'rgba(255, 255, 255, 0.8)',
   },
   actionChevron: {
     fontSize: 28,
     color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '300',
+    fontWeight: Typography.weight.regular,
   },
 
-  // Secondary Actions
+  // ── Secondary Actions ────────────────────────────────────────────────
   secondaryActionsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
+    gap: Spacing.md,
+    marginBottom: Spacing.xxl,
   },
   secondaryActionButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
+    padding: Spacing.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: Colors.border,
+    ...Shadows.xs,
   },
-  secondaryActionIcon: {
+  secondaryActionIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.primaryFaint,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   secondaryActionIconText: {
     fontSize: 22,
   },
   secondaryActionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: Typography.size.body,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
     marginBottom: 2,
     textAlign: 'center',
   },
   secondaryActionSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
 
-  // Footer Info
-  footerInfo: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 16,
+  // ── Privacy Banner ───────────────────────────────────────────────────
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: Colors.infoBorder,
   },
-  footerInfoText: {
-    fontSize: 13,
-    color: '#3B82F6',
-    textAlign: 'center',
-    lineHeight: 20,
-    fontWeight: '500',
+  privacyIcon: {
+    fontSize: 14,
+    marginRight: Spacing.sm,
+    marginTop: 2,
+  },
+  privacyText: {
+    flex: 1,
+    fontSize: Typography.size.base,
+    color: Colors.primary,
+    lineHeight: Typography.lineHeight.snug,
+    fontWeight: Typography.weight.medium,
   },
 });

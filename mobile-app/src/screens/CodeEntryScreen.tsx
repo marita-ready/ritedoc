@@ -29,6 +29,7 @@ import { verifyAccessCode } from '../services/api';
 import { saveActivation } from '../services/activation';
 import { getDeviceId } from '../utils/device';
 import ErrorBanner from '../components/ErrorBanner';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../theme';
 
 interface Props {
   onActivated: () => void;
@@ -45,7 +46,7 @@ function friendlyError(err: unknown): string {
     return 'No internet connection. Please check your Wi-Fi or mobile data and try again.';
   }
   if (lower.includes('invalid') || lower.includes('not found') || lower.includes('404')) {
-    return 'That code doesn\'t look right. Double-check the code and try again.';
+    return "That code doesn't look right. Double-check the code and try again.";
   }
   if (lower.includes('already') || lower.includes('used') || lower.includes('redeemed')) {
     return 'This code has already been used. Contact your agency administrator for a new code.';
@@ -67,7 +68,6 @@ export default function CodeEntryScreen({ onActivated }: Props) {
 
   // Format the code as the user types: MAC-XXXX-XXXX-XXXX
   const handleCodeChange = (text: string) => {
-    // Strip everything except alphanumeric and hyphens, uppercase
     const cleaned = text.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     setCode(cleaned);
     setError(null);
@@ -81,7 +81,6 @@ export default function CodeEntryScreen({ onActivated }: Props) {
       return;
     }
 
-    // Basic format check: MAC-XXXX-XXXX-XXXX
     if (!/^MAC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(trimmedCode)) {
       setError('Invalid code format. Codes look like: MAC-XXXX-XXXX-XXXX');
       return;
@@ -94,7 +93,6 @@ export default function CodeEntryScreen({ onActivated }: Props) {
       const deviceId = await getDeviceId();
       const result = await verifyAccessCode(trimmedCode, deviceId);
 
-      // Save activation data locally for offline use
       await saveActivation({
         activationToken: result.activation_token,
         agencyName: result.agency_name,
@@ -102,7 +100,6 @@ export default function CodeEntryScreen({ onActivated }: Props) {
         codeUsed: trimmedCode,
       });
 
-      // Notify parent — app is now activated
       onActivated();
     } catch (err) {
       setError(friendlyError(err));
@@ -116,7 +113,7 @@ export default function CodeEntryScreen({ onActivated }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       {/* Error Banner */}
       <ErrorBanner
@@ -128,21 +125,22 @@ export default function CodeEntryScreen({ onActivated }: Props) {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header / Logo */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>RD</Text>
+          <View style={styles.logoBadge}>
+            <Text style={styles.logoBadgeText}>RD</Text>
           </View>
           <Text style={styles.appName}>RiteDoc</Text>
-          <Text style={styles.tagline}>ReadyCompliant</Text>
+          <Text style={styles.tagline}>A product of ReadyCompliant</Text>
         </View>
 
-        {/* Card */}
+        {/* Activation Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Activate Your App</Text>
           <Text style={styles.cardSubtitle}>
-            Enter the access code provided by your agency to activate the RiteDoc app on this device.
+            Enter the access code provided by your agency to activate RiteDoc on this device.
           </Text>
 
           <View style={styles.inputContainer}>
@@ -153,7 +151,7 @@ export default function CodeEntryScreen({ onActivated }: Props) {
               value={code}
               onChangeText={handleCodeChange}
               placeholder="MAC-XXXX-XXXX-XXXX"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={Colors.textTertiary}
               autoCapitalize="characters"
               autoCorrect={false}
               autoComplete="off"
@@ -162,7 +160,7 @@ export default function CodeEntryScreen({ onActivated }: Props) {
               returnKeyType="done"
               onSubmitEditing={handleSubmit}
               editable={!loading}
-              maxLength={16} // MAC-XXXX-XXXX-XXXX = 16 chars
+              maxLength={16}
             />
           </View>
 
@@ -174,7 +172,7 @@ export default function CodeEntryScreen({ onActivated }: Props) {
             activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" size="small" />
+              <ActivityIndicator color={Colors.white} size="small" />
             ) : (
               <Text style={styles.submitButtonText}>Activate App</Text>
             )}
@@ -185,12 +183,16 @@ export default function CodeEntryScreen({ onActivated }: Props) {
           ) : null}
         </View>
 
-        {/* Info footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Each access code can only be used once.{'\n'}
-            After activation, the app works fully offline.
+        {/* Privacy / info banner */}
+        <View style={styles.privacyBanner}>
+          <Text style={styles.privacyIcon}>🔒</Text>
+          <Text style={styles.privacyText}>
+            Each code can only be used once. After activation, the app works fully offline — your notes never leave your device.
           </Text>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
           <Text style={styles.footerContact}>
             Need a code? Contact your agency administrator.
           </Text>
@@ -200,162 +202,165 @@ export default function CodeEntryScreen({ onActivated }: Props) {
   );
 }
 
-const BRAND_BLUE = '#1a56db';
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f4ff',
+    backgroundColor: Colors.primaryFaint,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: 64,
+    paddingBottom: Spacing.xxxl,
     alignItems: 'center',
   },
 
-  // Header / Logo
+  // ── Header / Logo ────────────────────────────────────────────────────
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: Spacing.xxxl,
   },
-  logoContainer: {
+  logoBadge: {
     width: 72,
     height: 72,
     borderRadius: 18,
-    backgroundColor: BRAND_BLUE,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    marginBottom: Spacing.md,
+    ...Shadows.logoBadge,
   },
-  logoText: {
-    color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: 1,
+  logoBadgeText: {
+    color: Colors.white,
+    fontSize: Typography.size.hero,
+    fontWeight: Typography.weight.extrabold,
+    letterSpacing: Typography.tracking.widest,
   },
   appName: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: 0.5,
+    fontSize: Typography.size.hero,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
+    letterSpacing: Typography.tracking.wide,
+    marginBottom: Spacing.xs,
   },
   tagline: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
-    letterSpacing: 0.3,
+    fontSize: Typography.size.md,
+    color: Colors.textSecondary,
+    letterSpacing: Typography.tracking.wide,
   },
 
-  // Card
+  // ── Card ─────────────────────────────────────────────────────────────
   card: {
     width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xxl,
     padding: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    marginBottom: 24,
+    marginBottom: Spacing.base,
+    ...Shadows.md,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
+    fontSize: Typography.size.heading,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
-    marginBottom: 24,
+    fontSize: Typography.size.md,
+    color: Colors.textSecondary,
+    lineHeight: Typography.lineHeight.snug,
+    marginBottom: Spacing.xl,
   },
 
-  // Input
+  // ── Input ────────────────────────────────────────────────────────────
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    fontSize: Typography.size.base,
+    fontWeight: Typography.weight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: Typography.tracking.wider,
   },
   codeInput: {
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 16,
+    borderColor: Colors.border,
+    borderRadius: Radii.base,
+    paddingHorizontal: Spacing.base,
     paddingVertical: 14,
     fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    letterSpacing: 2,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.textPrimary,
+    letterSpacing: Typography.tracking.code,
     textAlign: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#F9FAFB',
   },
   codeInputError: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+    borderColor: Colors.error,
+    backgroundColor: Colors.errorLight,
   },
 
-  // Submit button
+  // ── Submit button ────────────────────────────────────────────────────
   submitButton: {
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 10,
-    paddingVertical: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: Radii.base,
+    paddingVertical: Spacing.base,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
+    ...Shadows.primaryButton,
   },
   submitButtonDisabled: {
-    backgroundColor: '#93c5fd',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: Colors.disabled,
+    ...(Platform.OS === 'ios' ? { shadowOpacity: 0 } : { elevation: 0 }),
   },
   submitButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: Colors.white,
+    fontSize: Typography.size.bodyLg,
+    fontWeight: Typography.weight.bold,
+    letterSpacing: Typography.tracking.wide,
   },
   loadingHint: {
     textAlign: 'center',
-    color: '#6b7280',
-    fontSize: 13,
-    marginTop: 12,
+    color: Colors.textSecondary,
+    fontSize: Typography.size.base,
+    marginTop: Spacing.md,
   },
 
-  // Footer
+  // ── Privacy banner ───────────────────────────────────────────────────
+  privacyBanner: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.infoBorder,
+    marginBottom: Spacing.base,
+  },
+  privacyIcon: {
+    fontSize: 16,
+    marginRight: Spacing.sm,
+    marginTop: 1,
+  },
+  privacyText: {
+    flex: 1,
+    fontSize: Typography.size.base,
+    color: Colors.primary,
+    lineHeight: Typography.lineHeight.snug,
+    fontWeight: Typography.weight.medium,
+  },
+
+  // ── Footer ───────────────────────────────────────────────────────────
   footer: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  footerText: {
-    fontSize: 13,
-    color: '#9ca3af',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 8,
+    paddingHorizontal: Spacing.base,
   },
   footerContact: {
-    fontSize: 13,
-    color: '#6b7280',
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: Typography.weight.medium,
   },
 });
