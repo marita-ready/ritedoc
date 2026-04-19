@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { saveNote } from '../services/noteStorage';
+import { saveNote, updateNote } from '../services/noteStorage';
 import {
   copyToClipboard,
   showCopyOptions,
@@ -47,9 +47,19 @@ interface Props {
   onEditOriginal: () => void;
   onWriteAnother: () => void;
   onGoBack: () => void;
+  /**
+   * When set, the Save button will UPDATE this existing note instead of
+   * creating a new one. Passed when coming from an edit flow.
+   */
+  editNoteId?: string;
+  /**
+   * When true, the screen is viewing a previously saved note.
+   * Changes the Edit Original button label to "Edit & Re-rewrite".
+   */
+  isViewingSaved?: boolean;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────
 function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
@@ -64,11 +74,14 @@ export default function RewriteResultScreen({
   onEditOriginal,
   onWriteAnother,
   onGoBack,
+  editNoteId,
+  isViewingSaved = false,
 }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('comparison');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  // If viewing a saved note (isViewingSaved), it's already saved
+  const [isSaved, setIsSaved] = useState(isViewingSaved);
 
   // ── Toast animation ─────────────────────────────────────────────────
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -144,7 +157,7 @@ export default function RewriteResultScreen({
   }, [noteTexts]);
 
   const handleSave = useCallback(async () => {
-    if (isSaved) {
+    if (isSaved && !editNoteId) {
       Alert.alert(
         'Already Saved',
         'This note has already been saved to your device.'
@@ -153,21 +166,44 @@ export default function RewriteResultScreen({
     }
 
     try {
-      await saveNote({ originalText, rewrittenText });
-      setIsSaved(true);
-      setSaveFeedback(true);
-      setTimeout(() => setSaveFeedback(false), 2500);
-      Alert.alert(
-        'Note Saved',
-        'Both the original and rewritten versions have been saved to your device. You can view them in Saved Notes.'
-      );
+      if (editNoteId) {
+        // Update the existing saved note
+        const updated = await updateNote(editNoteId, {
+          originalText,
+          rewrittenText,
+        });
+        if (!updated) {
+          Alert.alert(
+            'Update Failed',
+            'Could not find the original note to update. It may have been deleted.'
+          );
+          return;
+        }
+        setIsSaved(true);
+        setSaveFeedback(true);
+        setTimeout(() => setSaveFeedback(false), 2500);
+        Alert.alert(
+          'Note Updated',
+          'The saved note has been updated with the new rewritten version.'
+        );
+      } else {
+        // Save as a new note
+        await saveNote({ originalText, rewrittenText });
+        setIsSaved(true);
+        setSaveFeedback(true);
+        setTimeout(() => setSaveFeedback(false), 2500);
+        Alert.alert(
+          'Note Saved',
+          'Both the original and rewritten versions have been saved to your device. You can view them in Saved Notes.'
+        );
+      }
     } catch {
       Alert.alert(
         'Save Failed',
         'Could not save the note. Please try again.'
       );
     }
-  }, [originalText, rewrittenText, isSaved]);
+  }, [originalText, rewrittenText, isSaved, editNoteId]);
 
   const handleWriteAnother = useCallback(() => {
     const message = isSaved
@@ -379,10 +415,12 @@ export default function RewriteResultScreen({
             ]}
           >
             {saveFeedback
-              ? '✓ Saved!'
-              : isSaved
+              ? (editNoteId ? '✓ Updated!' : '✓ Saved!')
+              : isSaved && !editNoteId
                 ? '✓ Saved'
-                : '💾 Save Note'}
+                : editNoteId
+                  ? '💾 Update Note'
+                  : '💾 Save Note'}
           </Text>
         </TouchableOpacity>
 
@@ -392,7 +430,7 @@ export default function RewriteResultScreen({
           activeOpacity={0.85}
         >
           <Text style={styles.secondaryButtonOutlineText}>
-            ✏️ Edit Original
+            {isViewingSaved ? '✏️ Edit & Re-rewrite' : '✏️ Edit Original'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -422,7 +460,9 @@ export default function RewriteResultScreen({
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Note Comparison</Text>
+        <Text style={styles.headerTitle}>
+          {isViewingSaved ? 'Saved Note' : 'Note Comparison'}
+        </Text>
         <TouchableOpacity
           onPress={handleShare}
           style={styles.headerShareButton}
@@ -432,13 +472,17 @@ export default function RewriteResultScreen({
         </TouchableOpacity>
       </View>
 
-      {/* Success banner */}
-      <View style={styles.successBanner}>
-        <Text style={styles.successIcon}>✓</Text>
+      {/* Success / info banner */}
+      <View style={[styles.successBanner, isViewingSaved && styles.savedBanner]}>
+        <Text style={styles.successIcon}>{isViewingSaved ? '📋' : '✓'}</Text>
         <View style={styles.successTextContainer}>
-          <Text style={styles.successTitle}>Note Rewritten Successfully</Text>
+          <Text style={styles.successTitle}>
+            {isViewingSaved ? 'Saved Note' : editNoteId ? 'Note Re-rewritten' : 'Note Rewritten Successfully'}
+          </Text>
           <Text style={styles.successSubtitle}>
-            Review the comparison below, then copy or save.
+            {isViewingSaved
+              ? 'Tap “Edit & Re-rewrite” to modify and re-run the AI rewrite.'
+              : 'Review the comparison below, then copy or save.'}
           </Text>
         </View>
       </View>
@@ -574,7 +618,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // ── Tab bar ────────────────────────────────────────────────────────
+  /** Override for the info banner when viewing a saved note */
+  savedBanner: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+
+  // ── Tab bar ──────────────────────────────────────────────────────
   tabBar: {
     flexDirection: 'row',
     marginHorizontal: 16,

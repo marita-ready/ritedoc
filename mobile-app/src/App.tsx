@@ -28,14 +28,28 @@ import SettingsScreen from './screens/SettingsScreen';
 // ─── Navigation types ────────────────────────────────────────────────
 export type MainStackParamList = {
   Home: undefined;
-  WriteNote: undefined;
+  /**
+   * WriteNote can optionally receive an existing note ID and its original
+   * text when launched in "edit" mode from a saved note. When editNoteId
+   * is present, saving the rewrite will update the existing note instead
+   * of creating a new one.
+   */
+  WriteNote:
+    | undefined
+    | {
+        editNoteId: string;
+        initialText: string;
+      };
   RewriteResult: {
     originalText: string;
     rewrittenText: string;
+    /** If set, saving will update this existing note instead of creating a new one */
+    editNoteId?: string;
   };
   ViewSavedNote: {
     originalText: string;
     rewrittenText: string;
+    noteId: string;
   };
   SavedNotes: undefined;
   Settings: undefined;
@@ -95,13 +109,16 @@ export default function App() {
           </Stack.Screen>
 
           <Stack.Screen name="WriteNote">
-            {({ navigation }) => (
+            {({ navigation, route }) => (
               <WriteNoteScreen
+                initialText={route.params?.initialText}
+                editNoteId={route.params?.editNoteId}
                 onGoBack={() => navigation.goBack()}
-                onNavigateToResult={(originalText, rewrittenText) =>
+                onNavigateToResult={(originalText, rewrittenText, editNoteId) =>
                   navigation.navigate('RewriteResult', {
                     originalText,
                     rewrittenText,
+                    ...(editNoteId ? { editNoteId } : {}),
                   })
                 }
               />
@@ -113,6 +130,7 @@ export default function App() {
               <RewriteResultScreen
                 originalText={route.params.originalText}
                 rewrittenText={route.params.rewrittenText}
+                editNoteId={route.params.editNoteId}
                 onGoBack={() => navigation.goBack()}
                 onEditOriginal={() => navigation.goBack()}
                 onWriteAnother={() => {
@@ -148,11 +166,15 @@ export default function App() {
               <RewriteResultScreen
                 originalText={route.params.originalText}
                 rewrittenText={route.params.rewrittenText}
+                editNoteId={route.params.noteId}
+                isViewingSaved
                 onGoBack={() => navigation.goBack()}
                 onEditOriginal={() => {
-                  // Navigate to WriteNote with the original text
-                  navigation.popToTop();
-                  navigation.navigate('WriteNote');
+                  // Launch WriteNote in edit mode with the original text
+                  navigation.navigate('WriteNote', {
+                    editNoteId: route.params.noteId,
+                    initialText: route.params.originalText,
+                  });
                 }}
                 onWriteAnother={() => {
                   navigation.popToTop();

@@ -38,6 +38,13 @@ export interface SaveNoteInput {
   rewrittenText: string;
 }
 
+export interface UpdateNoteInput {
+  /** Updated original raw text (optional) */
+  originalText?: string;
+  /** Updated AI-rewritten text (optional) */
+  rewrittenText?: string;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 /** Generate a simple unique ID without external dependencies */
@@ -124,6 +131,51 @@ export async function deleteNote(id: string): Promise<boolean> {
  */
 export async function deleteAllNotes(): Promise<void> {
   await AsyncStorage.removeItem(NOTES_STORAGE_KEY);
+}
+
+/**
+ * Update an existing note by ID.
+ * Recalculates word counts for any updated text fields.
+ * Returns the updated SavedNote, or null if the note was not found.
+ */
+export async function updateNote(
+  id: string,
+  updates: UpdateNoteInput
+): Promise<SavedNote | null> {
+  const notes = await loadAllNotes();
+  const index = notes.findIndex((n) => n.id === id);
+
+  if (index === -1) {
+    console.warn('[noteStorage] updateNote: note not found:', id);
+    return null;
+  }
+
+  const existing = notes[index];
+  const updatedNote: SavedNote = {
+    ...existing,
+    originalText:
+      updates.originalText !== undefined
+        ? updates.originalText
+        : existing.originalText,
+    rewrittenText:
+      updates.rewrittenText !== undefined
+        ? updates.rewrittenText
+        : existing.rewrittenText,
+    wordCountOriginal:
+      updates.originalText !== undefined
+        ? countWords(updates.originalText)
+        : existing.wordCountOriginal,
+    wordCountRewritten:
+      updates.rewrittenText !== undefined
+        ? countWords(updates.rewrittenText)
+        : existing.wordCountRewritten,
+  };
+
+  const updatedNotes = [...notes];
+  updatedNotes[index] = updatedNote;
+
+  await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(updatedNotes));
+  return updatedNote;
 }
 
 /**

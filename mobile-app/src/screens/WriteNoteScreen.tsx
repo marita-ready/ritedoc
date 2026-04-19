@@ -43,14 +43,24 @@ type ScreenMode = 'editing' | 'rewriting';
 
 interface Props {
   onGoBack: () => void;
-  onNavigateToResult: (originalText: string, rewrittenText: string) => void;
+  onNavigateToResult: (
+    originalText: string,
+    rewrittenText: string,
+    editNoteId?: string
+  ) => void;
+  /** Pre-fill the text input (used when editing an existing saved note) */
+  initialText?: string;
+  /** If set, the rewrite result will update this existing note */
+  editNoteId?: string;
 }
 
 export default function WriteNoteScreen({
   onGoBack,
   onNavigateToResult,
+  initialText,
+  editNoteId,
 }: Props) {
-  const [noteText, setNoteText] = useState('');
+  const [noteText, setNoteText] = useState(initialText ?? '');
   const [screenMode, setScreenMode] = useState<ScreenMode>('editing');
   const inputRef = useRef<TextInput>(null);
 
@@ -110,7 +120,7 @@ export default function WriteNoteScreen({
     if (result) {
       // Navigate to the dedicated comparison screen
       setScreenMode('editing');
-      onNavigateToResult(noteText, result.text);
+      onNavigateToResult(noteText, result.text, editNoteId);
     } else {
       // Error occurred — go back to editing mode
       setScreenMode('editing');
@@ -291,7 +301,9 @@ export default function WriteNoteScreen({
                   ← Back
                 </Text>
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>New Note</Text>
+              <Text style={styles.headerTitle}>
+                {editNoteId ? 'Edit Note' : 'New Note'}
+              </Text>
               <TouchableOpacity
                 onPress={handleClear}
                 style={styles.clearButton}

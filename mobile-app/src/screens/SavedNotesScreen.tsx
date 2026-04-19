@@ -2,18 +2,25 @@
  * RiteDoc Mobile App — Saved Notes Screen
  *
  * Displays all locally saved notes in a scrollable list, sorted by
- * most recent first. Supports search/filter, pull-to-refresh,
- * share/copy actions on each card, and an empty state with a CTA
- * to write the first note.
+ * most recent first. Supports:
+ * - Search/filter through note text
+ * - Pull-to-refresh
+ * - Swipe left to reveal a Delete action on each card
+ * - X button and long-press action menu for copy/share/delete
+ * - "Delete All" bulk delete accessible from the header
+ * - Empty state with a CTA to write the first note
  *
  * Tapping a note navigates to the RewriteResultScreen to view the
  * full before/after comparison.
- *
- * Long-pressing a note opens an action menu with copy, share, and
- * delete options.
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useId,
+} from 'react';
 import {
   View,
   Text,
@@ -25,30 +32,31 @@ import {
   Alert,
   Platform,
   Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   loadAllNotes,
   deleteNote,
+  deleteAllNotes,
   type SavedNote,
 } from '../services/noteStorage';
-import {
-  copyToClipboard,
-  shareNote,
-} from '../services/noteExport';
+import { copyToClipboard, shareNote } from '../services/noteExport';
 
 const BRAND_BLUE = '#2563EB';
+const SWIPE_THRESHOLD = 80; // px to trigger delete reveal
+const DELETE_BUTTON_WIDTH = 80;
 
 interface Props {
   onGoBack: () => void;
   onWriteNote: () => void;
-  onViewNote: (originalText: string, rewrittenText: string) => void;
+  onViewNote: (noteId: string, originalText: string, rewrittenText: string) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
-/** Format ISO date to a human-readable string */
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleDateString('en-AU', {
@@ -60,13 +68,11 @@ function formatDate(isoString: string): string {
   });
 }
 
-/** Get a preview of text, truncated to maxLength chars */
-function getPreview(text: string, maxLength: number = 100): string {
+function getPreview(text: string, maxLength: number = 150): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength).trimEnd() + '...';
 }
 
-/** Format relative time (e.g. "2 hours ago", "Yesterday") */
 function getRelativeTime(isoString: string): string {
   const now = Date.now();
   const then = new Date(isoString).getTime();
@@ -82,6 +88,184 @@ function getRelativeTime(isoString: string): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return formatDate(isoString);
 }
+
+// ─── Swipeable note card ──────────────────────────────────────────────
+
+interface SwipeableNoteCardProps {
+  note: SavedNote;
+  onView: () => void;
+  onDelete: () => void;
+  onCopy: () => void;
+  onShare: () => void;
+  onLongPress: () => void;
+}
+
+function SwipeableNoteCard({
+  note,
+  onView,
+  onDelete,
+  onCopy,
+  onShare,
+  onLongPress,
+}: SwipeableNoteCardProps) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const isOpen = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only capture horizontal swipes with meaningful movement
+        return (
+          Math.abs(gestureState.dx) > 8 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
+        );
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Only allow left swipe (negative dx), clamp to delete button width
+        const newX = Math.max(
+          -DELETE_BUTTON_WIDTH,
+          Math.min(0, gestureState.dx + (isOpen.current ? -DELETE_BUTTON_WIDTH : 0))
+        );
+        translateX.setValue(newX);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentX = isOpen.current ? gestureState.dx - DELETE_BUTTON_WIDTH : gestureState.dx;
+
+        if (currentX < -SWIPE_THRESHOLD / 2) {
+          // Snap open
+          Animated.spring(translateX, {
+            toValue: -DELETE_BUTTON_WIDTH,
+            useNativeDriver: true,
+            bounciness: 4,
+          }).start();
+          isOpen.current = true;
+        } else {
+          // Snap closed
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 4,
+          }).start();
+          isOpen.current = false;
+        }
+      },
+    })
+  ).current;
+
+  const closeSwipe = () => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      bounciness: 4,
+    }).start();
+    isOpen.current = false;
+  };
+
+  const handleDeletePress = () => {
+    closeSwipe();
+    onDelete();
+  };
+
+  const handleCardPress = () => {
+    if (isOpen.current) {
+      closeSwipe();
+    } else {
+      onView();
+    }
+  };
+
+  return (
+    <View style={styles.swipeContainer}>
+      {/* Delete action behind the card */}
+      <View style={styles.swipeDeleteAction}>
+        <TouchableOpacity
+          style={styles.swipeDeleteButton}
+          onPress={handleDeletePress}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.swipeDeleteIcon}>🗑</Text>
+          <Text style={styles.swipeDeleteText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* The card itself */}
+      <Animated.View
+        style={[styles.noteCardAnimated, { transform: [{ translateX }] }]}
+        {...panResponder.panHandlers}
+      >
+        <TouchableOpacity
+          style={styles.noteCard}
+          onPress={handleCardPress}
+          onLongPress={onLongPress}
+          activeOpacity={0.7}
+          delayLongPress={400}
+        >
+          {/* Top row: date + action buttons */}
+          <View style={styles.noteCardHeader}>
+            <View style={styles.noteCardDateRow}>
+              <Text style={styles.noteCardRelativeTime}>
+                {getRelativeTime(note.createdAt)}
+              </Text>
+              <Text style={styles.noteCardDate}>
+                {formatDate(note.createdAt)}
+              </Text>
+            </View>
+            <View style={styles.noteCardActions}>
+              <TouchableOpacity
+                style={styles.noteCardActionButton}
+                onPress={onCopy}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              >
+                <Text style={styles.noteCardActionIcon}>📋</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.noteCardActionButton}
+                onPress={onShare}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              >
+                <Text style={styles.noteCardActionIcon}>↗</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.noteCardActionButton}
+                onPress={onDelete}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              >
+                <Text style={styles.noteCardDeleteIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Preview of rewritten note */}
+          <Text style={styles.noteCardPreview} numberOfLines={3}>
+            {getPreview(note.rewrittenText)}
+          </Text>
+
+          {/* Footer: word counts + swipe hint */}
+          <View style={styles.noteCardFooter}>
+            <View style={styles.noteCardWordBadge}>
+              <Text style={styles.noteCardWordLabel}>Original</Text>
+              <Text style={styles.noteCardWordValue}>
+                {note.wordCountOriginal} words
+              </Text>
+            </View>
+            <View style={styles.noteCardWordDivider} />
+            <View style={styles.noteCardWordBadge}>
+              <Text style={styles.noteCardWordLabel}>Rewritten</Text>
+              <Text style={styles.noteCardWordValue}>
+                {note.wordCountRewritten} words
+              </Text>
+            </View>
+            <View style={styles.noteCardChevron}>
+              <Text style={styles.noteCardChevronText}>›</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────
 
 export default function SavedNotesScreen({
   onGoBack,
@@ -163,49 +347,73 @@ export default function SavedNotesScreen({
     setIsRefreshing(false);
   }, [loadNotes]);
 
-  const handleDelete = useCallback((note: SavedNote) => {
+  const handleDelete = useCallback(
+    (note: SavedNote) => {
+      Alert.alert(
+        'Delete Note',
+        `Delete the note from ${formatDate(note.createdAt)}? This cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              const success = await deleteNote(note.id);
+              if (success) {
+                setNotes((prev) => prev.filter((n) => n.id !== note.id));
+                showToast('Note deleted');
+              }
+            },
+          },
+        ]
+      );
+    },
+    [showToast]
+  );
+
+  const handleDeleteAll = useCallback(() => {
+    if (notes.length === 0) return;
+
     Alert.alert(
-      'Delete Note',
-      `Are you sure you want to delete this note from ${formatDate(note.createdAt)}? This cannot be undone.`,
+      'Delete All Notes',
+      `This will permanently delete all ${notes.length} saved ${notes.length === 1 ? 'note' : 'notes'} from this device. This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: `Delete All ${notes.length}`,
           style: 'destructive',
           onPress: async () => {
-            const success = await deleteNote(note.id);
-            if (success) {
-              setNotes((prev) => prev.filter((n) => n.id !== note.id));
-              showToast('Note deleted');
+            try {
+              await deleteAllNotes();
+              setNotes([]);
+              showToast('All notes deleted');
+            } catch {
+              Alert.alert('Error', 'Could not delete notes. Please try again.');
             }
           },
         },
       ]
     );
-  }, [showToast]);
+  }, [notes.length, showToast]);
 
   const handleViewNote = useCallback(
     (note: SavedNote) => {
-      onViewNote(note.originalText, note.rewrittenText);
+      onViewNote(note.id, note.originalText, note.rewrittenText);
     },
     [onViewNote]
   );
 
-  /** Copy rewritten note from a card */
   const handleQuickCopy = useCallback(
     async (note: SavedNote) => {
       const result = await copyToClipboard(
         { originalText: note.originalText, rewrittenText: note.rewrittenText },
         'rewritten'
       );
-      if (result.success) {
-        showToast('Rewritten note copied!');
-      }
+      if (result.success) showToast('Rewritten note copied!');
     },
     [showToast]
   );
 
-  /** Share rewritten note from a card */
   const handleQuickShare = useCallback(async (note: SavedNote) => {
     await shareNote(
       { originalText: note.originalText, rewrittenText: note.rewrittenText },
@@ -213,7 +421,6 @@ export default function SavedNotesScreen({
     );
   }, []);
 
-  /** Long-press action menu with full options */
   const handleLongPress = useCallback(
     (note: SavedNote) => {
       const texts = {
@@ -326,72 +533,14 @@ export default function SavedNotesScreen({
 
   // ── Render: Note list item ──────────────────────────────────────────
   const renderNoteItem = ({ item }: { item: SavedNote }) => (
-    <TouchableOpacity
-      style={styles.noteCard}
-      onPress={() => handleViewNote(item)}
+    <SwipeableNoteCard
+      note={item}
+      onView={() => handleViewNote(item)}
+      onDelete={() => handleDelete(item)}
+      onCopy={() => handleQuickCopy(item)}
+      onShare={() => handleQuickShare(item)}
       onLongPress={() => handleLongPress(item)}
-      activeOpacity={0.7}
-    >
-      {/* Top row: date + action buttons */}
-      <View style={styles.noteCardHeader}>
-        <View style={styles.noteCardDateRow}>
-          <Text style={styles.noteCardRelativeTime}>
-            {getRelativeTime(item.createdAt)}
-          </Text>
-          <Text style={styles.noteCardDate}>
-            {formatDate(item.createdAt)}
-          </Text>
-        </View>
-        <View style={styles.noteCardActions}>
-          <TouchableOpacity
-            style={styles.noteCardActionButton}
-            onPress={() => handleQuickCopy(item)}
-            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-          >
-            <Text style={styles.noteCardActionIcon}>📋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.noteCardActionButton}
-            onPress={() => handleQuickShare(item)}
-            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-          >
-            <Text style={styles.noteCardActionIcon}>↗</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.noteCardActionButton}
-            onPress={() => handleDelete(item)}
-            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-          >
-            <Text style={styles.noteCardDeleteIcon}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Preview of rewritten note */}
-      <Text style={styles.noteCardPreview} numberOfLines={3}>
-        {getPreview(item.rewrittenText, 150)}
-      </Text>
-
-      {/* Footer: word counts */}
-      <View style={styles.noteCardFooter}>
-        <View style={styles.noteCardWordBadge}>
-          <Text style={styles.noteCardWordLabel}>Original</Text>
-          <Text style={styles.noteCardWordValue}>
-            {item.wordCountOriginal} words
-          </Text>
-        </View>
-        <View style={styles.noteCardWordDivider} />
-        <View style={styles.noteCardWordBadge}>
-          <Text style={styles.noteCardWordLabel}>Rewritten</Text>
-          <Text style={styles.noteCardWordValue}>
-            {item.wordCountRewritten} words
-          </Text>
-        </View>
-        <View style={styles.noteCardChevron}>
-          <Text style={styles.noteCardChevronText}>›</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    />
   );
 
   // ── Render: Search bar ──────────────────────────────────────────────
@@ -444,7 +593,17 @@ export default function SavedNotesScreen({
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Notes</Text>
-        <View style={styles.headerSpacer} />
+        {notes.length > 0 ? (
+          <TouchableOpacity
+            onPress={handleDeleteAll}
+            style={styles.deleteAllButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.deleteAllButtonText}>Delete All</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
 
       {/* Search bar (only show when there are notes) */}
@@ -477,7 +636,7 @@ export default function SavedNotesScreen({
           ListFooterComponent={() => (
             <View style={styles.listFooter}>
               <Text style={styles.listFooterText}>
-                Long-press a note for more options
+                Swipe left to delete · Long-press for more options
               </Text>
             </View>
           )}
@@ -525,6 +684,17 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     minWidth: 60,
+  },
+  deleteAllButton: {
+    paddingVertical: 4,
+    paddingLeft: 8,
+    minWidth: 60,
+    alignItems: 'flex-end',
+  },
+  deleteAllButtonText: {
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '600',
   },
 
   // ── Toast ──────────────────────────────────────────────────────────
@@ -679,6 +849,42 @@ const styles = StyleSheet.create({
   listFooterText: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+
+  // ── Swipeable card container ───────────────────────────────────────
+  swipeContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 14,
+  },
+  swipeDeleteAction: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: DELETE_BUTTON_WIDTH,
+    backgroundColor: '#EF4444',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swipeDeleteButton: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swipeDeleteIcon: {
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  swipeDeleteText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  noteCardAnimated: {
+    backgroundColor: '#F8FAFC',
   },
 
   // ── Note card ──────────────────────────────────────────────────────
