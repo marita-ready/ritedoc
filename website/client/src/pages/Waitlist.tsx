@@ -8,8 +8,7 @@ import {
   Star,
 } from "lucide-react";
 
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY as string;
-const WAITLIST_LIST_ID = 2;
+
 
 async function submitToBrevoWaitlist(firstName: string, email: string) {
   const res = await fetch("https://api.brevo.com/v3/contacts", {
