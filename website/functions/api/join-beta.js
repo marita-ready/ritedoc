@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
 
     if (!email) {
       return new Response(
-        JSON.stringify({ error: "Email is required", receivedBody: body }),
+        JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
@@ -32,6 +32,7 @@ export async function onRequestPost(context) {
         attributes: {
           FIRSTNAME: name
         },
+        listIds: [3],
         updateEnabled: true
       })
     });
@@ -60,3 +61,4 @@ export async function onRequestOptions() {
     }
   });
 }
+
