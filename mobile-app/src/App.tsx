@@ -49,6 +49,8 @@ import {
   registerForPushNotificationsAsync,
   setupNotificationListeners,
 } from './services/pushNotifications';
+import { getActiveCartridge } from './services/cartridgeConfig';
+import { triggerCartridgeUpdateInBackground } from './services/cartridgeUpdater';
 import HomeScreen from './screens/HomeScreen';
 import WriteNoteScreen from './screens/WriteNoteScreen';
 import RewriteResultScreen from './screens/RewriteResultScreen';
@@ -252,6 +254,17 @@ function AppContent() {
     const cleanupListeners = setupNotificationListeners();
     return () => cleanupListeners();
   }, []);
+
+  // Warm the cartridge cache and trigger a background update check
+  // after activation is confirmed. Runs once per app session.
+  useEffect(() => {
+    if (appState === 'activated') {
+      // Warm the cache on first activation
+      getActiveCartridge().catch(() => {});
+      // Fire-and-forget background update check (no UI, no interruption)
+      triggerCartridgeUpdateInBackground();
+    }
+  }, [appState]);
 
   const checkActivation = async () => {
     try {

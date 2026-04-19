@@ -39,6 +39,10 @@ import {
   formatFileSize,
 } from '../services/llm/modelFiles';
 import { MODEL_FILENAME } from '../services/llm/config';
+import {
+  getCartridgeVersion,
+  getActiveCartridge,
+} from '../services/cartridgeConfig';
 
 // ─── Constants ───────────────────────────────────────────────────────
 const BRAND_BLUE = '#2563EB';
@@ -66,6 +70,7 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
   });
   const [clearingCache, setClearingCache] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<string>('Checking…');
+  const [cartridgeVersion, setCartridgeVersion] = useState<string>(getCartridgeVersion());
 
   // ── Load data on mount ──────────────────────────────────────────
   useEffect(() => {
@@ -74,6 +79,8 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
     getNotificationPermissionStatus().then(status => {
       setNotificationStatus(status.charAt(0).toUpperCase() + status.slice(1));
     });
+    // Load the active cartridge version (may differ from default if updated)
+    getActiveCartridge().then((c) => setCartridgeVersion(c.version)).catch(() => {});
   }, []);
 
   // ── Subscribe to model status changes ──────────────────────────
@@ -307,9 +314,9 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
             )}
             {renderInfoRow(
               'File size',
-              modelInfo.sizeFormatted ?? (modelInfo.available ? 'Checking…' : 'Not installed'),
-              true
+              modelInfo.sizeFormatted ?? (modelInfo.available ? 'Checking…' : 'Not installed')
             )}
+            {renderInfoRow('Cartridge', `v${cartridgeVersion}`, true, true)}
           </View>
           <Text style={styles.sectionNote}>
             The AI model runs entirely on your device. No internet connection is
