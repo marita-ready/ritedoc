@@ -6,7 +6,23 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit --strict",
+
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:dev:ios": "eas build --profile development --platform ios",
+
+    "build:preview:android": "eas build --profile preview --platform android",
+    "build:preview:ios": "eas build --profile preview --platform ios",
+
+    "build:production:android": "eas build --profile production --platform android",
+    "build:production:ios": "eas build --profile production --platform ios",
+    "build:production:all": "eas build --profile production --platform all",
+
+    "submit:ios": "eas submit --profile production --platform ios",
+    "submit:android": "eas submit --profile production --platform android",
+
+    "update:credentials": "eas credentials"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.0.2",

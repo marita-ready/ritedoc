@@ -1,0 +1,57 @@
+# EAS Build ignore file
+# Files and directories listed here are excluded from the EAS build upload.
+# node_modules is automatically excluded by EAS.
+
+# Documentation
+*.md
+!README.md
+
+# Development and test files
+__tests__/
+__mocks__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+jest.config.*
+jest.setup.*
+
+# Scripts and tooling
+scripts/
+tools/
+Makefile
+
+# Local environment files (secrets must be set in EAS secrets, not committed)
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Sensitive credential files — these must NOT be committed to Git.
+# For EAS builds, upload credentials via: eas credentials
+google-services.json
+google-play-service-account.json
+GoogleService-Info.plist
+
+# Model files — the GGUF model is NOT shipped in the build archive.
+# It is downloaded or side-loaded at runtime. See MODEL_SETUP.md.
+*.gguf
+models/
+
+# OS and editor artefacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output (should never be committed, but just in case)
+dist/
+build/
+android/
+ios/
+
+# Expo local state
+.expo/

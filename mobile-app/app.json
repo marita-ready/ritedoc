@@ -6,33 +6,117 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "ritedoc",
+
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
       "backgroundColor": "#2563EB"
     },
+
     "assetBundlePatterns": [
       "**/*"
     ],
+
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.readycompliant.ritedoc"
+      "bundleIdentifier": "com.readycompliant.ritedoc",
+      "buildNumber": "1",
+      "requireFullScreen": true,
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "RiteDoc uses notifications to alert you when updates to the note rewriting engine are available.",
+        "UIBackgroundModes": [],
+        "NSFaceIDUsageDescription": "RiteDoc uses Face ID to protect your activation credentials.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+          }
+        ],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyTracking": false
+      }
     },
+
     "android": {
+      "package": "com.readycompliant.ritedoc",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2563EB"
       },
-      "package": "com.readycompliant.ritedoc"
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "blockedPermissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "plugins": [
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2563EB",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": false,
+          "useSQLCipher": false
+        }
+      ]
     ],
+
     "extra": {
-      "apiUrl": "https://readycompliant-api.workers.dev"
+      "apiUrl": "https://readycompliant-api.workers.dev",
+      "cartridgeUrl": "https://api.readycompliant.com/cartridge/mobile",
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    },
+
+    "owner": "readycompliant",
+
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "enabled": false
+    },
+
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
