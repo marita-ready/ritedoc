@@ -1,21 +1,26 @@
 /**
  * RiteDoc Mobile App — Note Storage Service
  *
- * Persists saved notes locally on-device using AsyncStorage.
+ * Persists saved notes locally on-device using SQLite (expo-sqlite).
  * Each note stores both the original raw text and the AI-rewritten
  * version, along with metadata (timestamps, word counts).
  *
- * This service will be migrated to SQLite in a future iteration
- * for better performance with large note collections. The public
- * API is designed to remain stable across that migration.
+ * The database is initialised lazily on first access via the shared
+ * database module (see database.ts), which also handles schema
+ * migrations and one-time AsyncStorage → SQLite data migration.
  *
- * Storage format: a single JSON array under NOTES_STORAGE_KEY.
+ * Public API:
+ *   saveNote(input)        → SavedNote
+ *   loadAllNotes()         → SavedNote[]
+ *   loadNoteById(id)       → SavedNote | null
+ *   deleteNote(id)         → boolean
+ *   deleteAllNotes()       → void
+ *   updateNote(id, updates)→ SavedNote | null
+ *   getNoteCount()         → number
+ *   searchNotes(query)     → SavedNote[]
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// ─── Constants ───────────────────────────────────────────────────────
-const NOTES_STORAGE_KEY = '@ritedoc_saved_notes';
+import { getDatabase } from './database';
 
 // ─── Types ───────────────────────────────────────────────────────────
 export interface SavedNote {
@@ -59,19 +64,36 @@ function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
 
+/**
+ * Map a raw SQLite row to a typed SavedNote.
+ * Ensures all fields have the correct types even if the DB returns
+ * unexpected values (defensive coding for schema evolution).
+ */
+function rowToNote(row: Record<string, unknown>): SavedNote {
+  return {
+    id: String(row.id ?? ''),
+    originalText: String(row.originalText ?? ''),
+    rewrittenText: String(row.rewrittenText ?? ''),
+    createdAt: String(row.createdAt ?? ''),
+    wordCountOriginal: Number(row.wordCountOriginal ?? 0),
+    wordCountRewritten: Number(row.wordCountRewritten ?? 0),
+  };
+}
+
 // ─── Storage operations ──────────────────────────────────────────────
 
 /**
  * Load all saved notes from storage.
  * Returns an empty array if no notes exist or on error.
+ * Sorted by most recent first.
  */
 export async function loadAllNotes(): Promise<SavedNote[]> {
   try {
-    const raw = await AsyncStorage.getItem(NOTES_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed as SavedNote[];
+    const db = await getDatabase();
+    const rows = await db.getAllAsync<Record<string, unknown>>(
+      'SELECT * FROM notes ORDER BY createdAt DESC'
+    );
+    return rows.map(rowToNote);
   } catch (error) {
     console.warn('[noteStorage] Failed to load notes:', error);
     return [];
@@ -92,11 +114,19 @@ export async function saveNote(input: SaveNoteInput): Promise<SavedNote> {
     wordCountRewritten: countWords(input.rewrittenText),
   };
 
-  const existing = await loadAllNotes();
-  // Prepend new note so most recent is first
-  const updated = [newNote, ...existing];
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO notes
+      (id, originalText, rewrittenText, createdAt, wordCountOriginal, wordCountRewritten)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    newNote.id,
+    newNote.originalText,
+    newNote.rewrittenText,
+    newNote.createdAt,
+    newNote.wordCountOriginal,
+    newNote.wordCountRewritten
+  );
 
-  await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(updated));
   return newNote;
 }
 
@@ -105,8 +135,17 @@ export async function saveNote(input: SaveNoteInput): Promise<SavedNote> {
  * Returns null if not found.
  */
 export async function loadNoteById(id: string): Promise<SavedNote | null> {
-  const notes = await loadAllNotes();
-  return notes.find((n) => n.id === id) ?? null;
+  try {
+    const db = await getDatabase();
+    const row = await db.getFirstAsync<Record<string, unknown>>(
+      'SELECT * FROM notes WHERE id = ?',
+      id
+    );
+    return row ? rowToNote(row) : null;
+  } catch (error) {
+    console.warn('[noteStorage] Failed to load note by id:', error);
+    return null;
+  }
 }
 
 /**
@@ -114,23 +153,29 @@ export async function loadNoteById(id: string): Promise<SavedNote | null> {
  * Returns true if the note was found and deleted, false otherwise.
  */
 export async function deleteNote(id: string): Promise<boolean> {
-  const notes = await loadAllNotes();
-  const filtered = notes.filter((n) => n.id !== id);
-
-  if (filtered.length === notes.length) {
-    // Note not found
+  try {
+    const db = await getDatabase();
+    const result = await db.runAsync(
+      'DELETE FROM notes WHERE id = ?',
+      id
+    );
+    return result.changes > 0;
+  } catch (error) {
+    console.warn('[noteStorage] Failed to delete note:', error);
     return false;
   }
-
-  await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(filtered));
-  return true;
 }
 
 /**
  * Delete all saved notes.
  */
 export async function deleteAllNotes(): Promise<void> {
-  await AsyncStorage.removeItem(NOTES_STORAGE_KEY);
+  try {
+    const db = await getDatabase();
+    await db.runAsync('DELETE FROM notes');
+  } catch (error) {
+    console.warn('[noteStorage] Failed to delete all notes:', error);
+  }
 }
 
 /**
@@ -142,63 +187,104 @@ export async function updateNote(
   id: string,
   updates: UpdateNoteInput
 ): Promise<SavedNote | null> {
-  const notes = await loadAllNotes();
-  const index = notes.findIndex((n) => n.id === id);
+  try {
+    const db = await getDatabase();
 
-  if (index === -1) {
-    console.warn('[noteStorage] updateNote: note not found:', id);
-    return null;
-  }
+    // Load the existing note first
+    const existingRow = await db.getFirstAsync<Record<string, unknown>>(
+      'SELECT * FROM notes WHERE id = ?',
+      id
+    );
 
-  const existing = notes[index];
-  const updatedNote: SavedNote = {
-    ...existing,
-    originalText:
+    if (!existingRow) {
+      console.warn('[noteStorage] updateNote: note not found:', id);
+      return null;
+    }
+
+    const existing = rowToNote(existingRow);
+
+    const newOriginalText =
       updates.originalText !== undefined
         ? updates.originalText
-        : existing.originalText,
-    rewrittenText:
+        : existing.originalText;
+    const newRewrittenText =
       updates.rewrittenText !== undefined
         ? updates.rewrittenText
-        : existing.rewrittenText,
-    wordCountOriginal:
+        : existing.rewrittenText;
+    const newWordCountOriginal =
       updates.originalText !== undefined
         ? countWords(updates.originalText)
-        : existing.wordCountOriginal,
-    wordCountRewritten:
+        : existing.wordCountOriginal;
+    const newWordCountRewritten =
       updates.rewrittenText !== undefined
         ? countWords(updates.rewrittenText)
-        : existing.wordCountRewritten,
-  };
+        : existing.wordCountRewritten;
 
-  const updatedNotes = [...notes];
-  updatedNotes[index] = updatedNote;
+    await db.runAsync(
+      `UPDATE notes
+       SET originalText = ?,
+           rewrittenText = ?,
+           wordCountOriginal = ?,
+           wordCountRewritten = ?
+       WHERE id = ?`,
+      newOriginalText,
+      newRewrittenText,
+      newWordCountOriginal,
+      newWordCountRewritten,
+      id
+    );
 
-  await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(updatedNotes));
-  return updatedNote;
+    return {
+      ...existing,
+      originalText: newOriginalText,
+      rewrittenText: newRewrittenText,
+      wordCountOriginal: newWordCountOriginal,
+      wordCountRewritten: newWordCountRewritten,
+    };
+  } catch (error) {
+    console.warn('[noteStorage] Failed to update note:', error);
+    return null;
+  }
 }
 
 /**
  * Get the total count of saved notes.
  */
 export async function getNoteCount(): Promise<number> {
-  const notes = await loadAllNotes();
-  return notes.length;
+  try {
+    const db = await getDatabase();
+    const result = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM notes'
+    );
+    return result?.count ?? 0;
+  } catch (error) {
+    console.warn('[noteStorage] Failed to get note count:', error);
+    return 0;
+  }
 }
 
 /**
  * Search notes by text content (case-insensitive).
  * Searches both original and rewritten text.
+ * Uses SQLite LIKE for efficient server-side filtering.
  */
 export async function searchNotes(query: string): Promise<SavedNote[]> {
   if (!query.trim()) return loadAllNotes();
 
-  const notes = await loadAllNotes();
-  const lowerQuery = query.toLowerCase();
-
-  return notes.filter(
-    (note) =>
-      note.originalText.toLowerCase().includes(lowerQuery) ||
-      note.rewrittenText.toLowerCase().includes(lowerQuery)
-  );
+  try {
+    const db = await getDatabase();
+    const pattern = `%${query}%`;
+    const rows = await db.getAllAsync<Record<string, unknown>>(
+      `SELECT * FROM notes
+       WHERE originalText LIKE ? COLLATE NOCASE
+          OR rewrittenText LIKE ? COLLATE NOCASE
+       ORDER BY createdAt DESC`,
+      pattern,
+      pattern
+    );
+    return rows.map(rowToNote);
+  } catch (error) {
+    console.warn('[noteStorage] Failed to search notes:', error);
+    return [];
+  }
 }

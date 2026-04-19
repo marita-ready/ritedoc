@@ -19,6 +19,7 @@
     "expo-file-system": "~17.0.1",
     "expo-haptics": "^55.0.14",
     "expo-secure-store": "~13.0.2",
+    "expo-sqlite": "^55.0.15",
     "expo-status-bar": "~1.12.1",
     "llama.rn": "^0.12.0-rc.9",
     "react": "18.2.0",
