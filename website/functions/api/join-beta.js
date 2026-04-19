@@ -1,14 +1,6 @@
 export async function onRequestPost(context) {
   try {
-    const { request, env } = context;
-    const body = await request.json();
-
-    if (!body.email) {
-      return new Response(
-        JSON.stringify({ error: "Email is required" }),
-        { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
-      );
-    }
+    const { env } = context;
 
     const apiKey = env.BREVO_API_KEY;
     if (!apiKey) {
@@ -25,9 +17,9 @@ export async function onRequestPost(context) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email: body.email,
+        email: "test123@example.com",
         attributes: {
-          FIRSTNAME: body.name || ""
+          FIRSTNAME: "Test"
         },
         updateEnabled: true
       })
@@ -43,17 +35,5 @@ export async function onRequestPost(context) {
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
-    );
-  }
-}
+      { status: 500, headers: { "Content-Type": "
 
-export async function onRequestOptions() {
-  return new Response(null, {
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    }
-  });
-}
