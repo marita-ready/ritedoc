@@ -1,53 +1,76 @@
 /**
  * RiteDoc Mobile App — Root Component
  *
- * Activation gate: checks local storage on startup.
- * - If activated → show Home dashboard with stack navigation
- * - If not activated → show CodeEntryScreen (needs internet for one call)
+ * Navigation architecture:
  *
- * After activation, the user lands on the Home dashboard and can navigate
- * to Write Note, Rewrite Result, Saved Notes, and Settings screens via
- * the stack navigator.
+ *   AppErrorBoundary
+ *     └─ AppContent
+ *         ├─ (loading)       → branded splash card
+ *         ├─ (not_activated) → CodeEntryScreen (outside nav)
+ *         └─ (activated)     → NavigationContainer
+ *                                └─ RootStack (native stack, headerless)
+ *                                    ├─ MainTabs (bottom tab navigator)
+ *                                    │   ├─ Home     (house icon)
+ *                                    │   ├─ Write    (hero pencil icon, centre)
+ *                                    │   └─ Settings (gear icon)
+ *                                    ├─ RewriteResult  (push on top of tabs)
+ *                                    └─ ViewSavedNote  (push on top of tabs)
  *
- * This mirrors the desktop app's offline licence activation model.
+ * The tab bar is visible on Home, Write, and Settings.
+ * RewriteResult and ViewSavedNote push on top and hide the tab bar.
  *
  * Splash screen:
- * - preventAutoHideAsync() is called immediately at module load
- * - hideAsync() is called once the activation check resolves
- * - This ensures the native splash screen covers the JS startup time
+ * - preventAutoHideAsync() at module load
+ * - hideAsync() after activation check resolves
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { isActivated } from './services/activation';
 import CodeEntryScreen from './screens/CodeEntryScreen';
 import OfflineBanner from './components/OfflineBanner';
 import AppErrorBoundary from './components/AppErrorBoundary';
-import { registerForPushNotificationsAsync, setupNotificationListeners } from './services/pushNotifications';
+import {
+  registerForPushNotificationsAsync,
+  setupNotificationListeners,
+} from './services/pushNotifications';
 import HomeScreen from './screens/HomeScreen';
 import WriteNoteScreen from './screens/WriteNoteScreen';
 import RewriteResultScreen from './screens/RewriteResultScreen';
-import SavedNotesScreen from './screens/SavedNotesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
 // Keep the native splash screen visible until we explicitly hide it
-SplashScreen.preventAutoHideAsync().catch(() => {
-  // Ignore — splash screen may not be available in dev/Expo Go
-});
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const BRAND_BLUE = '#2563EB';
 
 // ─── Navigation types ────────────────────────────────────────────────
-export type MainStackParamList = {
-  Home: undefined;
-  /**
-   * WriteNote can optionally receive an existing note ID and its original
-   * text when launched in "edit" mode from a saved note. When editNoteId
-   * is present, saving the rewrite will update the existing note instead
-   * of creating a new one.
-   */
+
+/** Params for the bottom tab navigator */
+export type TabParamList = {
+  HomeTab: undefined;
+  WriteTab: undefined;
+  SettingsTab: undefined;
+};
+
+/** Params for the root stack (tabs + overlay screens) */
+export type RootStackParamList = {
+  MainTabs: undefined;
   WriteNote:
     | undefined
     | {
@@ -57,7 +80,6 @@ export type MainStackParamList = {
   RewriteResult: {
     originalText: string;
     rewrittenText: string;
-    /** If set, saving will update this existing note instead of creating a new one */
     editNoteId?: string;
   };
   ViewSavedNote: {
@@ -65,13 +87,159 @@ export type MainStackParamList = {
     rewrittenText: string;
     noteId: string;
   };
-  SavedNotes: undefined;
-  Settings: undefined;
 };
 
-const Stack = createNativeStackNavigator<MainStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-// ─── App state ───────────────────────────────────────────────────────
+// ─── Tab bar icons (pure RN, no icon library) ────────────────────────
+
+/**
+ * Minimal SVG-style icons drawn with View + Text.
+ * Keeps the bundle small — no @expo/vector-icons dependency needed.
+ */
+function HomeIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <Text style={{ fontSize: size - 2, color, lineHeight: size }}>⌂</Text>
+  );
+}
+
+function WriteIcon({ color, size, isHero }: { color: string; size: number; isHero?: boolean }) {
+  if (isHero) {
+    return (
+      <View style={tabStyles.heroIconWrapper}>
+        <Text style={{ fontSize: size - 2, color: '#FFFFFF', lineHeight: size }}>
+          ✎
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <Text style={{ fontSize: size - 2, color, lineHeight: size }}>✎</Text>
+  );
+}
+
+function SettingsIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <Text style={{ fontSize: size - 2, color, lineHeight: size }}>⚙</Text>
+  );
+}
+
+// ─── Custom tab bar button for the hero Write tab ────────────────────
+
+function WriteTabButton({ children, onPress, accessibilityState }: BottomTabBarButtonProps) {
+  return (
+    <TouchableOpacity
+      style={tabStyles.heroButton}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityState={accessibilityState}
+    >
+      <View style={tabStyles.heroCircle}>{children}</View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Tab Navigator ───────────────────────────────────────────────────
+
+function MainTabs({ setAppState }: { setAppState: (s: AppState) => void }) {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: BRAND_BLUE,
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginBottom: Platform.OS === 'ios' ? 0 : 4,
+        },
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingTop: 6,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="HomeTab"
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => <HomeIcon color={color} size={size} />,
+        }}
+      >
+        {({ navigation }: { navigation: CompositeNavigationProp<BottomTabNavigationProp<TabParamList, 'HomeTab'>, NativeStackNavigationProp<RootStackParamList>> }) => (
+          <HomeScreen
+            onNavigate={(screen) => {
+              if (screen === 'WriteNote') {
+                navigation.navigate('WriteTab');
+              } else if (screen === 'Settings') {
+                navigation.navigate('SettingsTab');
+              } else {
+                // For any other screen names, try navigating via root stack
+                (navigation as any).navigate(screen);
+              }
+            }}
+          />
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="WriteTab"
+        options={{
+          tabBarLabel: 'Write',
+          tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
+            <WriteIcon color={color} size={size} isHero={focused} />
+          ),
+          tabBarButton: (props: BottomTabBarButtonProps) => <WriteTabButton {...props} />,
+        }}
+      >
+        {({ navigation }: { navigation: CompositeNavigationProp<BottomTabNavigationProp<TabParamList, 'WriteTab'>, NativeStackNavigationProp<RootStackParamList>> }) => (
+          <WriteNoteScreen
+            onGoBack={() => navigation.navigate('HomeTab')}
+            onNavigateToResult={(originalText, rewrittenText, editNoteId) =>
+              (navigation as any).navigate('RewriteResult', {
+                originalText,
+                rewrittenText,
+                ...(editNoteId ? { editNoteId } : {}),
+              })
+            }
+          />
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="SettingsTab"
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <SettingsIcon color={color} size={size} />
+          ),
+        }}
+      >
+        {() => (
+          <SettingsScreen
+            onGoBack={() => {}}
+            onDeactivated={() => setAppState('not_activated')}
+          />
+        )}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+}
+
+// ─── Root Stack (tabs + overlay screens) ─────────────────────────────
+
 type AppState = 'loading' | 'not_activated' | 'activated';
 
 function AppContent() {
@@ -80,10 +248,8 @@ function AppContent() {
   useEffect(() => {
     checkActivation();
 
-    // Initialize push notifications
     registerForPushNotificationsAsync();
     const cleanupListeners = setupNotificationListeners();
-
     return () => cleanupListeners();
   }, []);
 
@@ -92,17 +258,13 @@ function AppContent() {
       const activated = await isActivated();
       setAppState(activated ? 'activated' : 'not_activated');
     } catch {
-      // If we can't read activation state, treat as not activated
       setAppState('not_activated');
     } finally {
-      // Hide the native splash screen once we know the app state
-      await SplashScreen.hideAsync().catch(() => {
-        // Ignore — splash screen may not be available in dev/Expo Go
-      });
+      await SplashScreen.hideAsync().catch(() => {});
     }
   };
 
-  // ── Loading splash (shown briefly between JS load and activation check) ──
+  // ── Loading splash ──────────────────────────────────────────────────
   if (appState === 'loading') {
     return (
       <View style={styles.loadingContainer}>
@@ -112,7 +274,7 @@ function AppContent() {
           </View>
           <ActivityIndicator
             size="large"
-            color="#2563EB"
+            color={BRAND_BLUE}
             style={styles.loadingSpinner}
           />
           <Text style={styles.loadingMessage}>Starting up…</Text>
@@ -134,26 +296,24 @@ function AppContent() {
     );
   }
 
-  // ── Activated → main app with navigation ────────────────────────────
+  // ── Activated → tab bar + stack overlay ─────────────────────────────
   return (
     <SafeAreaProvider>
       <OfflineBanner />
       <NavigationContainer>
-        <Stack.Navigator
+        <RootStack.Navigator
           screenOptions={{
             headerShown: false,
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="Home">
-            {({ navigation }) => (
-              <HomeScreen
-                onNavigate={(screen) => navigation.navigate(screen)}
-              />
-            )}
-          </Stack.Screen>
+          {/* Tab navigator as the main screen */}
+          <RootStack.Screen name="MainTabs">
+            {() => <MainTabs setAppState={setAppState} />}
+          </RootStack.Screen>
 
-          <Stack.Screen name="WriteNote">
+          {/* Standalone WriteNote for edit-mode (launched from saved note) */}
+          <RootStack.Screen name="WriteNote">
             {({ navigation, route }) => (
               <WriteNoteScreen
                 initialText={route.params?.initialText}
@@ -168,9 +328,10 @@ function AppContent() {
                 }
               />
             )}
-          </Stack.Screen>
+          </RootStack.Screen>
 
-          <Stack.Screen name="RewriteResult">
+          {/* Rewrite result — pushes on top of tabs, hides tab bar */}
+          <RootStack.Screen name="RewriteResult">
             {({ navigation, route }) => (
               <RewriteResultScreen
                 originalText={route.params.originalText}
@@ -179,34 +340,15 @@ function AppContent() {
                 onGoBack={() => navigation.goBack()}
                 onEditOriginal={() => navigation.goBack()}
                 onWriteAnother={() => {
-                  // Pop back to Home, then push a fresh WriteNote
+                  // Pop all the way back to tabs, landing on Write tab
                   navigation.popToTop();
-                  navigation.navigate('WriteNote');
                 }}
               />
             )}
-          </Stack.Screen>
+          </RootStack.Screen>
 
-          <Stack.Screen name="SavedNotes">
-            {({ navigation }) => (
-              <SavedNotesScreen
-                onGoBack={() => navigation.goBack()}
-                onWriteNote={() => {
-                  navigation.goBack();
-                  navigation.navigate('WriteNote');
-                }}
-                onViewNote={(originalText, rewrittenText) =>
-                  navigation.navigate('ViewSavedNote', {
-                    originalText,
-                    rewrittenText,
-                  })
-                }
-              />
-            )}
-          </Stack.Screen>
-
-          {/* Reuse RewriteResultScreen for viewing saved notes */}
-          <Stack.Screen name="ViewSavedNote">
+          {/* View a saved note (reuses RewriteResultScreen) */}
+          <RootStack.Screen name="ViewSavedNote">
             {({ navigation, route }) => (
               <RewriteResultScreen
                 originalText={route.params.originalText}
@@ -215,7 +357,6 @@ function AppContent() {
                 isViewingSaved
                 onGoBack={() => navigation.goBack()}
                 onEditOriginal={() => {
-                  // Launch WriteNote in edit mode with the original text
                   navigation.navigate('WriteNote', {
                     editNoteId: route.params.noteId,
                     initialText: route.params.originalText,
@@ -223,21 +364,11 @@ function AppContent() {
                 }}
                 onWriteAnother={() => {
                   navigation.popToTop();
-                  navigation.navigate('WriteNote');
                 }}
               />
             )}
-          </Stack.Screen>
-
-          <Stack.Screen name="Settings">
-            {({ navigation }) => (
-              <SettingsScreen
-                onGoBack={() => navigation.goBack()}
-                onDeactivated={() => setAppState('not_activated')}
-              />
-            )}
-          </Stack.Screen>
-        </Stack.Navigator>
+          </RootStack.Screen>
+        </RootStack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );
@@ -252,10 +383,37 @@ export default function App() {
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────
+
+const tabStyles = StyleSheet.create({
+  heroButton: {
+    top: -14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: BRAND_BLUE,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: BRAND_BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  heroIconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#2563EB',
+    backgroundColor: BRAND_BLUE,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
@@ -277,7 +435,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#2563EB',
+    backgroundColor: BRAND_BLUE,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
