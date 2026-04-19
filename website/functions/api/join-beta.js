@@ -29,7 +29,6 @@ export async function onRequestPost(context) {
         attributes: {
           FIRSTNAME: body.name || ""
         },
-        listIds: [3],
         updateEnabled: true
       })
     });
@@ -58,4 +57,3 @@ export async function onRequestOptions() {
     }
   });
 }
-
