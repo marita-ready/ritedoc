@@ -39,9 +39,7 @@ const FEATURES_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332161367/9
 /* ── Constants ── */
 const STRIPE_LINK = "https://buy.stripe.com/cNibJ13wKdVc3AS9BqdIA00";
 const DEMO_LINK = "https://marita-ready.github.io/ritedoc/";
-// Set VITE_BREVO_API_KEY in your .env file (never commit the real key)
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY as string;
-const WAITLIST_LIST_ID = 3;
+
 
 const platforms = [
   "ShiftCare",
