@@ -12,6 +12,8 @@ export async function onRequestPost(context) {
     }
 
     const email = body.email;
+    const name = body.name || body.firstName || "";
+
     if (!email) {
       return new Response(
         JSON.stringify({ error: "Email is required" }),
@@ -27,6 +29,9 @@ export async function onRequestPost(context) {
       },
       body: JSON.stringify({
         email: email,
+        attributes: {
+          FIRSTNAME: name
+        },
         listIds: [3],
         updateEnabled: true
       })
