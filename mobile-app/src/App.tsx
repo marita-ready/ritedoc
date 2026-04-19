@@ -10,13 +10,19 @@
  * the stack navigator.
  *
  * This mirrors the desktop app's offline licence activation model.
+ *
+ * Splash screen:
+ * - preventAutoHideAsync() is called immediately at module load
+ * - hideAsync() is called once the activation check resolves
+ * - This ensures the native splash screen covers the JS startup time
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 import { isActivated } from './services/activation';
 import CodeEntryScreen from './screens/CodeEntryScreen';
 import OfflineBanner from './components/OfflineBanner';
@@ -27,6 +33,11 @@ import WriteNoteScreen from './screens/WriteNoteScreen';
 import RewriteResultScreen from './screens/RewriteResultScreen';
 import SavedNotesScreen from './screens/SavedNotesScreen';
 import SettingsScreen from './screens/SettingsScreen';
+
+// Keep the native splash screen visible until we explicitly hide it
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore — splash screen may not be available in dev/Expo Go
+});
 
 // ─── Navigation types ────────────────────────────────────────────────
 export type MainStackParamList = {
@@ -83,10 +94,15 @@ function AppContent() {
     } catch {
       // If we can't read activation state, treat as not activated
       setAppState('not_activated');
+    } finally {
+      // Hide the native splash screen once we know the app state
+      await SplashScreen.hideAsync().catch(() => {
+        // Ignore — splash screen may not be available in dev/Expo Go
+      });
     }
   };
 
-  // ── Loading splash ──────────────────────────────────────────────────
+  // ── Loading splash (shown briefly between JS load and activation check) ──
   if (appState === 'loading') {
     return (
       <View style={styles.loadingContainer}>
@@ -239,7 +255,7 @@ export default function App() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#F0F4FF',
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
@@ -250,11 +266,11 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     paddingHorizontal: 40,
     alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
     minWidth: 220,
   },
   loadingLogo: {
