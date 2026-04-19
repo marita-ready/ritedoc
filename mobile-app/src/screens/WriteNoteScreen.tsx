@@ -35,6 +35,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRewriter } from '../hooks/useRewriter';
+import ErrorBanner from '../components/ErrorBanner';
 
 const BRAND_BLUE = '#2563EB';
 
@@ -215,16 +216,12 @@ export default function WriteNoteScreen({
       </View>
 
       {/* Error banner */}
-      {error ? (
-        <TouchableOpacity
-          style={styles.errorBanner}
-          onPress={clearError}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.errorBannerText}>⚠ {error}</Text>
-          <Text style={styles.errorDismiss}>Tap to dismiss</Text>
-        </TouchableOpacity>
-      ) : null}
+      <ErrorBanner
+        message={error}
+        onDismiss={clearError}
+        actionLabel={error && (error.toLowerCase().includes('model') || error.toLowerCase().includes('load')) ? 'Retry' : undefined}
+        onAction={error && (error.toLowerCase().includes('model') || error.toLowerCase().includes('load')) ? handleRewrite : undefined}
+      />
 
       {/* Stats Bar */}
       <View style={styles.statsBar}>
@@ -415,27 +412,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     lineHeight: 24,
-  },
-
-  // Error banner
-  errorBanner: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorBannerText: {
-    fontSize: 13,
-    color: '#DC2626',
-    lineHeight: 18,
-  },
-  errorDismiss: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 4,
   },
 
   // Stats Bar

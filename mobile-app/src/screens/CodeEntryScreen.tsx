@@ -23,15 +23,40 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { verifyAccessCode } from '../services/api';
 import { saveActivation } from '../services/activation';
 import { getDeviceId } from '../utils/device';
+import ErrorBanner from '../components/ErrorBanner';
 
 interface Props {
   onActivated: () => void;
+}
+
+/**
+ * Map raw errors to user-friendly messages.
+ */
+function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const lower = msg.toLowerCase();
+
+  if (lower.includes('network') || lower.includes('fetch') || lower.includes('timeout')) {
+    return 'No internet connection. Please check your Wi-Fi or mobile data and try again.';
+  }
+  if (lower.includes('invalid') || lower.includes('not found') || lower.includes('404')) {
+    return 'That code doesn\'t look right. Double-check the code and try again.';
+  }
+  if (lower.includes('already') || lower.includes('used') || lower.includes('redeemed')) {
+    return 'This code has already been used. Contact your agency administrator for a new code.';
+  }
+  if (lower.includes('expired')) {
+    return 'This code has expired. Contact your agency administrator for a new code.';
+  }
+  if (lower.includes('500') || lower.includes('server')) {
+    return 'The server is temporarily unavailable. Please try again in a moment.';
+  }
+  return 'Verification failed. Please check your connection and try again.';
 }
 
 export default function CodeEntryScreen({ onActivated }: Props) {
@@ -79,8 +104,8 @@ export default function CodeEntryScreen({ onActivated }: Props) {
 
       // Notify parent — app is now activated
       onActivated();
-    } catch (err: any) {
-      setError(err.message || 'Verification failed. Please check your connection and try again.');
+    } catch (err) {
+      setError(friendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -92,6 +117,14 @@ export default function CodeEntryScreen({ onActivated }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="light" />
+
+      {/* Error Banner */}
+      <ErrorBanner
+        message={error}
+        onDismiss={() => setError(null)}
+        autoDismissMs={0}
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -133,14 +166,6 @@ export default function CodeEntryScreen({ onActivated }: Props) {
             />
           </View>
 
-          {/* Error message */}
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorIcon}>⚠</Text>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
           {/* Submit button */}
           <TouchableOpacity
             style={[styles.submitButton, loading ? styles.submitButtonDisabled : null]}
@@ -176,7 +201,6 @@ export default function CodeEntryScreen({ onActivated }: Props) {
 }
 
 const BRAND_BLUE = '#1a56db';
-const BRAND_BLUE_DARK = '#1e40af';
 
 const styles = StyleSheet.create({
   container: {
@@ -283,30 +307,6 @@ const styles = StyleSheet.create({
   codeInputError: {
     borderColor: '#ef4444',
     backgroundColor: '#fef2f2',
-  },
-
-  // Error
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#fef2f2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-  },
-  errorIcon: {
-    fontSize: 14,
-    color: '#ef4444',
-    marginRight: 8,
-    marginTop: 1,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#dc2626',
-    lineHeight: 20,
   },
 
   // Submit button

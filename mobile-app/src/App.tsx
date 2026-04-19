@@ -13,13 +13,14 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { isActivated } from './services/activation';
 import CodeEntryScreen from './screens/CodeEntryScreen';
 import OfflineBanner from './components/OfflineBanner';
+import AppErrorBoundary from './components/AppErrorBoundary';
 import { registerForPushNotificationsAsync, setupNotificationListeners } from './services/pushNotifications';
 import HomeScreen from './screens/HomeScreen';
 import WriteNoteScreen from './screens/WriteNoteScreen';
@@ -62,29 +63,47 @@ const Stack = createNativeStackNavigator<MainStackParamList>();
 // ─── App state ───────────────────────────────────────────────────────
 type AppState = 'loading' | 'not_activated' | 'activated';
 
-export default function App() {
+function AppContent() {
   const [appState, setAppState] = useState<AppState>('loading');
 
   useEffect(() => {
     checkActivation();
-    
+
     // Initialize push notifications
     registerForPushNotificationsAsync();
     const cleanupListeners = setupNotificationListeners();
-    
+
     return () => cleanupListeners();
   }, []);
 
   const checkActivation = async () => {
-    const activated = await isActivated();
-    setAppState(activated ? 'activated' : 'not_activated');
+    try {
+      const activated = await isActivated();
+      setAppState(activated ? 'activated' : 'not_activated');
+    } catch {
+      // If we can't read activation state, treat as not activated
+      setAppState('not_activated');
+    }
   };
 
   // ── Loading splash ──────────────────────────────────────────────────
   if (appState === 'loading') {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <View style={styles.loadingCard}>
+          <View style={styles.loadingLogo}>
+            <Text style={styles.loadingLogoText}>RD</Text>
+          </View>
+          <ActivityIndicator
+            size="large"
+            color="#2563EB"
+            style={styles.loadingSpinner}
+          />
+          <Text style={styles.loadingMessage}>Starting up…</Text>
+          <Text style={styles.loadingSubMessage}>
+            Checking your activation status
+          </Text>
+        </View>
       </View>
     );
   }
@@ -208,11 +227,63 @@ export default function App() {
   );
 }
 
+// Wrap the entire app in the error boundary
+export default function App() {
+  return (
+    <AppErrorBoundary>
+      <AppContent />
+    </AppErrorBoundary>
+  );
+}
+
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
+    backgroundColor: '#F0F4FF',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F4FF',
+    padding: 32,
+  },
+  loadingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 40,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
+    minWidth: 220,
+  },
+  loadingLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#2563EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  loadingLogoText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  loadingSpinner: {
+    marginBottom: 16,
+  },
+  loadingMessage: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  loadingSubMessage: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
 });
