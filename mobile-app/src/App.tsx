@@ -20,6 +20,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { isActivated } from './services/activation';
 import CodeEntryScreen from './screens/CodeEntryScreen';
 import OfflineBanner from './components/OfflineBanner';
+import { registerForPushNotificationsAsync, setupNotificationListeners } from './services/pushNotifications';
 import HomeScreen from './screens/HomeScreen';
 import WriteNoteScreen from './screens/WriteNoteScreen';
 import RewriteResultScreen from './screens/RewriteResultScreen';
@@ -66,6 +67,12 @@ export default function App() {
 
   useEffect(() => {
     checkActivation();
+    
+    // Initialize push notifications
+    registerForPushNotificationsAsync();
+    const cleanupListeners = setupNotificationListeners();
+    
+    return () => cleanupListeners();
   }, []);
 
   const checkActivation = async () => {

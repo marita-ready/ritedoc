@@ -32,6 +32,7 @@ import {
   type ActivationData,
 } from '../services/activation';
 import { modelManager, type ModelStatus } from '../services/llm/modelManager';
+import { getNotificationPermissionStatus } from '../services/pushNotifications';
 import {
   isModelAvailable,
   getModelFileSize,
@@ -64,11 +65,15 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
     sizeFormatted: null,
   });
   const [clearingCache, setClearingCache] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState<string>('Checking…');
 
   // ── Load data on mount ──────────────────────────────────────────
   useEffect(() => {
     loadActivation().then(setActivation);
     loadModelInfo();
+    getNotificationPermissionStatus().then(status => {
+      setNotificationStatus(status.charAt(0).toUpperCase() + status.slice(1));
+    });
   }, []);
 
   // ── Subscribe to model status changes ──────────────────────────
@@ -277,8 +282,9 @@ export default function SettingsScreen({ onGoBack, onDeactivated }: Props) {
               ? renderInfoRow('Activated', formatDate(activation.activatedAt))
               : null}
             {activation?.codeUsed
-              ? renderInfoRow('Code', activation.codeUsed, true, true)
+              ? renderInfoRow('Code', activation.codeUsed, false, true)
               : null}
+            {renderInfoRow('Notifications', notificationStatus, true)}
           </View>
         </View>
 
