@@ -1,7 +1,6 @@
 export async function onRequestPost(context) {
   try {
-    const { request, env } = context;
-    const body = await request.json();
+    const { env } = context;
 
     const apiKey = env.BREVO_API_KEY;
     if (!apiKey) {
@@ -11,30 +10,12 @@ export async function onRequestPost(context) {
       );
     }
 
-    const email = body.email;
-    const name = body.name || body.firstName || "";
-
-    if (!email) {
-      return new Response(
-        JSON.stringify({ error: "Email is required" }),
-        { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
-      );
-    }
-
-    const response = await fetch("https://api.brevo.com/v3/contacts", {
-      method: "POST",
+    const response = await fetch("https://api.brevo.com/v3/contacts/lists", {
+      method: "GET",
       headers: {
         "api-key": apiKey,
         "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: email,
-        attributes: {
-          FIRSTNAME: name
-        },
-        listIds: [3],
-        updateEnabled: true
-      })
+      }
     });
 
     const data = await response.json();
